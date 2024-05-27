@@ -39,13 +39,15 @@ export const App: FC = () => {
       </header>
       <section className="books-container">
         <section className="en-book-container">
-          <FlipBook className="en-book" pages={pages} />
+          <FlipBook className="en-book" pages={pages} debug={true} />
         </section>
         <section className="he-book-container">
           <FlipBook
             className="he-book"
             pages={pages}
             pageSemantics={hePageSemantics}
+            debug={true}
+            direction="rtl"
           />
         </section>
       </section>

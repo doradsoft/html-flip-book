@@ -33,12 +33,12 @@ class FlipBook {
     return this.direction === "ltr";
   }
   private get isClosed(): boolean {
-    return this.currentLeaves[1] === undefined;
+    return !this.currentOrTurningLeaves[0];
   }
   private get isClosedInverted(): boolean {
-    return this.currentOrTurningLeaves[1] === undefined;
+    return !this.currentLeaves[1];
   }
-  private get currentLeaves(): [Leaf, Leaf | undefined] {
+  private get currentLeaves(): [Leaf | undefined, Leaf | undefined] {
     let secondLeafIndex = -1;
     for (let i = this.leaves.length - 1; i >= 0; i--) {
       const leaf = this.leaves[i];
@@ -48,11 +48,13 @@ class FlipBook {
       }
     }
     return secondLeafIndex == -1
-      ? [this.leaves[0], undefined]
+      ? [undefined, this.leaves[0]]
+      : secondLeafIndex == this.leaves.length
+      ? [this.leaves[secondLeafIndex - 1], undefined]
       : [this.leaves[secondLeafIndex - 1], this.leaves[secondLeafIndex]];
   }
 
-  private get currentOrTurningLeaves(): [Leaf, Leaf | undefined] {
+  private get currentOrTurningLeaves(): [Leaf | undefined, Leaf | undefined] {
     let secondLeafIndex = -1;
     for (let i = this.leaves.length - 1; i >= 0; i--) {
       const leaf = this.leaves[i];
@@ -62,7 +64,9 @@ class FlipBook {
       }
     }
     return secondLeafIndex == -1
-      ? [this.leaves[0], undefined]
+      ? [undefined, this.leaves[0]]
+      : secondLeafIndex == this.leaves.length
+      ? [this.leaves[secondLeafIndex - 1], undefined]
       : [this.leaves[secondLeafIndex - 1], this.leaves[secondLeafIndex]];
   }
 
@@ -75,7 +79,7 @@ class FlipBook {
     this.onPageChanged = options.onPageChanged;
   }
 
-  initialize(selector: string) {
+  render(selector: string, debug = false) {
     const bookElement = document.querySelector(selector);
     if (!bookElement) {
       throw new Error(`Couldn't find container with selector: ${selector}`);
@@ -134,6 +138,29 @@ class FlipBook {
     hammer.on("panstart", this.onDragStart.bind(this));
     hammer.on("panmove", this.onDragUpdate.bind(this));
     hammer.on("panend", this.onDragEnd.bind(this));
+
+    if (debug) this.fillDebugBar();
+  }
+  private fillDebugBar() {
+    const debugBar = document.createElement("div");
+    debugBar.className = "flipbook-debug-bar";
+    this.bookElement?.appendChild(debugBar);
+    setInterval(() => {
+      // Populate debug bar with relevant information
+      debugBar.innerHTML = `
+          <div>Direction: ${this.isLTR ? "LTR" : "RTL"}</div>
+          <div>Current Leaf: ${
+            this.currentLeaf ? this.currentLeaf.index : "None"
+          }</div>
+          <div>Flip dir: ${this.flipDirection}</div>
+          <div>Flip Δ: ${this.flipDelta}</div>
+          <div>Current Leaf Flip Position: ${
+            this.currentLeaf?.flipPosition
+          }</div>
+          <div>Flipping: ${this.isDuringManualFlip}</div>
+          <div>Is During Auto Flip: ${this.isDuringAutoFlip}</div>
+        `;
+    }, 10);
   }
 
   private onDragStart(event: HammerInput) {
@@ -152,16 +179,20 @@ class FlipBook {
     this.isDuringManualFlip = true;
     try {
       const currentPos = event.center.x;
+
       this.flipDelta = this.isLTR
         ? this.flipStartingPos - currentPos
         : currentPos - this.flipStartingPos;
       const bookWidth = this.bookElement?.clientWidth ?? 0;
       if (Math.abs(this.flipDelta) > bookWidth) return;
-      console.log(this.flipDelta);
       if (this.flipDelta === 0) return;
+      console.log(this.flipDelta);
       this.flipDirection =
-        this.flipDirection ??
-        (this.flipDelta > 0 ? FlipDirection.Forward : FlipDirection.Backward);
+        this.flipDirection !== FlipDirection.None
+          ? this.flipDirection
+          : this.flipDelta > 0
+          ? FlipDirection.Forward
+          : FlipDirection.Backward;
       switch (this.flipDirection) {
         case FlipDirection.Forward:
           const posForward = this.flipDelta / bookWidth;
@@ -176,7 +207,8 @@ class FlipBook {
               this.currentLeaf = this.currentOrTurningLeaves[1]!;
             }
           }
-          this.currentLeaf.flipToPosition(posForward);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
+          this.currentLeaf!.efficientFlipToPosition(posForward, 1);
           break;
         case FlipDirection.Backward:
           const posBackward = 1 - Math.abs(this.flipDelta) / bookWidth;
@@ -190,7 +222,8 @@ class FlipBook {
               this.currentLeaf = this.currentOrTurningLeaves[0];
             }
           }
-          this.currentLeaf.flipToPosition(posBackward);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
+          this.currentLeaf!.efficientFlipToPosition(posBackward, 1);
           break;
       }
     } finally {

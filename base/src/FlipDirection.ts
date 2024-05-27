@@ -1,5 +1,5 @@
 export enum FlipDirection {
-  Forward,
-  Backward,
-  None,
+  Forward = "Forward",
+  Backward = "Backward",
+  None = "None",
 }

@@ -1,3 +1,5 @@
+import { throttle } from "throttle-debounce";
+
 export class Leaf {
   constructor(
     readonly index: number,
@@ -20,8 +22,7 @@ export class Leaf {
   get isLast(): boolean {
     return this.index === this.indexOf - 1;
   }
-  async flipToPosition(flipPosition: number) {
-    const duration = 800;
+  async flipToPosition(flipPosition: number, duration = 800) {
     const startTime = performance.now();
     console.log("Flipping to position", flipPosition);
     return new Promise<void>((resolve) => {
@@ -37,5 +38,9 @@ export class Leaf {
       };
       requestAnimationFrame(animateFlip);
     });
+  }
+
+  async efficientFlipToPosition(flipPosition: number, duration = 1) {
+    return throttle(1, this.flipToPosition.bind(this))(flipPosition, duration);
   }
 }
