@@ -1,4 +1,4 @@
-import { AspectRatio, AspectRatioImpl } from "./AspectRatio";
+import { AspectRatio, AspectRatioImpl } from "./aspect-ratio";
 
 export class Size {
   aspectRatio: AspectRatioImpl;

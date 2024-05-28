@@ -2,11 +2,11 @@ import "./pages.scss";
 import "./flipbook.scss";
 import { PageSemantics } from "./page-semantics";
 import Hammer from "hammerjs";
-import { Leaf } from "./Leaf";
-import { FlipBookOptions } from "./FlipBookOptions";
-import { FlipDirection } from "./FlipDirection";
-import { AspectRatio } from "./AspectRatio";
-import { Size } from "./Size";
+import { Leaf, FlipPosition } from "./leaf";
+import { FlipBookOptions } from "./flip-book-options";
+import { FlipDirection } from "./flip-direction";
+import { AspectRatio } from "./aspect-ratio";
+import { Size } from "./size";
 
 const FAST_DELTA = 500;
 class FlipBook {
@@ -186,7 +186,6 @@ class FlipBook {
       const bookWidth = this.bookElement?.clientWidth ?? 0;
       if (Math.abs(this.flipDelta) > bookWidth) return;
       if (this.flipDelta === 0) return;
-      console.log(this.flipDelta);
       this.flipDirection =
         this.flipDirection !== FlipDirection.None
           ? this.flipDirection
@@ -195,7 +194,7 @@ class FlipBook {
           : FlipDirection.Backward;
       switch (this.flipDirection) {
         case FlipDirection.Forward:
-          const posForward = this.flipDelta / bookWidth;
+          const posForward = (this.flipDelta / bookWidth) as FlipPosition;
           if (posForward > 1 || this.flipDelta < 0) {
             return;
           }
@@ -208,10 +207,11 @@ class FlipBook {
             }
           }
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
-          this.currentLeaf!.efficientFlipToPosition(posForward, 1);
+          this.currentLeaf!.efficientFlipToPosition(posForward);
           break;
         case FlipDirection.Backward:
-          const posBackward = 1 - Math.abs(this.flipDelta) / bookWidth;
+          const posBackward = (1 -
+            Math.abs(this.flipDelta) / bookWidth) as FlipPosition;
           if (posBackward < 0 || this.flipDelta > 0) {
             return;
           }
@@ -223,7 +223,7 @@ class FlipBook {
             }
           }
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
-          this.currentLeaf!.efficientFlipToPosition(posBackward, 1);
+          this.currentLeaf!.efficientFlipToPosition(posBackward);
           break;
       }
     } finally {
@@ -238,7 +238,7 @@ class FlipBook {
       return;
     }
     const ppsX = event.velocityX * 1000; // pixels per second
-    let flipTo: number;
+    let flipTo: FlipPosition;
     switch (this.flipDirection) {
       case FlipDirection.Forward:
         if (

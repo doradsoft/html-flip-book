@@ -1,5 +1,5 @@
 import { PageSemantics } from "./page-semantics";
-import { AspectRatio } from "./AspectRatio";
+import { AspectRatio } from "./aspect-ratio";
 
 export interface FlipBookOptions {
   totalPages: number;
