@@ -35,4 +35,14 @@ header {
 
 .en-page {
   background-color: white;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.en-page img {
+  max-width: 100%;
+}
+
+.en-page * {
+  overflow: auto;
 }
