@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Flipbook component for HTML",
   "type": "module",
-  "main": "dist/index-6TyY8yAK.js",
   "engines": {
     "node": "^22.x.x"
   },
@@ -16,7 +15,8 @@
   "license": "MIT",
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.2",

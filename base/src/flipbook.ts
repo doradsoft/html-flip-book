@@ -2,7 +2,7 @@ import "./pages.scss";
 import "./flipbook.scss";
 import { PageSemantics } from "./page-semantics";
 import Hammer from "hammerjs";
-import { Leaf, FlipPosition } from "./leaf";
+import { Leaf, FlipPosition, NOT_FLIPPED } from "./leaf";
 import { FlipBookOptions } from "./flip-book-options";
 import { FlipDirection } from "./flip-direction";
 import { AspectRatio } from "./aspect-ratio";
@@ -12,7 +12,7 @@ const FAST_DELTA = 500;
 class FlipBook {
   bookElement?: HTMLElement;
   private pageElements: HTMLElement[] = [];
-  private readonly totalPages: number;
+  private readonly pagesCount: number;
   private readonly leafAspectRatio: AspectRatio = { width: 2, height: 3 };
   private readonly coverAspectRatio: AspectRatio = {
     width: 2.15,
@@ -71,7 +71,7 @@ class FlipBook {
   }
 
   constructor(options: FlipBookOptions) {
-    this.totalPages = options.totalPages;
+    this.pagesCount = options.pagesCount;
     this.leafAspectRatio = options.leafAspectRatio || this.leafAspectRatio;
     this.coverAspectRatio = options.coverAspectRatio || this.coverAspectRatio;
     this.direction = options.direction || this.direction;
@@ -95,7 +95,7 @@ class FlipBook {
     }
     this.pageElements = Array.from(pageElements) as HTMLElement[];
     this.leaves.splice(0, this.leaves.length);
-    const leafCount = Math.ceil(this.totalPages / 2);
+    const leavesCount = Math.ceil(this.pagesCount / 2);
     const maxCoverSize = new Size(
       this.bookElement.clientWidth / 2,
       this.bookElement.clientHeight
@@ -117,7 +117,7 @@ class FlipBook {
       // pageElement.style.backfaceVisibility = "hidden";
       // for debugging
       pageElement.style.border = "1px solid black";
-      pageElement.style.zIndex = `${this.totalPages - pageIndex}`;
+      pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
       pageElement.dataset.pageIndex = pageIndex.toString();
       pageElement.dataset.pageSemanticName =
         this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
@@ -132,14 +132,16 @@ class FlipBook {
           this.isLTR ? `` : `-`
         }100%)`;
 
-        pageElement.style.transformOrigin = `${this.isLTR ? "right" : "left"}`;
         this.leaves[leafIndex] = new Leaf(
           leafIndex,
-          leafCount,
           [pageElement, undefined],
           // TODO: set turned based on initialized page
-          0,
-          this.isLTR
+          NOT_FLIPPED,
+          {
+            isLTR: this.isLTR,
+            leavesCount: leavesCount,
+            pagesCount: this.pagesCount,
+          }
         );
       } else {
         pageElement.style.transform = `scaleX(-1)translateX(${

@@ -4,18 +4,29 @@ import type { IntRange } from "type-fest";
 // number between 1 to infinity
 export type DegreesPerSecond = IntRange<1, typeof Infinity>;
 export type FlipPosition = IntRange<0, 2>;
-
+export const FLIPPED = true;
+export const NOT_FLIPPED = false;
 export class Leaf {
   private currentAnimation: Promise<void> | null = null;
   private targetFlipPosition: FlipPosition | null = null;
+  private wrappedFlipPosition: number;
 
   constructor(
     readonly index: number,
-    private readonly indexOf: number,
     readonly pages: [HTMLElement, HTMLElement | undefined],
-    private wrappedFlipPosition: FlipPosition,
-    private isLTR: boolean
-  ) {}
+    isFlipped: boolean,
+    private readonly bookProperties: {
+      isLTR: boolean;
+      pagesCount: number;
+      leavesCount: number;
+    }
+  ) {
+    this.wrappedFlipPosition = isFlipped ? 1 : 0;
+    // TODO: rethink this
+    // if(isFlipped) {
+    //   // this.flipToPosition(1);
+    // }
+  }
 
   get isTurned(): boolean {
     return this.flipPosition === 1;
@@ -30,7 +41,7 @@ export class Leaf {
     return this.index === 0;
   }
   get isLast(): boolean {
-    return this.index === this.indexOf - 1;
+    return this.index === this.bookProperties.leavesCount - 1;
   }
   set flipPosition(value: number) {
     this.wrappedFlipPosition = Math.max(0, Math.min(1, value)) as FlipPosition;
@@ -76,17 +87,18 @@ export class Leaf {
           currentFlipPosition + progress * (flipPosition - currentFlipPosition);
 
         this.pages.forEach((page, index) => {
+          const isLTR = this.bookProperties.isLTR;
           if (page) {
             const isOdd = (index % 2) + 1 === 1;
             const degrees = isOdd
-              ? this.isLTR
+              ? isLTR
                 ? newPosition > 0.5
                   ? 180 - newPosition * 180
                   : -newPosition * 180
                 : newPosition > 0.5
                 ? -(180 - newPosition * 180)
                 : newPosition * 180
-              : this.isLTR
+              : isLTR
               ? newPosition < 0.5
                 ? -newPosition * 180
                 : 180 - newPosition * 180
@@ -95,13 +107,7 @@ export class Leaf {
               : -(180 - newPosition * 180);
             const rotateY = `${degrees}deg`;
             const translateX = `${
-              isOdd
-                ? this.isLTR
-                  ? `100%`
-                  : `-100%`
-                : this.isLTR
-                ? `0px`
-                : `0px`
+              isOdd ? (isLTR ? `100%` : `-100%`) : isLTR ? `0px` : `0px`
             }`;
             const scaleX = isOdd
               ? newPosition > 0.5
@@ -110,12 +116,17 @@ export class Leaf {
               : newPosition < 0.5
               ? -1
               : 1;
-            // Apply the rotation
             page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
-            console.log(page.style.transform);
+            // console.log(page.style.transform);
             page.style.transformOrigin = isOdd
-              ? `${this.isLTR ? "left" : "right"}`
-              : `${this.isLTR ? "right" : "left"}`;
+              ? `${isLTR ? "left" : "right"}`
+              : `${isLTR ? "right" : "left"}`;
+            page.style.zIndex = `${
+              newPosition > 0.5
+                ? page.dataset.pageIndex
+                : this.bookProperties.pagesCount -
+                  (page.dataset.pageIndex as unknown as number)
+            }`;
           }
         });
 

@@ -20,7 +20,7 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
   const flipBook = useRef(
     new FlipBookBase({
       pageSemantics: pageSemantics,
-      totalPages: pages.length,
+      pagesCount: pages.length,
       direction: direction,
     })
   );
