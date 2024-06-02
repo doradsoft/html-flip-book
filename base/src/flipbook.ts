@@ -108,17 +108,20 @@ class FlipBook {
         this.coverAspectRatio.height
     );
     this.bookElement.style.perspective = `${
-      Math.min(leafSize.width, leafSize.height) * 2
+      Math.min(leafSize.width * 2, leafSize.height) * 2
     }px`;
     this.pageElements.forEach((pageElement, pageIndex) => {
       pageElement.style.width = `${leafSize.width}px`;
       pageElement.style.height = `${leafSize.height}px`;
-      pageElement.style.position = "absolute";
-      // pageElement.style.backfaceVisibility = "hidden";
-      // for debugging
-      pageElement.style.border = "1px solid black";
+
       pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
       pageElement.dataset.pageIndex = pageIndex.toString();
+      pageElement.style[this.isLTR ? "left" : "right"] = `${
+        (bookElement.clientWidth - 2 * leafSize.width) / 2
+      }px`;
+      pageElement.style.top = `${
+        (bookElement.clientHeight - leafSize.height) / 2
+      }px`;
       pageElement.dataset.pageSemanticName =
         this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
       pageElement.dataset.pageTitle =

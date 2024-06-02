@@ -1,7 +1,7 @@
 .flipbook {
   height: 100%;
   width: 100%;
-  perspective: 0;
+  // rendering shouldn't cause any overflow, so this is mostly for during flipping
   overflow: hidden;
 }
 

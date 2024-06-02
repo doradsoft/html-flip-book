@@ -32,11 +32,13 @@ header {
   direction: rtl;
   text-align: right;
 }
-
-.en-page {
+.en-page,
+.he-page {
   background-color: white;
   overflow-y: scroll;
   overflow-x: hidden;
+  border: 1px solid #00000056;
+  padding: 2%;
 }
 
 .en-page img {
