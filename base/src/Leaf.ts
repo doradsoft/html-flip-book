@@ -79,9 +79,17 @@ export class Leaf {
           if (page) {
             const isOdd = (index % 2) + 1 === 1;
             const degrees = isOdd
-              ? newPosition > 0.5
+              ? this.isLTR
+                ? newPosition > 0.5
+                  ? 180 - newPosition * 180
+                  : -newPosition * 180
+                : newPosition > 0.5
                 ? -(180 - newPosition * 180)
                 : newPosition * 180
+              : this.isLTR
+              ? newPosition < 0.5
+                ? -newPosition * 180
+                : 180 - newPosition * 180
               : newPosition < 0.5
               ? newPosition * 180
               : -(180 - newPosition * 180);
