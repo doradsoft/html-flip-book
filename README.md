@@ -4,7 +4,7 @@
 **Madatory for production**
 - [x] Horizontal flip direction - Both RTL and LTR
 - [x] Manual page flipping
-- [x] Automatic page flipping - based on velocity
+- [x] Automatic page flipping - based on velocity / based on progress
 - [x] Page flipping with mouse
 - [ ] Page flipping with touch
 - [ ] Toolbar
