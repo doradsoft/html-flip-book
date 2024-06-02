@@ -107,11 +107,17 @@ class FlipBook {
       (coverSize.height * this.leafAspectRatio.height) /
         this.coverAspectRatio.height
     );
+    this.bookElement.style.perspective = `${
+      Math.min(leafSize.width, leafSize.height) * 2
+    }px`;
     this.pageElements.forEach((pageElement, pageIndex) => {
       pageElement.style.width = `${leafSize.width}px`;
       pageElement.style.height = `${leafSize.height}px`;
+      pageElement.style.position = "absolute";
+      // pageElement.style.backfaceVisibility = "hidden";
       // for debugging
       pageElement.style.border = "1px solid black";
+      pageElement.style.zIndex = `${this.totalPages - pageIndex}`;
       pageElement.dataset.pageIndex = pageIndex.toString();
       pageElement.dataset.pageSemanticName =
         this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
@@ -122,14 +128,23 @@ class FlipBook {
       const isOddPage = (pageIndex + 1) % 2 === 1;
       pageElement.classList.add(isOddPage ? "odd" : "even");
       if (isOddPage) {
+        pageElement.style.transform = `translateX(${
+          this.isLTR ? `` : `-`
+        }100%)`;
+
+        pageElement.style.transformOrigin = `${this.isLTR ? "right" : "left"}`;
         this.leaves[leafIndex] = new Leaf(
           leafIndex,
           leafCount,
           [pageElement, undefined],
           // TODO: set turned based on initialized page
-          0
+          0,
+          this.isLTR
         );
       } else {
+        pageElement.style.transform = `scaleX(-1)translateX(${
+          this.isLTR ? `-` : ``
+        }100%)`;
         this.leaves[leafIndex].pages[1] = pageElement;
       }
     });
@@ -154,10 +169,9 @@ class FlipBook {
           }</div>
           <div>Flip dir: ${this.flipDirection}</div>
           <div>Flip Δ: ${this.flipDelta}</div>
-          <div>Current Leaf Flip Position: ${
-            this.currentLeaf?.flipPosition
-          }</div>
-          <div>Flipping: ${this.isDuringManualFlip}</div>
+          <div>Current Leaf Flip Position: ${this.currentLeaf?.flipPosition.toFixed(
+            3
+          )}</div>
           <div>Is During Auto Flip: ${this.isDuringAutoFlip}</div>
         `;
     }, 10);

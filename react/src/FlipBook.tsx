@@ -12,10 +12,10 @@ interface FlipBookWrapperProps {
 
 const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
   pages,
-  pageSemantics,
   className,
   debug = false,
   direction = "ltr", // Add the direction prop
+  pageSemantics = undefined,
 }) => {
   const flipBook = useRef(
     new FlipBookBase({

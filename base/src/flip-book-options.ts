@@ -7,6 +7,6 @@ export interface FlipBookOptions {
   coverAspectRatio?: AspectRatio;
   direction?: "rtl" | "ltr";
   padding?: number;
-  pageSemantics: PageSemantics;
+  pageSemantics?: PageSemantics;
   onPageChanged?: (pageIndex: number) => void;
 }

@@ -13,7 +13,8 @@ export class Leaf {
     readonly index: number,
     private readonly indexOf: number,
     readonly pages: [HTMLElement, HTMLElement | undefined],
-    private wrappedFlipPosition: FlipPosition
+    private wrappedFlipPosition: FlipPosition,
+    private isLTR: boolean
   ) {}
 
   get isTurned(): boolean {
@@ -74,6 +75,42 @@ export class Leaf {
         const newPosition =
           currentFlipPosition + progress * (flipPosition - currentFlipPosition);
 
+        this.pages.forEach((page, index) => {
+          if (page) {
+            const isOdd = (index % 2) + 1 === 1;
+            const degrees = isOdd
+              ? newPosition > 0.5
+                ? -(180 - newPosition * 180)
+                : newPosition * 180
+              : newPosition < 0.5
+              ? newPosition * 180
+              : -(180 - newPosition * 180);
+            const rotateY = `${degrees}deg`;
+            const translateX = `${
+              isOdd
+                ? this.isLTR
+                  ? `100%`
+                  : `-100%`
+                : this.isLTR
+                ? `0px`
+                : `0px`
+            }`;
+            const scaleX = isOdd
+              ? newPosition > 0.5
+                ? -1
+                : 1
+              : newPosition < 0.5
+              ? -1
+              : 1;
+            // Apply the rotation
+            page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+            console.log(page.style.transform);
+            page.style.transformOrigin = isOdd
+              ? `${this.isLTR ? "left" : "right"}`
+              : `${this.isLTR ? "right" : "left"}`;
+          }
+        });
+
         // Ensure the new position is within valid bounds [0, 1]
         this.flipPosition = Math.max(
           0,
@@ -81,9 +118,9 @@ export class Leaf {
         ) as FlipPosition;
 
         // Detailed log for debugging
-        console.log(
-          `Timestamp: ${timestamp}, Elapsed: ${elapsed}, Progress: ${progress}, Current Position: ${currentFlipPosition}, Requested Position: ${flipPosition}, New Position: ${this.flipPosition}`
-        );
+        // console.log(
+        //   `Timestamp: ${timestamp}, Elapsed: ${elapsed}, Progress: ${progress}, Current Position: ${currentFlipPosition}, Requested Position: ${flipPosition}, New Position: ${this.flipPosition}`
+        // );
 
         if (progress < 1) {
           requestAnimationFrame(step);
