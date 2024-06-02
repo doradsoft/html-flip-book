@@ -1,5 +1,5 @@
 
-*features*
+Features
 --------------------------------------------------
 **Madatory for production**
 - [x] Horizontal flip direction - Both RTL and LTR
@@ -19,7 +19,7 @@
 - [ ] Implement Vue component
 - [ ] Implement Angular component
 
-*Examples*
+Examples
 --------------------------------------------------
 **Madatory for production**
 - [x] English example
@@ -30,7 +30,7 @@
 - [ ] Implement Vue example
 - [ ] Implement Angular example
 
-*DevOps*
+DevOps
 --------------------------------------------------
 **Madatory for production**
 - [ ] Manual npm package
@@ -40,5 +40,5 @@
 - [ ] Auto build and deploy to github.io
 - [ ] Auto build and deploy to npm
 
-*Bugs*
+Bugs
 --------------------------------------------------
