@@ -6,7 +6,7 @@ Features
 - [x] Manual page flipping
 - [x] Automatic page flipping - based on velocity / based on progress
 - [x] Page flipping with mouse
-- [ ] Page flipping with touch
+- [x] Page flipping with touch
 - [ ] Toolbar
 --------------------------------------------------
 - [ ] Render on resize
@@ -18,7 +18,7 @@ Features
 - [ ] Vertical flip direction
 - [ ] Implement Vue component
 - [ ] Implement Angular component
-
+- [ ] Allow scrolling of an overflowed element within page on the opposite axis of the flip
 Examples
 --------------------------------------------------
 **Madatory for production**

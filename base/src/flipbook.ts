@@ -29,6 +29,7 @@ class FlipBook {
   private isDuringManualFlip = false;
   private flipDelta = 0;
   private isDuringAutoFlip = false;
+  touchStartingPos = { x: 0, y: 0 };
   private get isLTR(): boolean {
     return this.direction === "ltr";
   }
@@ -154,11 +155,19 @@ class FlipBook {
       }
     });
     const hammer = new Hammer(this.bookElement);
-
     hammer.on("panstart", this.onDragStart.bind(this));
     hammer.on("panmove", this.onDragUpdate.bind(this));
     hammer.on("panend", this.onDragEnd.bind(this));
-
+    this.bookElement.addEventListener(
+      "touchstart",
+      this.handleTouchStart.bind(this),
+      { passive: false }
+    );
+    this.bookElement.addEventListener(
+      "touchmove",
+      this.handleTouchMove.bind(this),
+      { passive: false }
+    );
     if (debug) this.fillDebugBar();
   }
   private fillDebugBar() {
@@ -183,6 +192,7 @@ class FlipBook {
   }
 
   private onDragStart(event: HammerInput) {
+    console.log("drag start");
     if (this.currentLeaf || this.isDuringAutoFlip) {
       this.flipDirection = FlipDirection.None;
       this.flipStartingPos = 0;
@@ -192,6 +202,7 @@ class FlipBook {
   }
 
   private onDragUpdate(event: HammerInput) {
+    console.log("drag update");
     if (this.isDuringAutoFlip || this.isDuringManualFlip) {
       return;
     }
@@ -251,6 +262,7 @@ class FlipBook {
   }
 
   private async onDragEnd(event: HammerInput) {
+    console.log("drag end");
     if (!this.currentLeaf || this.isDuringAutoFlip) {
       this.flipDirection = FlipDirection.None;
       this.flipStartingPos = 0;
@@ -290,6 +302,28 @@ class FlipBook {
     this.isDuringAutoFlip = false;
     this.currentLeaf = undefined;
   }
+
+  private handleTouchStart = (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      return;
+    }
+    const touch = e.touches[0];
+    this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
+  };
+
+  private handleTouchMove = (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      return;
+    }
+    const touch = e.touches[0];
+    const deltaX = touch.pageX - this.touchStartingPos.x;
+    const deltaY = touch.pageY - this.touchStartingPos.y;
+    // only allow vertical scrolling, as if allowing horizontal scrolling, it will interfere with the flip gesture (for touch devices)
+    // TODO: allow horizontal scrolling if the user is not trying to flip, say if is scrolling an overflowed element
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      e.preventDefault();
+    }
+  };
 
   jumpToPage(pageIndex: number) {
     if (this.onPageChanged) {
