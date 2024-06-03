@@ -1,6 +1,6 @@
 {
   "name": "html-flip-book-base",
-  "version": "1.0.0",
+  "version": "0.0.1-alpha.0",
   "description": "Flipbook component for HTML",
   "author": "DoradSoft",
   "type": "module",
