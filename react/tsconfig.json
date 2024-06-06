@@ -4,7 +4,7 @@
     "useDefineForClassFields": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -13,7 +13,17 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "*": ["./node_modules/*"],
+      "webpack": ["./node_modules/webpack"]
+    },
+    "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src/**/*.tsx", "webpack.config.ts"],
+  "exclude": ["node_modules"]
 }

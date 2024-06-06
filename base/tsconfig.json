@@ -17,14 +17,15 @@
     "alwaysStrict": true,
     "declaration": true,
     "declarationMap": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
-      "*": ["node_modules/*"],
-      "webpack": ["../node_modules/webpack"]
-    }
+      "*": ["./node_modules/*"],
+      "webpack": ["./node_modules/webpack"]
+    },
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["**/*.ts", "webpack.config.ts"],
   "exclude": ["node_modules"]
 }

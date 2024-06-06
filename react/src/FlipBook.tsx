@@ -41,4 +41,5 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
   );
 };
 
-export default FlipBookReact;
+export { FlipBookReact };
+export type { PageSemantics };

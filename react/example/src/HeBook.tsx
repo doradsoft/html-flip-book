@@ -1,5 +1,5 @@
 // HeBook.tsx
-import FlipBook from "../../src/FlipBook";
+import FlipBook from "html-flip-book-react";
 import { PageSemantics } from "flip-book";
 
 const hePages = Array.from({ length: 10 }, (_, index) => (
