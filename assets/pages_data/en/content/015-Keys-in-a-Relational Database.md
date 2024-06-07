@@ -1,6 +1,6 @@
 # Relational Keys- Keys in a Relational Database
 
-A database must be able to inhibit inconsistency occurring due to incorrect data. It must have certain identified attributes in relations to uniquely distinguish the tuples. No two tuples in a relation should have same value for all attributes since it will lead to duplicity of data. duplicity of data leads to inconsistency . Relational database systems have the concept of Relational Keys to distinguish between different records.   
+A database must be able to inhibit inconsistency occurring due to incorrect data. It must have certain identified attributes in relations to uniquely distinguish the tuples. No two tuples in a relation should have same value for all attributes since it will lead to duplicity of data. duplicity of data leads to inconsistency . Relational database systems have the concept of Relational Keys to distinguish between different records.
 
 ## Types of Relational Keys
 ### *Super Keys*

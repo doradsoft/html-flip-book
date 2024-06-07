@@ -1,4 +1,4 @@
-# Essential MySQL Functions 
+# Essential MySQL Functions
 
 MySQL has many built-in functions. We will covering some important most used built-in functions; for a complete list refer to the online MySQL Reference Manual (http://dev.mysql.com/doc/).
 
@@ -81,7 +81,7 @@ SELECT RIGHT('Kindergarten', 6)
 garten
 
 ```sql
-SELECT SUBSTRING('Kindergarten', 3, 5) 
+SELECT SUBSTRING('Kindergarten', 3, 5)
    ```
 nderg
 
@@ -147,12 +147,12 @@ October 22nd 2021
 ```sql
 SELECT DATE_FORMAT(NOW(), '%m %d %y')
    ```
-10 22 21 
+10 22 21
 
 ```sql
 SELECT DATE_FORMAT(NOW(), '%m %D %y')
    ```
-10 22nd 21 
+10 22nd 21
 
 ```sql
 SELECT TIME_FORMAT(NOW(), '%H %i %p')
@@ -188,4 +188,3 @@ SELECT DATEDIFF('2021-09-08 09:00', '2021-07-07 17:00') -- It will return the di
 SELECT TIME_TO_SEC('09:00') - TIME_TO_SEC('09:02')
    ```
 -120
-

@@ -118,9 +118,9 @@ The output will be all of your users and all of the posts side by side:
 
 As mentioned above, you will highly unlikely run a `CROSS` join for two whole tables in a real-life scenario. If the tables have tens of thousands of rows, an unqualified CROSS JOIN can take minutes to complete.
 
-You would most likely use one of the following with a specific condition. 
+You would most likely use one of the following with a specific condition.
 
-In MySQL, CROSS JOIN and INNER JOIN are equivalent to JOIN. 
+In MySQL, CROSS JOIN and INNER JOIN are equivalent to JOIN.
 
 ## INNER JOIN
 
@@ -190,7 +190,7 @@ To get the null values as well, you would need to use an outer join.
     `SELECT mobile.model, laptop.model
     FROM mobile, laptop
     WHERE mobile.price = laptop.price;`
-    
+
 3.  **Natural Join ( ⋈ )** :- Natural join does not use any comparison operator. It does not concatenate the way a Cartesian product does. \
     We can perform a Natural Join only if at least one standard column exists between two tables. In addition, the column must have the same name and domain. \
     \
@@ -199,7 +199,7 @@ To get the null values as well, you would need to use an outer join.
 
 ## LEFT JOIN
 
-Using the `LEFT OUTER` join, you would get all rows from the first table that you've specified, and if there are no associated records within the second table, you will get a `NULL` value. 
+Using the `LEFT OUTER` join, you would get all rows from the first table that you've specified, and if there are no associated records within the second table, you will get a `NULL` value.
 
 In our case, we have a user called `graisi`, which is not associated with a specific post. As you can see from the output from the previous query, the `graisi` user was not present there. To show that user, even though it does not have an associated post with it, you could use a `LEFT OUTER` join:
 
@@ -271,7 +271,7 @@ Joins can also be limited with WHERE conditions. For instance, in the preceding 
 
 ```sql
 SELECT *
-FROM users 
+FROM users
 RIGHT JOIN posts
 ON users.id = posts.user_id
 WHERE username = 'bobby';

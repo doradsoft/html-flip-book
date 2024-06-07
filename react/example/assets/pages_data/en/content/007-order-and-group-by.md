@@ -140,4 +140,3 @@ The output, in this case, would be:
 The `GROUP BY` clause grouped the identical usernames, calculated their counts and filtered out the groups using the `HAVING` clause.
 
 > **NOTE** :- _The WHERE clause places conditions on the selected columns, whereas the HAVING clause places conditions on groups created by the GROUP BY clause._
-

@@ -47,7 +47,7 @@ BACKUP_DIR=/home/your_user/backup
 ##
 
 if [ ! -d ${BACKUP_DIR} ]; then
-  mkdir -p ${BACKUP_DIR} 
+  mkdir -p ${BACKUP_DIR}
 fi
 
 ##

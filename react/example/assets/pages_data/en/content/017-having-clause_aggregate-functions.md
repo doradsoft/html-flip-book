@@ -21,7 +21,7 @@ ORDER BY column_name(s);
 ## Aggregate Functions
  - SQL aggregation is the task of collecting a set of values to return a single value.
  - An aggregate function is a function where the values of multiple rows are grouped together as input on certain criteria to form a single value of more significant meaning.
-    
+
 ## Aggregate Functions Examples
 
 Suppose this are the table given to us
@@ -48,8 +48,8 @@ Suppose this are the table given to us
 | Sun Glasses  |  1350 | ABC           |
 
 
-### AVG function 
-  
+### AVG function
+
   Calculates `average` of the given column of values
 
 ```sql
@@ -63,7 +63,7 @@ GROUP BY customer_name;
 |    1627.5000 | Sanskriti     |
 
 ### SUM function
-  
+
    Calculates `sum` of values of given column.
 
 ```sql
@@ -76,7 +76,7 @@ GROUP BY customer_name;
 |------------|---------------|
 |       6510 | Sanskriti     |
 
-### COUNT function 
+### COUNT function
 
   Gives `count` of entries/ values in given column.
 
@@ -105,7 +105,7 @@ GROUP BY customer_name;
 |             5000 | Sanskriti     |
 
 ### MIN function
-  
+
    Return `minimum` value from the number of values in the column.
 
 ```sql
@@ -129,7 +129,7 @@ GROUP BY class
 HAVING COUNT(class) > 2;
 ```
 
-Above query gives number of students in a class `having` number of students > 2 
+Above query gives number of students in a class `having` number of students > 2
 
 | strength | class |
 |----------|-------|
@@ -182,5 +182,3 @@ Calculates `SUM` of price and returns customer name and sum > 1000.
 | customer_name | Total_Purchase |
 |---------------|----------------|
 | Sanskriti     |           6510 |
-
-

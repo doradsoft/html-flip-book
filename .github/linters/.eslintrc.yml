@@ -55,7 +55,7 @@ rules:
   '@typescript-eslint/explicit-function-return-type':
     - error
     - allowExpressions: true
-  '@typescript-eslint/func-call-spacing': 
+  '@typescript-eslint/func-call-spacing':
     - error
     - never
   '@typescript-eslint/no-array-constructor': error
@@ -80,7 +80,7 @@ rules:
   '@typescript-eslint/promise-function-async': error
   '@typescript-eslint/require-array-sort-compare': error
   '@typescript-eslint/restrict-plus-operands': error
-  '@typescript-eslint/semi': 
+  '@typescript-eslint/semi':
     - error
     - never
   '@typescript-eslint/space-before-function-paren': off

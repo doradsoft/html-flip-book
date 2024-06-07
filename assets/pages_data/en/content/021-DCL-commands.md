@@ -43,7 +43,7 @@ Output:
 - Lets start with `GRANT` command:
 
 ```sql
-  GRANT INSERT ON purchase TO 'Sanskriti'@'localhost'; 
+  GRANT INSERT ON purchase TO 'Sanskriti'@'localhost';
 ```
 Output:
 ```
@@ -54,7 +54,7 @@ Description In above command we have granted user Sanskriti priviledge to `Inser
 
 - Now if I login as Sanskriti and try to run `Select` statement as given below what should happen?
 
-```sql 
+```sql
 SELECT * FROM purchase;
 ```
 
@@ -65,7 +65,7 @@ Output:
 Yup as expected it gives error because we have granted insert operation to Sanskriti.
 
 - So lets try inserting data to purchase table:
-```sql  
+```sql
 INSERT INTO purchase values("Laptop", 100000, "Sanskriti");
 ```
 
@@ -99,7 +99,7 @@ As you can see, the row is inserted.
 
 - Now lets try `Revoke` command:
 
-```sql 
+```sql
 REVOKE INSERT ON purchase FROM 'Sanskriti'@'localhost';
 ```
 
@@ -112,7 +112,7 @@ Now we have revoked the insert priviledge from Sanskriti.
 
 - If Sanskriti runs insert statement it should give error:
 
-```sql 
+```sql
 INSERT INTO purchase values("Laptop", 100000, "Sanskriti");
 ```
 

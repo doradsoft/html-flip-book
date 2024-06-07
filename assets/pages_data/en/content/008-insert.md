@@ -66,7 +66,7 @@ That way, you will add 5 new entries in your `users` table with a single `INSERT
 In the previous section, we have discussed how we can insert multiple records using a single INSERT query.
 But sometimes there are cases where we need to insert multiple records which are residing in some other table.
 
-In this section, we are going to learn how we can insert multiple records at once using a single INSERT query. 
+In this section, we are going to learn how we can insert multiple records at once using a single INSERT query.
 
 Consider a table, say `prospect_users`, which stores the information of the people who want to become the users of our service, but they are not yet actual users.
 
