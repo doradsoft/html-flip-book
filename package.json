@@ -14,6 +14,7 @@
     "node": ">=22.2.0"
   },
   "scripts": {
+    "update": "npx npm-check-updates --peer --deep -u",
     "bundle": "npm run format:write && npm run package",
     "ci-test": "npx jest --all --ci --coverage --coverageDirectory ./coverage",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
@@ -23,7 +24,7 @@
     "package": "npx ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "package:watch": "npm run package -- --watch",
     "test": "npx jest --coverage --coverageDirectory ./coverage",
-    "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
+    "all": "npm run update && npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
   },
   "author": "DoradSoft",
   "license": "MIT",
