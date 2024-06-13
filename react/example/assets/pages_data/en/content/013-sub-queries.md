@@ -18,7 +18,7 @@
 
 **_Subqueries with the `SELECT` Statement_**:
 
-Consider the CUSTOMERS table having the following records 
+Consider the CUSTOMERS table having the following records
 
     +----+----------+-----+-----------+----------+
     | ID | NAME     | AGE | ADDRESS   | SALARY   |

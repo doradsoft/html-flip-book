@@ -9,14 +9,14 @@ The SQL UNION clause/operator is used to combine the results of two or more SELE
   - The same data type and
   - Have them in the same order
 
-But they need not have to be in the same length.    
+But they need not have to be in the same length.
 
 _Example_
 
 Consider the following two tables.
 
 Table 1 − customers table is as follows:
-    
+
     +----+----------+-----+-----------+----------+
     | id | name     | age | address   | salary   |
     +----+----------+-----+-----------+----------+
@@ -61,11 +61,11 @@ The UNION ALL operator is used to combine the results of two SELECT statements i
 
 The same rules that apply to the UNION clause will apply to the UNION ALL operator.
 
-_Example_ - 
+_Example_ -
 Consider the following two tables:
 
 * Table 1 − customers table is as follows:
- 
+
       +----+----------+-----+-----------+----------+
       | id | name     | age | address   | salary   |
       +----+----------+-----+-----------+----------+
@@ -103,7 +103,7 @@ UNION ALL
 ```
 
 This would produce the following result:
-    
+
     +------+----------+--------+---------------------+
     | id   | name     | amount | date                |
     +------+----------+--------+---------------------+

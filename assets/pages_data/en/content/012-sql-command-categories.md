@@ -30,7 +30,7 @@ DROP TABLE table_name;
 - `ALTER`: This is used to alter the structure of the database.
 ```sql
 ALTER TABLE Persons
-ADD Age int; 
+ADD Age int;
 ```
 - `TRUNCATE`: This is used to remove all records from a table, including all spaces allocated for the records.
 ```sql
@@ -85,7 +85,7 @@ WHERE CustomerID = 1;
 ```
 - `DELETE `: It is used to delete records from a database table.
 ```sql
- DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste'; 
+ DELETE FROM Customers WHERE CustomerName='Alfreds Futterkiste';
 ```
 - `LOCK`: Table control concurrency.
 ```sql

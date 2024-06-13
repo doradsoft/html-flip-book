@@ -7,12 +7,12 @@ For eg: If you want  to perfom a task after a record is inserted into the table 
 #### Syntax for creating triggers
 
 ```
-create trigger [trigger_name] 
-[before | after]  
-{insert | update | delete}  
-on [table_name]  
-[for each row | for each column]  
-[trigger_body] 
+create trigger [trigger_name]
+[before | after]
+{insert | update | delete}
+on [table_name]
+[for each row | for each column]
+[trigger_body]
 ```
 
 `create trigger [trigger_name]` : Creates or replaces an existing trigger with the trigger_name.
@@ -62,7 +62,7 @@ Select * from library.books;
 
 ```
 +----------+---------------+
-| book_id  | book_name     | 
+| book_id  | book_name     |
 +----------+---------------+
 | 	   | 		   |
 | 	   | 		   |
@@ -90,7 +90,7 @@ Now, we will create our trigger on the `books` table
 
 ```
 create trigger library.addstatement
-after insert 
+after insert
 on library.books
 for each row
 insert into library.bookrecord(bookid,statement) values (NEW.book_id,concat('New book named ',NEW.book_name,"  added at ",curdate()));
@@ -108,7 +108,7 @@ Output for `books`:
 
 ```
 +----------+-----------------------------------------------+
-| book_id  | book_name  				   | 
+| book_id  | book_name  				   |
 +----------+-----------------------------------------------+
 |    1	   | 	Harry Potter and the Goblet of fire	   |
 | 	   | 		  				   |

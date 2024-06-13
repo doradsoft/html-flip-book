@@ -114,7 +114,7 @@ So, if we want to look up an username that has `e` as its second character, we w
 SELECT * FROM users WHERE username LIKE '_e%';
 ```
 
-Output: 
+Output:
 ```
 +----+----------+-------+----------+--------+---------------+
 | id | username | about | birthday | active | email         |
@@ -282,7 +282,7 @@ SELECT MAX(id) FROM users;
 
 In our case, this would be `3` as we have only 3 users, and the highest value of the `id` column is 3.
 
-* `AVG`: As the name suggests, it would sum up all of the values of a specific column and return the average value. As we have 3 users with ids 1, 2, and 3, the average would be 6 divided by 3 users which is 2. 
+* `AVG`: As the name suggests, it would sum up all of the values of a specific column and return the average value. As we have 3 users with ids 1, 2, and 3, the average would be 6 divided by 3 users which is 2.
 
 ```sql
 SELECT AVG(id) FROM users;

@@ -1,7 +1,7 @@
 # `Transaction Control Language`
 
-  - `Transaction Control Language` can be defined as the portion of a database language used for `maintaining consistency` of the database and `managing transactions` in the database. 
-  
+  - `Transaction Control Language` can be defined as the portion of a database language used for `maintaining consistency` of the database and `managing transactions` in the database.
+
   - A set of `SQL statements` that are `co-related logically and executed on the data stored in the table` is known as a `transaction`.
 
 ## `TCL` Commands
@@ -12,7 +12,7 @@
 
 ## `COMMIT`
 
-The main use of `COMMIT` command is to `make the transaction permanent`. If there is a need for any transaction to be done in the database that transaction permanent through commit command. 
+The main use of `COMMIT` command is to `make the transaction permanent`. If there is a need for any transaction to be done in the database that transaction permanent through commit command.
 
 ### Syntax
 ```sql
@@ -78,7 +78,7 @@ START TRANSACTION;
 ```sql
 COMMIT;
 ```
-##### Saved/ Confirmed the transactions till this point 
+##### Saved/ Confirmed the transactions till this point
 
 ```sql
 ROLLBACK;
@@ -100,18 +100,18 @@ SELECT * FROM purchase;
 | Sun Glasses  |  1350 | ABC           |
 ##### As we have committed the transactions the `rollback` will not affect anything
 
-```sql 
+```sql
 SAVEPOINT  sv_update;
 ```
 ##### Create the `savepoint` the transactions above this will not be rollbacked
 
-```sql 
+```sql
 UPDATE purchase SET price = 30 WHERE item = "Pen";
 ```
 #### O/P : Query OK, 1 row affected (0.57 sec)
 #### Rows matched: 1  Changed: 1  Warnings: 0
 
-```sql 
+```sql
 SELECT * FROM purchase;
 ```
 
@@ -131,7 +131,7 @@ ROLLBACK to sv_update;
 ```
 ##### Now if we `rollback` to the `savepoint` price should be 20 after `rollback` lets see
 
-```sql 
+```sql
 SELECT * FROM purchase;
 ```
 

@@ -154,7 +154,7 @@ You can rename a table by using `ALTER TABLE` statement.
 
 Let's change name of user2 table to user3
 ```sql
-ALTER TABLE user2 RENAME TO user3 
+ALTER TABLE user2 RENAME TO user3
 ```
 
 ## Dropping tables
