@@ -8,8 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode development",
-    "postbuild": "rimraf dist/index.html"
+    "build": "vite build --mode development"
   },
   "author": "DoradSoft",
   "license": "MIT",
