@@ -2,6 +2,7 @@ html,
 body {
   margin: 0;
 }
+
 .app {
   display: flex;
   flex-direction: column;
@@ -32,6 +33,7 @@ header {
   direction: rtl;
   text-align: right;
 }
+
 .en-page,
 .he-page {
   background-color: white;
