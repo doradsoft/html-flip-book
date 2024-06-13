@@ -47,5 +47,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: true
           VALIDATE_JAVASCRIPT_STANDARD: true
           VALIDATE_JSCPD: true
-          JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
-          TYPESCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+          JAVASCRIPT_ES_CONFIG_FILE: ../../eslint.config.mjs
+          TYPESCRIPT_ES_CONFIG_FILE: ../../eslint.config.mjs
