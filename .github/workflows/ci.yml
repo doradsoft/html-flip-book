@@ -50,18 +50,18 @@ jobs:
         id: npm-build
         run: npm run build
 
-      - name: Archive artifact
-        shell: sh
-        run: |
-          echo ::group::Archive artifact
-          tar -cvf "$RUNNER_TEMP/artifact.tar" -C "./react/example/dist" .
-          if [ -f "$RUNNER_TEMP/artifact.tar" ]; then
-            echo "Artifact tar created successfully."
-          else
-            echo "Failed to create artifact tar."
-            exit 1
-          fi
-          echo ::endgroup::
+      # - name: Archive artifact
+      #   shell: sh
+      #   run: |
+      #     echo ::group::Archive artifact
+      #     tar -cvf "$RUNNER_TEMP/artifact.tar" -C "./react/example/dist" .
+      #     if [ -f "$RUNNER_TEMP/artifact.tar" ]; then
+      #       echo "Artifact tar created successfully."
+      #     else
+      #       echo "Failed to create artifact tar."
+      #       exit 1
+      #     fi
+      #     echo ::endgroup::
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: Page content
-          path: ${{ runner.temp }}/artifact.tar
+          path: ./react/example/dist
           retention-days: 15
 
   deploy-page:
