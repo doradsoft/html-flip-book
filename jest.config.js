@@ -7,9 +7,9 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': 'ts-jest'
   },
   coverageReporters: ['json-summary', 'text', 'lcov'],
   collectCoverage: true,
-  collectCoverageFrom: ['./src/**'],
-};
+  collectCoverageFrom: ['./src/**']
+}
