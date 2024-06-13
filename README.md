@@ -36,8 +36,8 @@ DevOps
 - [ ] Manual npm package
 --------------------------------------------------
 - [ ] Documentation
-- [ ] Github Actions
-- [ ] Auto build and deploy to github.io
+- [x] Github Actions
+- [x] Auto build and deploy to github.io
 - [ ] Auto build and deploy to npm
 
 Bugs
