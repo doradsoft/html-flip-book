@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
       react(),
       {
         name: 'markdown-loader',
-        transform(_export, id) {
+        transform (_export, id) {
           if (id.endsWith('.md')) {
             const mdContent = fs.readFileSync(id, 'utf-8')
             return {
