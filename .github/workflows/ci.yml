@@ -70,7 +70,7 @@ jobs:
         id: upload-pages-artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          name: Page content
+          name: github-pages
           path: ./react/example/dist
           retention-days: 15
 
