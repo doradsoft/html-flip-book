@@ -45,7 +45,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TYPESCRIPT_DEFAULT_STYLE: prettier
           VALIDATE_ALL_CODEBASE: true
-          VALIDATE_JAVASCRIPT_STANDARD: false
-          VALIDATE_JSCPD: false
+          VALIDATE_JAVASCRIPT_STANDARD: true
+          VALIDATE_JSCPD: true
           JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
           TYPESCRIPT_ES_CONFIG_FILE: eslint.config.mjs
