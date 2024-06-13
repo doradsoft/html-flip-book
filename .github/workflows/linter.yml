@@ -41,11 +41,12 @@ jobs:
         uses: super-linter/super-linter/slim@v6
         env:
           DEFAULT_BRANCH: master
-          FILTER_REGEX_EXCLUDE: dist/**/*
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FILTER_REGEX_EXCLUDE: (dist|assets)/**/*
           TYPESCRIPT_DEFAULT_STYLE: prettier
+          IGNORE_GITIGNORED_FILES: true
           VALIDATE_ALL_CODEBASE: true
           VALIDATE_JAVASCRIPT_STANDARD: true
           VALIDATE_JSCPD: true
+          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ../../tsconfig.json
           JAVASCRIPT_ES_CONFIG_FILE: ../../eslint.config.mjs
           TYPESCRIPT_ES_CONFIG_FILE: ../../eslint.config.mjs
