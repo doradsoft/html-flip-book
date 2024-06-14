@@ -15,16 +15,16 @@
     },
     "scripts": {
         "update": "npx npm-check-updates --peer --deep -u",
-        "bundle": "npm run format:write && npm run package",
+        "bundle": "npm run format:write && npm run build",
         "ci-test": "npx jest --all --ci --coverage --coverageDirectory ./coverage",
         "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
         "format:write": "npx prettier --write .",
         "format:check": "npx prettier --check .",
         "lint": "npx eslint -c ./eslint.config.mjs",
-        "package": "npx ncc build src/index.ts -o dist --source-map --license licenses.txt",
-        "package:watch": "npm run package -- --watch",
+        "build": "npm ci; cd ./base; npm ci; npm run build; cd ../react; npm ci; cd ./example; npm i; npm run build",
+        "build:watch": "npm run build -- --watch",
         "test": "npx jest --coverage --coverageDirectory ./coverage",
-        "all": "npm run update && npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
+        "all": "npm run update && npm run format:write && npm run lint && npm run test && npm run coverage && npm run build"
     },
     "author": "DoradSoft",
     "license": "MIT",

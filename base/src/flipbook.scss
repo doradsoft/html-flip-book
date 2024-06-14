@@ -1,7 +1,7 @@
 .flipbook {
   height: 100%;
   width: 100%;
-  // rendering shouldn't cause any overflow, so this is mostly for during flipping
+  // rendering shouldnt cause any overflow, so this is mostly for during flipping
   overflow: hidden;
 }
 .flipbook-debug-bar {
