@@ -17,8 +17,8 @@
   "license": "MIT",
   "dependencies": {
     "html-flip-book-react": "file:../",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "19.0.0-rc-c21bcd627b-20240624",
+    "react-dom": "19.0.0-rc-c21bcd627b-20240624",
     "react-markdown": "^9.0.1"
   },
   "devDependencies": {

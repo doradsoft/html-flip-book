@@ -24,8 +24,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "19.0.0-rc-c21bcd627b-20240624",
+    "react-dom": "19.0.0-rc-c21bcd627b-20240624"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
