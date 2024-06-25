@@ -1,5 +1,4 @@
 # TypeScript compiled output
-dist/
 __pycache__/
 
 # Dependency directory

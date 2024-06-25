@@ -1,52 +1,52 @@
 // EnBook.tsx
-import { useEffect, useState } from "react";
-import FlipBook from "../../src/FlipBook";
-import Markdown from "react-markdown";
+import { useEffect, useState } from 'react'
+import { FlipBook } from 'html-flip-book-react'
+import Markdown from 'react-markdown'
 
-const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
+const markdownFiles = import.meta.glob('/assets/pages_data/en/content/*.md')
 
 interface MarkdownModule {
-  default: string;
+  default: string
 }
 
 export const EnBook = () => {
-  const [enPages, setEnPages] = useState<JSX.Element[]>([]);
+  const [enPages, setEnPages] = useState<JSX.Element[]>([])
 
   useEffect(() => {
     const loadMarkdownFiles = async () => {
       const files = await Promise.all(
         Object.entries(markdownFiles).map(async ([path, resolver]) => {
-          const content = await resolver();
-          assertIsMarkdownModule(content);
+          const content = await resolver()
+          assertIsMarkdownModule(content)
           return {
             path,
-            content: content.default,
-          };
+            content: content.default
+          }
         })
-      );
+      )
       const pages = files.map(({ content }, index) => (
         <div key={index} className="en-page">
           <Markdown>{content}</Markdown>
         </div>
-      ));
+      ))
 
-      setEnPages(pages);
-    };
+      setEnPages(pages)
+    }
 
-    loadMarkdownFiles();
-  }, []);
+    loadMarkdownFiles()
+  }, [])
 
   function assertIsMarkdownModule(
     module: unknown
   ): asserts module is MarkdownModule {
-    if (typeof (module as MarkdownModule).default !== "string") {
-      throw new Error("Invalid markdown module");
+    if (typeof (module as MarkdownModule).default !== 'string') {
+      throw new Error('Invalid markdown module')
     }
   }
 
   return enPages.length ? (
     <FlipBook className="en-book" pages={enPages} debug={true} />
-  ) : null;
-};
+  ) : null
+}
 
-export default EnBook;
+export default EnBook
