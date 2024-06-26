@@ -1,4 +1,5 @@
-import type { IntRange } from "type-fest";
+import type { IntRange } from 'type-fest';
+import { FlipDirection } from './flip-direction';
 export type DegreesPerSecond = IntRange<1, typeof Infinity>;
 export type FlipPosition = IntRange<0, 2>;
 export declare const FLIPPED = true;
@@ -7,6 +8,7 @@ export declare class Leaf {
     readonly index: number;
     readonly pages: [HTMLElement, HTMLElement | undefined];
     private readonly bookProperties;
+    private readonly onTurned;
     private currentAnimation;
     private targetFlipPosition;
     private wrappedFlipPosition;
@@ -14,7 +16,7 @@ export declare class Leaf {
         isLTR: boolean;
         pagesCount: number;
         leavesCount: number;
-    });
+    }, onTurned: (direction: FlipDirection) => void);
     get isTurned(): boolean;
     get isTurning(): boolean;
     get isCover(): boolean;

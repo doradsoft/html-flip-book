@@ -1,7 +1,7 @@
-import "./pages.scss";
-import "./flipbook.scss";
-import { PageSemantics } from "./page-semantics";
-import { FlipBookOptions } from "./flip-book-options";
+import './pages.scss';
+import './flipbook.scss';
+import { PageSemantics } from './page-semantics';
+import { FlipBookOptions } from './flip-book-options';
 declare class FlipBook {
     bookElement?: HTMLElement;
     private pageElements;
@@ -22,6 +22,7 @@ declare class FlipBook {
         x: number;
         y: number;
     };
+    private prevVisiblePageIndices;
     private get isLTR();
     private get isClosed();
     private get isClosedInverted();
@@ -35,6 +36,7 @@ declare class FlipBook {
     private onDragEnd;
     private handleTouchStart;
     private handleTouchMove;
+    private onTurned;
     jumpToPage(pageIndex: number): void;
 }
 export { FlipBook, PageSemantics };

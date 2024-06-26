@@ -24,11 +24,14 @@ export const EnBook = () => {
           }
         })
       )
-      const pages = files.map(({ content }, index) => (
-        <div key={index} className="en-page">
-          <Markdown>{content}</Markdown>
-        </div>
-      ))
+      const pages = files
+        // To avoid having an empty page at the end
+        .concat([{ path: '', content: '' }])
+        .map(({ content }, index) => (
+          <div key={index} className="en-page">
+            <Markdown>{content}</Markdown>
+          </div>
+        ))
 
       setEnPages(pages)
     }
