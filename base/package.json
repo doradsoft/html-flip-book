@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "hammerjs": "^2.0.8",
-    "throttle-debounce": "^5.0.0",
-    "type-fest": "^4.20.0"
+    "throttle-debounce": "^5.0.2",
+    "type-fest": "^4.20.1"
   }
 }
