@@ -19,6 +19,6 @@
   "dependencies": {
     "hammerjs": "^2.0.8",
     "throttle-debounce": "^5.0.2",
-    "type-fest": "^4.20.1"
+    "type-fest": "^4.21.0"
   }
 }
