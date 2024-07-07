@@ -132,6 +132,7 @@ class FlipBook {
       const leafIndex = Math.floor(pageIndex / 2)
       const isOddPage = (pageIndex + 1) % 2 === 1
       // TODO: set dynamically by parameter and not by hardcoding eq 0
+      // TODO: set prev-page / next-page classes for prev/next pages as accordingally
       pageElement.classList.add(
         isOddPage ? 'odd' : 'even',
         ...(pageIndex === 0 ? ['current-page'] : [])
@@ -366,6 +367,7 @@ class FlipBook {
       action.bind(pageElement.classList)('current-page')
     }
     // TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally.
+    // TODO: set prev-page / next-page classes for prev/next pages as accordingally
   }
   jumpToPage(pageIndex: number) {
     // TODO: drop as probably totally replaced ith onTurned. maybe change onTurned name to onPageChanged.
