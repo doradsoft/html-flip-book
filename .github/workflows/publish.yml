@@ -1,0 +1,81 @@
+name: Check and Publish Package
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (leave empty for automatic)'
+        required: false
+        type: string
+
+
+jobs:
+  check_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # To be able to retrieve the changed files
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          path: "react"
+        if: github.event_name == 'push'
+
+      - name: Check if relevant files changed
+        id: check_files
+        if: github.event_name == 'push'
+        run: |
+          relevant_files=('package.json' 'vite.config.js' 'src/')  # Add your relevant paths here
+          for file in ${relevant_files[@]}; do
+            if [[ $(echo "${{ steps.changed-files.outputs.all_changed_files }}" | grep -c "$file") -gt 0 ]]; then
+              echo "Relevant changes detected"
+              echo "publish=true" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+
+      - name: Set publish flag for manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "publish=true" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v4
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+        with:
+          node-version-file: react/package.json
+          cache: npm
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+
+      - run: npm test
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+
+      - name: Bump version
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch' && github.event.inputs.version == ''
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          npm version patch -m "Bump version to %s [skip ci]"
+
+      - name: Set manual version
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          npm version ${{ github.event.inputs.version }} -m "Manually bump version to %s [skip ci]"
+
+      - run: npm publish
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push changes
+        if: steps.check_files.outputs.publish == 'true' || github.event_name == 'workflow_dispatch'
+        run: git push --follow-tags
