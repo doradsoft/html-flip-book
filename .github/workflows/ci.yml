@@ -54,7 +54,7 @@ jobs:
       #   shell: sh
       #   run: |
       #     echo ::group::Archive artifact
-      #     tar -cvf "$RUNNER_TEMP/artifact.tar" -C "./html-flip-book-react/example/dist" .
+      #     tar -cvf "$RUNNER_TEMP/artifact.tar" -C "./html-flip-book-react/html-flip-book-example/dist" .
       #     if [ -f "$RUNNER_TEMP/artifact.tar" ]; then
       #       echo "Artifact tar created successfully."
       #     else
@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
-          path: ./html-flip-book-react/example/dist
+          path: ./html-flip-book-react/html-flip-book-example/dist
           retention-days: 15
 
   deploy-page:
