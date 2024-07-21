@@ -11,7 +11,7 @@
         "url": "https://github.com/doradsoft/html-flip-book/issues"
     },
     "engines": {
-        "node": ">=22.2.0"
+        "node": ">22.5.0"
     },
     "scripts": {
         "postinstall": "cd ./html-flip-book-base && npm install && cd ../html-flip-book-react && npm install && cd ./html-flip-book-react-example && npm install",
