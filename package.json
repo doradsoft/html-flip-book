@@ -14,7 +14,7 @@
         "node": ">=22.2.0"
     },
     "scripts": {
-        "postinstall": "cd ./base && npm install && cd ../react && npm install && cd ./example && npm install",
+        "postinstall": "cd ./html-flip-book-base && npm install && cd ../html-flip-book-react && npm install && cd ./html-flip-book-react-example && npm install",
         "update": "npx npm-check-updates --peer --deep -u && npm install",
         "bundle": "npm run format:write && npm run build",
         "ci-test": "npx jest --all --ci --coverage --coverageDirectory ./coverage",
@@ -22,7 +22,7 @@
         "format:write": "npx prettier --write .",
         "format:check": "npx prettier --check .",
         "lint": "npx eslint -c ./eslint.config.mjs",
-        "build": "npm ci && cd ./base && npm ci && npm run build && cd ../react && npm ci && cd ./example && npm ci && npm run build",
+        "build": "npm ci && cd ./html-flip-book-base && npm ci && npm run build && cd ../html-flip-book-react && npm ci && cd ./html-flip-book-react-example && npm ci && npm run build",
         "build:watch": "npm run build -- --watch",
         "test": "npx jest --coverage --coverageDirectory ./coverage",
         "all": "npm run update && npm run format:write && npm run lint && npm run test && npm run coverage && npm run build"
