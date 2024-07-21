@@ -1,0 +1,7 @@
+node_modules/
+devops/
+test/
+jest.config.js
+html-flip-book-react*.tgz
+tsconfig.json
+vite.config.ts

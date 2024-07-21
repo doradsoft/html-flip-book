@@ -1,0 +1,24 @@
+{
+  "name": "html-flip-book-base",
+  "version": "1.0.0",
+  "description": "Flipbook component for HTML",
+  "author": "DoradSoft",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/flipbook.js",
+  "types": "./dist/flipbook.d.ts",
+  "scripts": {
+    "build": "node --loader ts-node/esm -r tsconfig-paths/register ../node_modules/webpack-cli/bin/cli.js --config webpack.config.ts --mode production",
+    "watch": "node --loader ts-node/esm -r tsconfig-paths/register ../node_modules/webpack-cli/bin/cli.js --config webpack.config.ts --watch --mode development"
+  },
+  "devDependencies": {
+    "@types/hammerjs": "^2.0.45",
+    "@types/throttle-debounce": "^5.0.2",
+    "tsconfig-paths": "^4.2.0"
+  },
+  "dependencies": {
+    "hammerjs": "^2.0.8",
+    "throttle-debounce": "^5.0.2",
+    "type-fest": "^4.22.1"
+  }
+}

@@ -1,1 +1,0 @@
-{"version":3,"file":"page-semantics.d.ts","sourceRoot":"","sources":["../src/page-semantics.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,aAAa;IAC5B,mBAAmB,EAAE,CAAC,SAAS,EAAE,MAAM,KAAK,MAAM,CAAC;IACnD,YAAY,EAAE,CAAC,SAAS,EAAE,MAAM,KAAK,MAAM,CAAC;IAC5C,mBAAmB,EAAE,CAAC,gBAAgB,EAAE,MAAM,KAAK,MAAM,GAAG,IAAI,CAAC;CAClE"}
