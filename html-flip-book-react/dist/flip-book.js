@@ -450,7 +450,7 @@ var ci = { 168: (d, r, s) => {
     }
     function q(t, e, n) {
       var o = "DEPRECATED METHOD: " + e + `
-` + n + ` AT 
+` + n + ` AT
 `;
       return function() {
         var a = new Error("get-stack-trace"), b = a && a.stack ? a.stack.replace(/^[^\(]+?[\n$]/gm, "").replace(/^\s+at\s+/gm, "").replace(/^Object.<anonymous>\s*\(/gm, "{anonymous}()@") : "Unknown Stack Trace", R = c.console && (c.console.warn || c.console.log);
