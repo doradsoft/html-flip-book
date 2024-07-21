@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import reactRefresh from '@vitejs/plugin-react-refresh'
+import reactRefresh from '@vitejs/plugin-react'
 import react from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
 import checker from 'vite-plugin-checker'
