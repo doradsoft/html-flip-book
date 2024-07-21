@@ -71,7 +71,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
-          path: ./html-flip-book-react/html-flip-book-example/dist
+          path: ./html-flip-book-react/html-flip-book-react-example/dist
           retention-days: 15
 
   deploy-page:
