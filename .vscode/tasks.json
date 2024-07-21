@@ -5,7 +5,7 @@
         "label": "base watch",
         "type": "npm",
         "script": "watch",
-        "path": "./base",
+        "path": "./html-flip-book-base",
         "isBackground": true,
         "problemMatcher": [],
       }

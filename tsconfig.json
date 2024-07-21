@@ -18,7 +18,7 @@
         "alwaysStrict": true,
     },
     "include": [
-        "base/**/*.ts"
+        "html-flip-book-base/**/*.ts"
     ],
     "exclude": [
         "node_modules"

@@ -9,7 +9,7 @@
   "homepage": "https://github.com/doradsoft/html-flip-book",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/doradsoft/html-flip-book.git"
+    "url": "git+https://github.com/doradsoft/html-flip-book.git#packages/html-flip-book-react"
   },
   "bugs": {
     "url": "https://github.com/doradsoft/html-flip-book/issues"
