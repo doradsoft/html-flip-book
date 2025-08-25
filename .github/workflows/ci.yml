@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload artifact
         id: upload-pages-artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           name: github-pages
           path: ./html-flip-book-react/html-flip-book-react-example/dist
