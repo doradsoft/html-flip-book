@@ -199,14 +199,33 @@ class FlipBook {
 
   private onDragStart(event: HammerInput) {
     console.log('drag start')
-    // If there's an auto-flip in progress, cancel it and continue with same leaf
+    // If there's an auto-flip in progress, handle it based on how far the flip has progressed
     if (this.isDuringAutoFlip && this.currentLeaf) {
+      const currentFlipPos = this.currentLeaf.flipPosition
+      const isPastHalfway =
+        (this.flipDirection === FlipDirection.Forward && currentFlipPos >= 0.5) ||
+        (this.flipDirection === FlipDirection.Backward && currentFlipPos <= 0.5)
+
+      if (isPastHalfway) {
+        // Leaf is past halfway - let it complete and allow user to start fresh with next leaf
+        // The animation will finish on its own, just reset state for new drag
+        this.currentLeaf.cancelAnimation()
+        // Complete the flip instantly using high velocity (efficientFlipToPosition uses 20000 deg/sec)
+        const targetPos = this.flipDirection === FlipDirection.Forward ? 1 : 0
+        this.currentLeaf.efficientFlipToPosition(targetPos as FlipPosition)
+        this.isDuringAutoFlip = false
+        this.currentLeaf = undefined
+        this.flipDirection = FlipDirection.None
+        this.flipStartingPos = event.center.x
+        return
+      }
+
+      // Leaf is before halfway - cancel and continue with same leaf (allow user to change mind)
       this.currentLeaf.cancelAnimation()
       this.isDuringAutoFlip = false
       // Calculate adjusted starting position based on current leaf position
       // This makes the drag continue smoothly from where the animation was
       const bookWidth = this.bookElement?.clientWidth ?? 0
-      const currentFlipPos = this.currentLeaf.flipPosition
       // Adjust starting pos so that current position maps to current flip position
       if (this.flipDirection === FlipDirection.Forward) {
         // posForward = (flipStartingPos - currentPos) / bookWidth = currentFlipPos

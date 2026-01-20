@@ -1,3 +1,11 @@
+# html-flip-book
+
+[![Continuous Integration](https://github.com/doradsoft/html-flip-book/actions/workflows/ci.yml/badge.svg)](https://github.com/doradsoft/html-flip-book/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/doradsoft/html-flip-book/branch/master/graph/badge.svg)](https://codecov.io/gh/doradsoft/html-flip-book)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A flipbook component for HTML with React support.
+
 ## Features
 
 **Madatory for production**
@@ -7,12 +15,12 @@
 - [x] Automatic page flipping - based on velocity / based on progress
 - [x] Page flipping with mouse
 - [x] Page flipping with touch
+- [x] Allow flipping during running flips
 - [ ] Toolbar
 
 ---
 
 - [ ] Render on resize
-- [ ] Allow flipping during running flips
 - [ ] Internationalization
 - [ ] Animate page edges/corners
 - [ ] Curl animation

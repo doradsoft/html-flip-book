@@ -588,15 +588,36 @@ describe('FlipBook', () => {
       expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(120)
     })
 
-    it('should cancel animation and continue with same leaf when drag starts during auto flip', () => {
+    it('should reset and return when already dragging a leaf (not auto flip)', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4 })
+      flipBook.render('.flipbook-container')
+      const mockLeaf = { index: 0, cancelAnimation: vi.fn(), flipPosition: 0.3 }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Forward,
+        flipStartingPos: 100,
+        isDuringAutoFlip: false,
+      })
+
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.flipDirection).toBe(FlipDirection.None)
+      expect(internals.flipStartingPos).toBe(0)
+    })
+
+    it('should cancel animation and continue with same leaf when drag starts during auto flip before halfway', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
       const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
       const mockLeaf = {
         index: 0,
         cancelAnimation: mockCancelAnimation,
-        flipPosition: 0.5,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.3, // Before halfway for forward flip
       }
       setFlipBookInternals(flipBook, {
         currentLeaf: mockLeaf as never,
@@ -615,7 +636,149 @@ describe('FlipBook', () => {
       // Current leaf is kept for smooth continuation
       expect(internals.currentLeaf).toBe(mockLeaf)
       // Starting position is adjusted based on current flip position
-      expect(internals.flipStartingPos).toBe(400) // 200 + 0.5 * 400 for LTR forward
+      expect(internals.flipStartingPos).toBe(320) // 200 + 0.3 * 400 for LTR forward before halfway
+    })
+
+    it('should complete flip and allow new drag when auto flip is past halfway (forward)', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4 })
+      flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.7, // Past halfway for forward flip
+      }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Forward,
+        flipStartingPos: 50,
+        isDuringAutoFlip: true,
+      })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = {
+        clientWidth: 400,
+      } as HTMLElement
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      expect(mockCancelAnimation).toHaveBeenCalled()
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.isDuringAutoFlip).toBe(false)
+      // Current leaf is cleared for new drag
+      expect(internals.currentLeaf).toBeUndefined()
+      // Flip completes via efficientFlipToPosition (which handles position update and visuals)
+      expect(mockEfficientFlipToPosition).toHaveBeenCalledWith(1)
+      // Starting position is set for new drag
+      expect(internals.flipStartingPos).toBe(200)
+      expect(internals.flipDirection).toBe(FlipDirection.None)
+    })
+
+    it('should complete flip and allow new drag when auto flip is past halfway (backward)', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4 })
+      flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.3, // Past halfway for backward flip (going toward 0)
+      }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Backward,
+        flipStartingPos: 50,
+        isDuringAutoFlip: true,
+      })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = {
+        clientWidth: 400,
+      } as HTMLElement
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      expect(mockCancelAnimation).toHaveBeenCalled()
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.isDuringAutoFlip).toBe(false)
+      // Current leaf is cleared for new drag
+      expect(internals.currentLeaf).toBeUndefined()
+      // Flip completes via efficientFlipToPosition (which handles position update and visuals)
+      expect(mockEfficientFlipToPosition).toHaveBeenCalledWith(0)
+      // Starting position is set for new drag
+      expect(internals.flipStartingPos).toBe(200)
+      expect(internals.flipDirection).toBe(FlipDirection.None)
+    })
+
+    it('should adjust starting position for RTL forward flip during auto flip cancel', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4, direction: 'rtl' })
+      flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.3, // Before halfway for forward flip
+      }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Forward,
+        isDuringAutoFlip: true,
+      })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = { clientWidth: 400 } as HTMLElement
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      // RTL forward: event.center.x - currentFlipPos * bookWidth = 200 - 0.3 * 400 = 80
+      expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(80)
+    })
+
+    it('should adjust starting position for LTR backward flip during auto flip cancel', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4 })
+      flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.7, // Before halfway for backward flip (going toward 0, so > 0.5 means before halfway)
+      }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Backward,
+        isDuringAutoFlip: true,
+      })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = { clientWidth: 400 } as HTMLElement
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      // LTR backward: event.center.x - (1 - currentFlipPos) * bookWidth = 200 - 0.3 * 400 = 80
+      expect(getFlipBookInternals(flipBook).flipStartingPos).toBeCloseTo(80)
+    })
+
+    it('should adjust starting position for RTL backward flip during auto flip cancel', () => {
+      createPages(4)
+      const flipBook = new FlipBook({ pagesCount: 4, direction: 'rtl' })
+      flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
+      const mockEfficientFlipToPosition = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        efficientFlipToPosition: mockEfficientFlipToPosition,
+        flipPosition: 0.7, // Before halfway for backward flip (going toward 0, so > 0.5 means before halfway)
+      }
+      setFlipBookInternals(flipBook, {
+        currentLeaf: mockLeaf as never,
+        flipDirection: FlipDirection.Backward,
+        isDuringAutoFlip: true,
+      })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = { clientWidth: 400 } as HTMLElement
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
+
+      // RTL backward: event.center.x + (1 - currentFlipPos) * bookWidth = 200 + 0.3 * 400 = 320
+      expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(320)
     })
 
     it('should flip forward on drag update', () => {
@@ -737,6 +900,27 @@ describe('FlipBook', () => {
       setFlipBookInternals(flipBook, { flipStartingPos: 400 })
       getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
+      expect(spy).not.toHaveBeenCalled()
+    })
+
+    it('should return early when no next leaf is available on forward drag', () => {
+      // Create a 2-page book with only 1 leaf
+      createPages(2)
+      const flipBook = new FlipBook({ pagesCount: 2 })
+      flipBook.render('.flipbook-container')
+
+      const internals = getFlipBookInternals(flipBook)
+      // Set the only leaf as currently turning (at 50%) so:
+      // - isClosedInverted returns false (leaf is not fully turned)
+      // - currentOrTurningLeaves returns [leaf, undefined] because it's the only leaf
+      internals.leaves[0].flipPosition = 0.5
+
+      const spy = vi.spyOn(internals.leaves[0], 'efficientFlipToPosition')
+
+      setFlipBookInternals(flipBook, { flipStartingPos: 400 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
+
+      // Should NOT call efficientFlipToPosition because there's no next leaf
       expect(spy).not.toHaveBeenCalled()
     })
 

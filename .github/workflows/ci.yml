@@ -70,6 +70,13 @@ jobs:
           name: coverage-report
           path: .coverage/merged/lcov.info
 
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: .coverage/merged/lcov.info
+          fail_ci_if_error: false
+          verbose: true
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

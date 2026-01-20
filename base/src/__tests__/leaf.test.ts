@@ -58,6 +58,21 @@ describe('Leaf', () => {
     })
   })
 
+  describe('cancelAnimation', () => {
+    it('should set animationCancelled flag to true', () => {
+      const leaf = new Leaf(
+        0,
+        [mockPage1, mockPage2],
+        NOT_FLIPPED,
+        defaultBookProperties,
+        onTurnedMock
+      )
+
+      leaf.cancelAnimation()
+      expect(getLeafInternals(leaf).animationCancelled).toBe(true)
+    })
+  })
+
   describe('properties', () => {
     it('should identify first leaf', () => {
       const leaf = new Leaf(
