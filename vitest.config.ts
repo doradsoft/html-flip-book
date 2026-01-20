@@ -1,10 +1,14 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react-swc'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    conditions: ['development', 'browser', 'module', 'default']
+    conditions: ['development', 'browser', 'module', 'default'],
+    alias: {
+      'html-flip-book-base': path.resolve(__dirname, 'base/src/flipbook.ts')
+    }
   },
   test: {
     globals: true,
@@ -19,10 +23,6 @@ export default defineConfig({
       reportsDirectory: '.coverage/unit',
       include: ['base/src/**/*.ts', 'react/src/**/*.{ts,tsx}'],
       exclude: ['**/*.test.ts', '**/*.test.tsx', '**/__tests__/**']
-    },
-    alias: {
-      'html-flip-book-base':
-        'c:/Users/Dorad/git/html-flip-book/base/src/flipbook.ts'
     }
   }
 })
