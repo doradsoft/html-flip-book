@@ -1,6 +1,6 @@
 import { FlipBook as FlipBookBase, type PageSemantics } from 'html-flip-book-base'
 import type React from 'react'
-import { useEffect, useRef } from 'react'
+import { Children, useEffect, useRef } from 'react'
 
 interface FlipBookWrapperProps {
   pages: React.ReactNode[]
@@ -31,10 +31,13 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
     // Do any other necessary setup here
   }, [className, debug])
 
+  // Use Children.toArray to get stable keys for each page element
+  const pagesWithKeys = Children.toArray(pages)
+
   return (
     <div className={className}>
-      {pages.map((page, index) => (
-        <div key={index} className="page">
+      {pagesWithKeys.map((page) => (
+        <div key={(page as React.ReactElement).key} className="page">
           {page}
         </div>
       ))}

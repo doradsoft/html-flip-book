@@ -1,14 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FlipDirection } from '../flip-direction'
 import { FlipBook } from '../flipbook'
+import { getFlipBookInternals, setFlipBookInternals } from './test-utils'
 
 // Mock HammerJS - must be hoisted
 vi.mock('hammerjs', () => {
-  const MockHammer = () => ({
-    on: vi.fn(),
-    off: vi.fn(),
-    destroy: vi.fn(),
-  })
+  // Create a proper constructor function for Hammer
+  function MockHammer() {
+    return {
+      on: vi.fn(),
+      off: vi.fn(),
+      destroy: vi.fn(),
+    }
+  }
   return { default: MockHammer }
 })
 
@@ -216,8 +220,10 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container', true)
-      ;(flipBook as any).currentLeaf = (flipBook as any).leaves[0]
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
+      setFlipBookInternals(flipBook, {
+        currentLeaf: getFlipBookInternals(flipBook).leaves[0],
+        flipDirection: FlipDirection.Forward,
+      })
 
       vi.advanceTimersByTime(20)
 
@@ -413,26 +419,26 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       const leafA = { index: 0, isTurned: false, isTurning: false }
       const leafB = { index: 1, isTurned: false, isTurning: false }
-      ;(flipBook as any).leaves = [leafA, leafB]
+      setFlipBookInternals(flipBook, { leaves: [leafA, leafB] as never })
 
-      const currentLeaves = (flipBook as any).currentLeaves
-      expect(currentLeaves[0]).toBeUndefined()
-      expect(currentLeaves[1]).toBe(leafA)
-      expect((flipBook as any).isClosed).toBe(true)
-      expect((flipBook as any).isClosedInverted).toBe(false)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.currentLeaves[0]).toBeUndefined()
+      expect(internals.currentLeaves[1]).toBe(leafA)
+      expect(internals.isClosed).toBe(true)
+      expect(internals.isClosedInverted).toBe(false)
     })
 
     it('should compute current leaves for fully turned book', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       const leafA = { index: 0, isTurned: true, isTurning: false }
       const leafB = { index: 1, isTurned: true, isTurning: false }
-      ;(flipBook as any).leaves = [leafA, leafB]
+      setFlipBookInternals(flipBook, { leaves: [leafA, leafB] as never })
 
-      const currentLeaves = (flipBook as any).currentLeaves
-      expect(currentLeaves[0]).toBe(leafB)
-      expect(currentLeaves[1]).toBeUndefined()
-      expect((flipBook as any).isClosed).toBe(false)
-      expect((flipBook as any).isClosedInverted).toBe(true)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.currentLeaves[0]).toBe(leafB)
+      expect(internals.currentLeaves[1]).toBeUndefined()
+      expect(internals.isClosed).toBe(false)
+      expect(internals.isClosedInverted).toBe(true)
     })
 
     it('should compute current leaves for middle turned leaf', () => {
@@ -440,29 +446,29 @@ describe('FlipBook', () => {
       const leafA = { index: 0, isTurned: false, isTurning: false }
       const leafB = { index: 1, isTurned: true, isTurning: false }
       const leafC = { index: 2, isTurned: false, isTurning: false }
-      ;(flipBook as any).leaves = [leafA, leafB, leafC]
+      setFlipBookInternals(flipBook, { leaves: [leafA, leafB, leafC] as never })
 
-      const currentLeaves = (flipBook as any).currentLeaves
-      expect(currentLeaves[0]).toBe(leafB)
-      expect(currentLeaves[1]).toBe(leafC)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.currentLeaves[0]).toBe(leafB)
+      expect(internals.currentLeaves[1]).toBe(leafC)
     })
 
     it('should compute current or turning leaves', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       const leafA = { index: 0, isTurned: false, isTurning: true }
       const leafB = { index: 1, isTurned: false, isTurning: false }
-      ;(flipBook as any).leaves = [leafA, leafB]
+      setFlipBookInternals(flipBook, { leaves: [leafA, leafB] as never })
 
-      const currentOrTurningLeaves = (flipBook as any).currentOrTurningLeaves
-      expect(currentOrTurningLeaves[0]).toBe(leafA)
-      expect(currentOrTurningLeaves[1]).toBe(leafB)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.currentOrTurningLeaves[0]).toBe(leafA)
+      expect(internals.currentOrTurningLeaves[1]).toBe(leafB)
     })
 
     it('should update current-page classes on turn', () => {
       const pages = createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).onTurned([1, 2], [0, 1])
+      getFlipBookInternals(flipBook).onTurned([1, 2], [0, 1])
 
       expect(pages[1].classList.contains('current-page')).toBe(true)
       expect(pages[2].classList.contains('current-page')).toBe(true)
@@ -473,7 +479,7 @@ describe('FlipBook', () => {
       const pages = createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).onTurned([0])
+      getFlipBookInternals(flipBook).onTurned([0])
 
       expect(pages[0].classList.contains('current-page')).toBe(true)
     })
@@ -483,14 +489,14 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).prevVisiblePageIndices = [1, 2]
+      setFlipBookInternals(flipBook, { prevVisiblePageIndices: [1, 2] })
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const promise = leaf.flipToPosition(1, 10000 as never)
       await vi.runAllTimersAsync()
       await promise
 
-      expect((flipBook as any).prevVisiblePageIndices).toEqual([1, 2])
+      expect(getFlipBookInternals(flipBook).prevVisiblePageIndices).toEqual([1, 2])
       vi.useRealTimers()
     })
 
@@ -500,12 +506,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const promise = leaf.flipToPosition(1, 10000 as never)
       await vi.runAllTimersAsync()
       await promise
 
-      expect((flipBook as any).prevVisiblePageIndices).toEqual([1, 2])
+      expect(getFlipBookInternals(flipBook).prevVisiblePageIndices).toEqual([1, 2])
       expect(pages[1].classList.contains('current-page')).toBe(true)
       expect(pages[2].classList.contains('current-page')).toBe(true)
 
@@ -518,12 +524,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[1]
+      const leaf = getFlipBookInternals(flipBook).leaves[1]
       const promise = leaf.flipToPosition(1, 10000 as never)
       await vi.runAllTimersAsync()
       await promise
 
-      expect((flipBook as any).prevVisiblePageIndices).toEqual([3])
+      expect(getFlipBookInternals(flipBook).prevVisiblePageIndices).toEqual([3])
       expect(pages[3].classList.contains('current-page')).toBe(true)
 
       vi.useRealTimers()
@@ -535,7 +541,7 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const forward = leaf.flipToPosition(1, 10000 as never)
       await vi.runAllTimersAsync()
       await forward
@@ -544,7 +550,7 @@ describe('FlipBook', () => {
       await vi.runAllTimersAsync()
       await backward
 
-      expect((flipBook as any).prevVisiblePageIndices).toEqual([0])
+      expect(getFlipBookInternals(flipBook).prevVisiblePageIndices).toEqual([0])
       expect(pages[0].classList.contains('current-page')).toBe(true)
 
       vi.useRealTimers()
@@ -556,7 +562,7 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[1]
+      const leaf = getFlipBookInternals(flipBook).leaves[1]
       const forward = leaf.flipToPosition(1, 10000 as never)
       await vi.runAllTimersAsync()
       await forward
@@ -565,7 +571,7 @@ describe('FlipBook', () => {
       await vi.runAllTimersAsync()
       await backward
 
-      expect((flipBook as any).prevVisiblePageIndices).toEqual([1, 2])
+      expect(getFlipBookInternals(flipBook).prevVisiblePageIndices).toEqual([1, 2])
       expect(pages[1].classList.contains('current-page')).toBe(true)
       expect(pages[2].classList.contains('current-page')).toBe(true)
 
@@ -578,22 +584,25 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).onDragStart({ center: { x: 120 } })
-      expect((flipBook as any).flipStartingPos).toBe(120)
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 120 } })
+      expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(120)
     })
 
     it('should reset state when drag starts during auto flip', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).currentLeaf = { index: 0 }
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
-      ;(flipBook as any).flipStartingPos = 50
-      ;(flipBook as any).isDuringAutoFlip = true
-      ;(flipBook as any).onDragStart({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, {
+        currentLeaf: { index: 0 } as never,
+        flipDirection: FlipDirection.Forward,
+        flipStartingPos: 50,
+        isDuringAutoFlip: true,
+      })
+      getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
-      expect((flipBook as any).flipStartingPos).toBe(0)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.flipDirection).toBe(FlipDirection.None)
+      expect(internals.flipStartingPos).toBe(0)
     })
 
     it('should flip forward on drag update', () => {
@@ -601,13 +610,13 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipStartingPos = 400
-      ;(flipBook as any).onDragUpdate({ center: { x: 100 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 400 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.Forward)
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.Forward)
       expect(spy).toHaveBeenCalled()
     })
 
@@ -616,12 +625,11 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipStartingPos = 400
-      ;(flipBook as any).onDragUpdate({ center: { x: 100 } })
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipStartingPos: 400 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
 
       expect(spy).toHaveBeenCalled()
     })
@@ -631,13 +639,13 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4, direction: 'rtl' })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 100 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.Forward)
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.Forward)
       expect(spy).toHaveBeenCalled()
     })
 
@@ -645,48 +653,48 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).isDuringManualFlip = true
-      ;(flipBook as any).onDragUpdate({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, { isDuringManualFlip: true })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
-      expect((flipBook as any).isDuringManualFlip).toBe(true)
+      expect(getFlipBookInternals(flipBook).isDuringManualFlip).toBe(true)
     })
 
     it('should ignore drag update while auto flip is active', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).isDuringAutoFlip = true
-      ;(flipBook as any).onDragUpdate({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, { isDuringAutoFlip: true })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
-      expect((flipBook as any).isDuringAutoFlip).toBe(true)
+      expect(getFlipBookInternals(flipBook).isDuringAutoFlip).toBe(true)
     })
 
     it('should handle drag update when book element is undefined', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
-      ;(flipBook as any).flipStartingPos = 100
+      setFlipBookInternals(flipBook, { flipStartingPos: 100 })
 
-      expect(() => (flipBook as any).onDragUpdate({ center: { x: 50 } })).not.toThrow()
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
+      expect(() => getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 50 } })).not.toThrow()
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None)
     })
 
     it('should return early when drag delta exceeds book width', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).flipStartingPos = 0
-      ;(flipBook as any).onDragUpdate({ center: { x: 1000 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 0 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 1000 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None)
     })
 
     it('should return early when drag delta is zero', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 100 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 100 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None)
     })
 
     it('should return early for forward drag when delta is negative', () => {
@@ -694,12 +702,11 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 300 } })
+      setFlipBookInternals(flipBook, { flipDirection: FlipDirection.Forward, flipStartingPos: 100 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } })
 
       expect(spy).not.toHaveBeenCalled()
     })
@@ -709,13 +716,13 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[1]
+      const leaf = getFlipBookInternals(flipBook).leaves[1]
       leaf.flipPosition = 1
 
-      const spy = vi.spyOn((flipBook as any).leaves[0], 'efficientFlipToPosition')
+      const spy = vi.spyOn(getFlipBookInternals(flipBook).leaves[0], 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipStartingPos = 400
-      ;(flipBook as any).onDragUpdate({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 400 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
       expect(spy).not.toHaveBeenCalled()
     })
@@ -725,14 +732,14 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 1
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 300 } })
+      setFlipBookInternals(flipBook, { flipStartingPos: 100 })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.Backward)
+      expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.Backward)
       expect(spy).toHaveBeenCalled()
     })
 
@@ -741,14 +748,16 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 1
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 300 } })
+      setFlipBookInternals(flipBook, {
+        currentLeaf: leaf,
+        flipDirection: FlipDirection.Backward,
+        flipStartingPos: 100,
+      })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } })
 
       expect(spy).toHaveBeenCalled()
     })
@@ -758,12 +767,14 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
-      ;(flipBook as any).flipStartingPos = 300
-      ;(flipBook as any).onDragUpdate({ center: { x: 100 } })
+      setFlipBookInternals(flipBook, {
+        flipDirection: FlipDirection.Backward,
+        flipStartingPos: 300,
+      })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
 
       expect(spy).not.toHaveBeenCalled()
     })
@@ -773,12 +784,14 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
-      ;(flipBook as any).flipStartingPos = 100
-      ;(flipBook as any).onDragUpdate({ center: { x: 200 } })
+      setFlipBookInternals(flipBook, {
+        flipDirection: FlipDirection.Backward,
+        flipStartingPos: 100,
+      })
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
       expect(spy).not.toHaveBeenCalled()
     })
@@ -787,13 +800,13 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
-      ;(flipBook as any).flipStartingPos = 50
+      setFlipBookInternals(flipBook, { flipDirection: FlipDirection.Forward, flipStartingPos: 50 })
 
-      await (flipBook as any).onDragEnd({ velocityX: 0 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 0 })
 
-      expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
-      expect((flipBook as any).flipStartingPos).toBe(0)
+      const internals = getFlipBookInternals(flipBook)
+      expect(internals.flipDirection).toBe(FlipDirection.None)
+      expect(internals.flipStartingPos).toBe(0)
     })
 
     it('should complete forward flip on drag end', async () => {
@@ -801,15 +814,14 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Forward })
 
-      await (flipBook as any).onDragEnd({ velocityX: -1 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: -1 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(1)
-      expect((flipBook as any).currentLeaf).toBeUndefined()
+      expect(getFlipBookInternals(flipBook).currentLeaf).toBeUndefined()
     })
 
     it('should complete backward flip on drag end', async () => {
@@ -817,16 +829,15 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 1
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Backward })
 
-      await (flipBook as any).onDragEnd({ velocityX: 1 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 1 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(0)
-      expect((flipBook as any).currentLeaf).toBeUndefined()
+      expect(getFlipBookInternals(flipBook).currentLeaf).toBeUndefined()
     })
 
     it('should choose flipTo=0 for slow forward drag', async () => {
@@ -834,13 +845,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 0.2
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Forward })
 
-      await (flipBook as any).onDragEnd({ velocityX: 0 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 0 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(0)
     })
@@ -850,13 +860,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 0.8
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Backward })
 
-      await (flipBook as any).onDragEnd({ velocityX: 0 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 0 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(1)
     })
@@ -866,12 +875,11 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4, direction: 'rtl' })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Forward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Forward })
 
-      await (flipBook as any).onDragEnd({ velocityX: 1 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 1 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(1)
     })
@@ -881,13 +889,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4, direction: 'rtl' })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       leaf.flipPosition = 0.2
       vi.spyOn(leaf, 'flipToPosition').mockResolvedValue(undefined)
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.Backward
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.Backward })
 
-      await (flipBook as any).onDragEnd({ velocityX: -1 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: -1 })
 
       expect(leaf.flipToPosition).toHaveBeenCalledWith(0)
     })
@@ -897,13 +904,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      const leaf = (flipBook as any).leaves[0]
+      const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'flipToPosition')
 
-      ;(flipBook as any).currentLeaf = leaf
-      ;(flipBook as any).flipDirection = FlipDirection.None
+      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipDirection: FlipDirection.None })
 
-      await (flipBook as any).onDragEnd({ velocityX: 0 })
+      await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 0 })
 
       expect(spy).not.toHaveBeenCalled()
     })

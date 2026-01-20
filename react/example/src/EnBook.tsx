@@ -10,6 +10,12 @@ interface MarkdownModule {
   default: string
 }
 
+function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModule {
+  if (typeof (module as MarkdownModule).default !== 'string') {
+    throw new Error('Invalid markdown module')
+  }
+}
+
 export const EnBook = () => {
   const [enPages, setEnPages] = useState<ReactElement[]>([])
 
@@ -28,8 +34,8 @@ export const EnBook = () => {
       const pages = files
         // To avoid having an empty page at the end
         .concat([{ path: '', content: '' }])
-        .map(({ content }, index) => (
-          <div key={index} className="en-page">
+        .map(({ path, content }) => (
+          <div key={path || 'empty-page'} className="en-page">
             <Markdown>{content}</Markdown>
           </div>
         ))
@@ -38,13 +44,7 @@ export const EnBook = () => {
     }
 
     loadMarkdownFiles()
-  }, [assertIsMarkdownModule])
-
-  function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModule {
-    if (typeof (module as MarkdownModule).default !== 'string') {
-      throw new Error('Invalid markdown module')
-    }
-  }
+  }, [])
 
   return enPages.length ? <FlipBook className="en-book" pages={enPages} debug={true} /> : null
 }

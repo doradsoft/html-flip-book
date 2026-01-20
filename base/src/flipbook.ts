@@ -237,9 +237,12 @@ class FlipBook {
           if (!this.currentLeaf) {
             if (this.isClosedInverted) {
               return
-            } else {
-              this.currentLeaf = this.currentOrTurningLeaves[1]!
             }
+            const nextLeaf = this.currentOrTurningLeaves[1]
+            if (!nextLeaf) {
+              return
+            }
+            this.currentLeaf = nextLeaf
           }
           this.currentLeaf.efficientFlipToPosition(posForward)
           break

@@ -1,8 +1,9 @@
 // HeBook.tsx
 import { FlipBook, type PageSemantics } from 'html-flip-book-react'
 
-const hePages = Array.from({ length: 10 }, (_, index) => (
-  <div key={index}>
+const hePageIds = Array.from({ length: 10 }, (_, i) => `he-page-${i}`)
+const hePages = hePageIds.map((id) => (
+  <div key={id}>
     <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
   </div>
 ))

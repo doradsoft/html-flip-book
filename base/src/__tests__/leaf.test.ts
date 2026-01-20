@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FlipDirection } from '../flip-direction'
 import { FLIPPED, type FlipPosition, Leaf, NOT_FLIPPED } from '../leaf'
+import { getLeafInternals, setLeafInternals } from './test-utils'
 
 describe('Leaf', () => {
   let mockPage1: HTMLElement
@@ -192,9 +193,9 @@ describe('Leaf', () => {
       )
 
       const promise1 = leaf.flipToPosition(1 as FlipPosition, 10000 as never)
-      const firstAnimation = (leaf as any).currentAnimation
+      const firstAnimation = getLeafInternals(leaf).currentAnimation
       const promise2 = leaf.flipToPosition(1 as FlipPosition, 10000 as never)
-      const secondAnimation = (leaf as any).currentAnimation
+      const secondAnimation = getLeafInternals(leaf).currentAnimation
 
       expect(secondAnimation).toBe(firstAnimation)
       expect(promise2).toBeInstanceOf(Promise)
@@ -215,8 +216,7 @@ describe('Leaf', () => {
         onTurnedMock
       )
 
-      ;(leaf as any).currentAnimation = null
-      ;(leaf as any).targetFlipPosition = 1
+      setLeafInternals(leaf, { currentAnimation: null, targetFlipPosition: 1 as FlipPosition })
 
       const result = await leaf.flipToPosition(1 as FlipPosition)
 

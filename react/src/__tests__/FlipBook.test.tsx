@@ -90,7 +90,8 @@ describe('FlipBook React Component', () => {
   })
 
   it('should handle many pages', () => {
-    const pages = Array.from({ length: 100 }, (_, i) => <div key={i}>Page {i + 1}</div>)
+    const pageIds = Array.from({ length: 100 }, (_, i) => `test-page-${i}`)
+    const pages = pageIds.map((id, i) => <div key={id}>Page {i + 1}</div>)
 
     const { container } = render(<FlipBook pages={pages} className="test-flipbook" />)
 
