@@ -199,11 +199,29 @@ class FlipBook {
 
   private onDragStart(event: HammerInput) {
     console.log('drag start')
-    // If there's an auto-flip in progress, cancel it and allow new flip
+    // If there's an auto-flip in progress, cancel it and continue with same leaf
     if (this.isDuringAutoFlip && this.currentLeaf) {
       this.currentLeaf.cancelAnimation()
       this.isDuringAutoFlip = false
-      this.currentLeaf = undefined
+      // Calculate adjusted starting position based on current leaf position
+      // This makes the drag continue smoothly from where the animation was
+      const bookWidth = this.bookElement?.clientWidth ?? 0
+      const currentFlipPos = this.currentLeaf.flipPosition
+      // Adjust starting pos so that current position maps to current flip position
+      if (this.flipDirection === FlipDirection.Forward) {
+        // posForward = (flipStartingPos - currentPos) / bookWidth = currentFlipPos
+        // So: flipStartingPos = currentPos + currentFlipPos * bookWidth
+        this.flipStartingPos = this.isLTR
+          ? event.center.x + currentFlipPos * bookWidth
+          : event.center.x - currentFlipPos * bookWidth
+      } else {
+        // posBackward = 1 - |flipDelta| / bookWidth = currentFlipPos
+        // |flipDelta| = (1 - currentFlipPos) * bookWidth
+        this.flipStartingPos = this.isLTR
+          ? event.center.x - (1 - currentFlipPos) * bookWidth
+          : event.center.x + (1 - currentFlipPos) * bookWidth
+      }
+      return
     }
     // If already dragging a leaf, don't start a new drag
     if (this.currentLeaf) {

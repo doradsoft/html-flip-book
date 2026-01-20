@@ -588,24 +588,34 @@ describe('FlipBook', () => {
       expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(120)
     })
 
-    it('should reset state when drag starts during auto flip', () => {
+    it('should cancel animation and continue with same leaf when drag starts during auto flip', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
       const mockCancelAnimation = vi.fn()
+      const mockLeaf = {
+        index: 0,
+        cancelAnimation: mockCancelAnimation,
+        flipPosition: 0.5,
+      }
       setFlipBookInternals(flipBook, {
-        currentLeaf: { index: 0, cancelAnimation: mockCancelAnimation } as never,
+        currentLeaf: mockLeaf as never,
         flipDirection: FlipDirection.Forward,
         flipStartingPos: 50,
         isDuringAutoFlip: true,
       })
+      ;(flipBook as { bookElement?: HTMLElement }).bookElement = {
+        clientWidth: 400,
+      } as HTMLElement
       getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
 
       expect(mockCancelAnimation).toHaveBeenCalled()
       const internals = getFlipBookInternals(flipBook)
       expect(internals.isDuringAutoFlip).toBe(false)
-      expect(internals.currentLeaf).toBeUndefined()
-      expect(internals.flipStartingPos).toBe(200)
+      // Current leaf is kept for smooth continuation
+      expect(internals.currentLeaf).toBe(mockLeaf)
+      // Starting position is adjusted based on current flip position
+      expect(internals.flipStartingPos).toBe(400) // 200 + 0.5 * 400 for LTR forward
     })
 
     it('should flip forward on drag update', () => {
