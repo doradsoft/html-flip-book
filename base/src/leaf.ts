@@ -9,7 +9,7 @@ export const FLIPPED = true
 export const NOT_FLIPPED = false
 export class Leaf {
   private currentAnimation: Promise<void> | null = null
-  private targetFlipPosition: FlipPosition | null = null
+  private animationCancelled = false
   private wrappedFlipPosition: number
 
   constructor(
@@ -52,23 +52,24 @@ export class Leaf {
     return this.wrappedFlipPosition
   }
 
+  cancelAnimation() {
+    this.animationCancelled = true
+  }
+
   async flipToPosition(
     flipPosition: FlipPosition,
     velocity: DegreesPerSecond = 225 as DegreesPerSecond
   ) {
+    // Cancel any running animation and start fresh
     if (this.currentAnimation) {
+      this.animationCancelled = true
       await this.currentAnimation
     }
+    this.animationCancelled = false
 
     if (this.flipPosition === flipPosition) {
       return Promise.resolve()
     }
-
-    if (this.targetFlipPosition === flipPosition) {
-      return this.currentAnimation ?? Promise.resolve()
-    }
-
-    this.targetFlipPosition = flipPosition
 
     this.currentAnimation = new Promise<void>((resolve) => {
       const currentFlipPosition = this.flipPosition
@@ -132,11 +133,10 @@ export class Leaf {
         //   `Timestamp: ${timestamp}, Elapsed: ${elapsed}, Progress: ${progress}, Current Position: ${currentFlipPosition}, Requested Position: ${flipPosition}, New Position: ${this.flipPosition}`
         // );
 
-        if (progress < 1) {
+        if (progress < 1 && !this.animationCancelled) {
           requestAnimationFrame(step)
         } else {
           this.currentAnimation = null
-          this.targetFlipPosition = null
           resolve()
         }
       }

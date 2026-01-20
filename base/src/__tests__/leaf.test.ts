@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FlipDirection } from '../flip-direction'
 import { FLIPPED, type FlipPosition, Leaf, NOT_FLIPPED } from '../leaf'
-import { getLeafInternals, setLeafInternals } from './test-utils'
+import { getLeafInternals } from './test-utils'
 
 describe('Leaf', () => {
   let mockPage1: HTMLElement
@@ -207,7 +207,7 @@ describe('Leaf', () => {
       vi.useRealTimers()
     })
 
-    it('should return current animation when target matches', async () => {
+    it('should resolve immediately when already at target position', async () => {
       const leaf = new Leaf(
         0,
         [mockPage1, mockPage2],
@@ -216,9 +216,8 @@ describe('Leaf', () => {
         onTurnedMock
       )
 
-      setLeafInternals(leaf, { currentAnimation: null, targetFlipPosition: 1 as FlipPosition })
-
-      const result = await leaf.flipToPosition(1 as FlipPosition)
+      // Already at position 0, requesting position 0
+      const result = await leaf.flipToPosition(0 as FlipPosition)
 
       expect(result).toBeUndefined()
     })

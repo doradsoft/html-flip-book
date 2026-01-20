@@ -1,13 +1,13 @@
 import type { FlipDirection } from '../flip-direction'
 import type { FlipBook } from '../flipbook'
-import type { FlipPosition, Leaf } from '../leaf'
+import type { Leaf } from '../leaf'
 
 // Type-safe test accessors for private members
 // This avoids using `any` while allowing tests to access internals
 
 interface LeafTestable {
   currentAnimation: Promise<void> | null
-  targetFlipPosition: FlipPosition | null
+  animationCancelled: boolean
 }
 
 interface MockLeaf {
@@ -51,8 +51,8 @@ export function setLeafInternals(leaf: Leaf, updates: Partial<LeafTestable>): vo
   if (updates.currentAnimation !== undefined) {
     internals.currentAnimation = updates.currentAnimation
   }
-  if (updates.targetFlipPosition !== undefined) {
-    internals.targetFlipPosition = updates.targetFlipPosition
+  if (updates.animationCancelled !== undefined) {
+    internals.animationCancelled = updates.animationCancelled
   }
 }
 
