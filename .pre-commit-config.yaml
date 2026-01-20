@@ -1,15 +1,15 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-ast
-    -   id: check-added-large-files
--   repo: local
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-ast
+      - id: check-added-large-files
+  - repo: local
     hooks:
-    -   id: eslint
+      - id: eslint
         name: eslint
         entry: npx eslint --debug
         pass_filenames: false

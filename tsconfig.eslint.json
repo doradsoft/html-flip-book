@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "base/src/**/*.ts",
+    "react/src/**/*.ts",
+    "react/src/**/*.tsx",
+    "react/example/src/**/*.ts",
+    "react/example/src/**/*.tsx",
+    "scripts/**/*.ts",
+    "scripts/**/*.mts",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "e2e/**/*.ts",
+    "eslint.config.mjs"
+  ],
+  "exclude": ["node_modules", "**/dist/**"]
+}

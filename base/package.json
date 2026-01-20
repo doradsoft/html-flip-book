@@ -1,0 +1,29 @@
+{
+  "name": "html-flip-book-base",
+  "version": "1.0.0",
+  "description": "Flipbook component for HTML",
+  "author": "DoradSoft",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/flipbook.js",
+  "types": "./dist/flipbook.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/flipbook.js",
+      "types": "./dist/flipbook.d.ts"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "hammerjs": "^2.0.8",
+    "throttle-debounce": "^5.0.2",
+    "type-fest": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/hammerjs": "^2.0.46",
+    "@types/throttle-debounce": "^5.0.2"
+  }
+}
