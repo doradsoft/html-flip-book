@@ -199,7 +199,14 @@ class FlipBook {
 
   private onDragStart(event: HammerInput) {
     console.log('drag start')
-    if (this.currentLeaf || this.isDuringAutoFlip) {
+    // If there's an auto-flip in progress, cancel it and allow new flip
+    if (this.isDuringAutoFlip && this.currentLeaf) {
+      this.currentLeaf.cancelAnimation()
+      this.isDuringAutoFlip = false
+      this.currentLeaf = undefined
+    }
+    // If already dragging a leaf, don't start a new drag
+    if (this.currentLeaf) {
       this.flipDirection = FlipDirection.None
       this.flipStartingPos = 0
       return
@@ -209,7 +216,7 @@ class FlipBook {
 
   private onDragUpdate(event: HammerInput) {
     console.log('drag update')
-    if (this.isDuringAutoFlip || this.isDuringManualFlip) {
+    if (this.isDuringManualFlip) {
       return
     }
     this.isDuringManualFlip = true
@@ -270,7 +277,7 @@ class FlipBook {
 
   private async onDragEnd(event: HammerInput) {
     console.log('drag end')
-    if (!this.currentLeaf || this.isDuringAutoFlip) {
+    if (!this.currentLeaf) {
       this.flipDirection = FlipDirection.None
       this.flipStartingPos = 0
       return

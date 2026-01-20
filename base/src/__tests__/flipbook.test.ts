@@ -592,17 +592,20 @@ describe('FlipBook', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
+      const mockCancelAnimation = vi.fn()
       setFlipBookInternals(flipBook, {
-        currentLeaf: { index: 0 } as never,
+        currentLeaf: { index: 0, cancelAnimation: mockCancelAnimation } as never,
         flipDirection: FlipDirection.Forward,
         flipStartingPos: 50,
         isDuringAutoFlip: true,
       })
       getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
 
+      expect(mockCancelAnimation).toHaveBeenCalled()
       const internals = getFlipBookInternals(flipBook)
-      expect(internals.flipDirection).toBe(FlipDirection.None)
-      expect(internals.flipStartingPos).toBe(0)
+      expect(internals.isDuringAutoFlip).toBe(false)
+      expect(internals.currentLeaf).toBeUndefined()
+      expect(internals.flipStartingPos).toBe(200)
     })
 
     it('should flip forward on drag update', () => {
