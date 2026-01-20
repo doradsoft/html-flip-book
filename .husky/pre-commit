@@ -1,0 +1,2 @@
+# Run Biome linting/formatting checks
+npm run check
