@@ -8,10 +8,11 @@ import packageJson from './package.json'
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === 'production'
+  const isGitHubPages = process.env.GITHUB_ACTIONS === 'true'
   return {
     mode,
     assetsInclude: ['**/*.md'],
-    base: '',
+    base: isGitHubPages ? '/html-flip-book/' : '',
     resolve: {
       alias: {
         'html-flip-book-react': path.resolve(__dirname, '../src/FlipBook.tsx'),
