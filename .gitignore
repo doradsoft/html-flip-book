@@ -27,6 +27,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+.coverage
 *.lcov
 
 # nyc test coverage
@@ -99,6 +100,11 @@ Thumbs.db
 
 # Ignore built ts files
 __tests__/runner/*
+
+# Playwright
+.playwright-report
+playwright-report
+test-results
 
 # IDE files
 .idea

@@ -1,32 +1,41 @@
 # `Data Control Language`
+
 DCL commands are used to grant and take back authority from any database user.
 
 ## `DCL` Commands
+
 - `GRANT` Command
 - `REVOKE` Command
 
 ## `GRANT`
+
 `GRANT` is used to give user access privileges to a database.
 
 ### Syntax
+
 ```sql
 GRANT privilege_name ON objectname TO user;
 ```
 
 ## `REVOKE`
-`REVOKE` remove a privilege from a user. REVOKE helps the owner to cancel previously granted permissions.
 
+`REVOKE` remove a privilege from a user. REVOKE helps the owner to cancel
+previously granted permissions.
 
 ### Syntax
+
 ```sql
 REVOKE privilege_name ON objectname FROM user;
 ```
 
 ### `DCL` Examples
+
 ```sql
 SELECT * FROM purchase;
 ```
+
 Output:
+
 ```
 | item         | price | customer_name |
 |--------------|-------|---------------|
@@ -45,42 +54,54 @@ Output:
 ```sql
   GRANT INSERT ON purchase TO 'Sanskriti'@'localhost';
 ```
+
 Output:
+
 ```
 #### O/P Query OK, 0 rows affected (0.31 sec)
 ```
 
-Description In above command we have granted user Sanskriti priviledge to `Insert` into purchase table.
+Description In above command we have granted user Sanskriti priviledge to
+`Insert` into purchase table.
 
-- Now if I login as Sanskriti and try to run `Select` statement as given below what should happen?
+- Now if I login as Sanskriti and try to run `Select` statement as given below
+  what should happen?
 
 ```sql
 SELECT * FROM purchase;
 ```
 
 Output:
+
 ```
 #### O/P ERROR 1142 (42000): SELECT command denied to user 'Sanskriti'@'localhost' for table 'purchase'
 ```
-Yup as expected it gives error because we have granted insert operation to Sanskriti.
+
+Yup as expected it gives error because we have granted insert operation to
+Sanskriti.
 
 - So lets try inserting data to purchase table:
+
 ```sql
 INSERT INTO purchase values("Laptop", 100000, "Sanskriti");
 ```
 
 Output:
+
 ```
 #### O/P Query OK, 1 row affected (0.34 sec)
 ```
+
 Yes! It works!
 
 - Now I am checking the purchase table from my original account:
+
 ```sql
 SELECT * FROM purchase;
 ```
 
 Output:
+
 ```
 | item         | price  | customer_name |
 |-------------|--------|---------------|
@@ -104,6 +125,7 @@ REVOKE INSERT ON purchase FROM 'Sanskriti'@'localhost';
 ```
 
 Output:
+
 ```
 #### O/P Query OK, 0 rows affected (0.35 sec)
 ```
@@ -117,6 +139,7 @@ INSERT INTO purchase values("Laptop", 100000, "Sanskriti");
 ```
 
 Output:
+
 ```
 #### O/P ERROR 1142 (42000): INSERT command denied to user 'Sanskriti'@'localhost' for table 'purchase'
 ```

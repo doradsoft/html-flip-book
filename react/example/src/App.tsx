@@ -1,8 +1,8 @@
 // App.tsx
-import type { FC } from "react";
-import "./App.css"; // Import the CSS file
-import EnBook from "./EnBook";
-import HeBook from "./HeBook";
+import type { FC } from 'react'
+import './App.css' // Import the CSS file
+import EnBook from './EnBook'
+import HeBook from './HeBook'
 
 export const App: FC = () => {
   return (
@@ -19,7 +19,7 @@ export const App: FC = () => {
         </section>
       </section>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App

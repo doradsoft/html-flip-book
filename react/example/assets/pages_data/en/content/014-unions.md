@@ -1,9 +1,9 @@
 # SQL - UNIONS CLAUSE
 
-The SQL UNION clause/operator is used to combine the results of two or more SELECT statements without returning any duplicate rows.
+The SQL UNION clause/operator is used to combine the results of two or more
+SELECT statements without returning any duplicate rows.
 
 - While using this UNION clause, each SELECT statement must have:
-
   - The same number of columns selected
   - The same number of column expressions
   - The same data type and
@@ -57,14 +57,16 @@ UNION
 This would produce the following result:
 
 ### The UNION ALL Clause
-The UNION ALL operator is used to combine the results of two SELECT statements including duplicate rows.
 
-The same rules that apply to the UNION clause will apply to the UNION ALL operator.
+The UNION ALL operator is used to combine the results of two SELECT statements
+including duplicate rows.
 
-_Example_ -
-Consider the following two tables:
+The same rules that apply to the UNION clause will apply to the UNION ALL
+operator.
 
-* Table 1 − customers table is as follows:
+_Example_ - Consider the following two tables:
+
+- Table 1 − customers table is as follows:
 
       +----+----------+-----+-----------+----------+
       | id | name     | age | address   | salary   |
@@ -78,7 +80,7 @@ Consider the following two tables:
       |  7 | Muffy    |  24 | Indore    | 10000.00 |
       +----+----------+-----+-----------+----------+
 
-* Table 2 − orders table is as follows:
+- Table 2 − orders table is as follows:
 
       +-----+---------------------+-------------+--------+
       | oid | date                | customer_id | amount |
@@ -90,6 +92,7 @@ Consider the following two tables:
       +-----+---------------------+-------------+--------+
 
 Now, let us join these two tables in our SELECT statement as follows :
+
 ```sql
 SELECT id, name, amount, date
    FROM customers
@@ -121,4 +124,5 @@ This would produce the following result:
     |    4 | Chaitali |   2060 | 2008-05-20 00:00:00 |
     +------+----------+--------+---------------------+
 
-Note : **There are two other clauses (i.e., operators), which are like the UNION clause.**
+Note : **There are two other clauses (i.e., operators), which are like the UNION
+clause.**

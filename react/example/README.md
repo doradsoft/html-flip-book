@@ -4,16 +4,18 @@ Scaffold for React project implementing ESM by using Vite build tool.
 
 ## Description
 
-This is a base project for creating React applications with ECMAScript Modules (ESM). It's built using Vite and a variety of modern tools and packages.
+This is a base project for creating React applications with ECMAScript Modules
+(ESM). It's built using Vite and a variety of modern tools and packages.
 
 ## Installation
 
-First, clone the project. Then, use the package manager [npm](https://www.npmjs.com/) to install all dependencies for the project.
+First, clone the project. Then, use the package manager
+[npm](https://www.npmjs.com/) to install all dependencies for the project.
 
 ## Getting started
 
-To start the project, you will be using NPM scripts.
-Start the project in development mode:
+To start the project, you will be using NPM scripts. Start the project in
+development mode:
 
 ```shell
 npm run dev
@@ -32,7 +34,8 @@ npm run build -- --mode production
 
 ## Running Tests
 
-The project uses vitest for testing. Run the following NPM script to execute the tests:
+The project uses vitest for testing. Run the following NPM script to execute the
+tests:
 
 ```shell
 npm run test

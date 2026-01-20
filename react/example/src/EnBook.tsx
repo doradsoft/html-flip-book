@@ -1,5 +1,5 @@
 // EnBook.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { FlipBook } from 'html-flip-book-react'
 import Markdown from 'react-markdown'
 
@@ -10,7 +10,7 @@ interface MarkdownModule {
 }
 
 export const EnBook = () => {
-  const [enPages, setEnPages] = useState<JSX.Element[]>([])
+  const [enPages, setEnPages] = useState<ReactElement[]>([])
 
   useEffect(() => {
     const loadMarkdownFiles = async () => {

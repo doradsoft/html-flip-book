@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import reactRefresh from '@vitejs/plugin-react-refresh'
 import react from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
 import checker from 'vite-plugin-checker'
@@ -13,6 +12,15 @@ export default defineConfig(({ mode }) => {
     mode,
     assetsInclude: ['**/*.md'],
     base: '',
+    resolve: {
+      alias: {
+        'html-flip-book-react': path.resolve(__dirname, '../src/FlipBook.tsx'),
+        'html-flip-book-base': path.resolve(
+          __dirname,
+          '../../base/src/flipbook.ts'
+        )
+      }
+    },
     build: {
       sourcemap: !isProd,
       emptyOutDir: true,
@@ -32,13 +40,18 @@ export default defineConfig(({ mode }) => {
     },
     esbuild: { legalComments: 'none' },
     server: {
-      open: true
+      port: 5173,
+      strictPort: true,
+      open: false,
+      fs: {
+        allow: [path.resolve(__dirname, '..'), path.resolve(__dirname, '../..')]
+      }
     },
     plugins: [
       react(),
       {
         name: 'markdown-loader',
-        transform (_export, id) {
+        transform(_export, id) {
           if (id.endsWith('.md')) {
             const mdContent = fs.readFileSync(id, 'utf-8')
             return {
@@ -48,14 +61,13 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      reactRefresh(),
       tsconfigPaths(),
       checker({
         typescript: true
       }),
       {
         name: 'update-esm-package-props',
-        generateBundle: (options, bundle) => {
+        generateBundle: (_options, bundle) => {
           if (isProd) {
             for (const fileName in bundle) {
               if (fileName.startsWith('index-')) {

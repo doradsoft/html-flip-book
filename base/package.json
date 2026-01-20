@@ -7,18 +7,23 @@
   "license": "MIT",
   "main": "./dist/flipbook.js",
   "types": "./dist/flipbook.d.ts",
-  "scripts": {
-    "build": "node --loader ts-node/esm -r tsconfig-paths/register ../node_modules/webpack-cli/bin/cli.js --config webpack.config.ts --mode production",
-    "watch": "node --loader ts-node/esm -r tsconfig-paths/register ../node_modules/webpack-cli/bin/cli.js --config webpack.config.ts --watch --mode development"
+  "exports": {
+    ".": {
+      "import": "./dist/flipbook.js",
+      "types": "./dist/flipbook.d.ts"
+    },
+    "./style.css": "./dist/style.css"
   },
-  "devDependencies": {
-    "@types/hammerjs": "^2.0.45",
-    "@types/throttle-debounce": "^5.0.2",
-    "tsconfig-paths": "^4.2.0"
-  },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "hammerjs": "^2.0.8",
     "throttle-debounce": "^5.0.2",
-    "type-fest": "^4.21.0"
+    "type-fest": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/hammerjs": "^2.0.46",
+    "@types/throttle-debounce": "^5.0.2"
   }
 }

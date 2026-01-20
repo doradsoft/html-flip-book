@@ -6,6 +6,15 @@
   "author": "DoradSoft",
   "main": "./dist/flip-book.js",
   "types": "./dist/flip-book.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/flip-book.js",
+      "types": "./dist/flip-book.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "homepage": "https://github.com/doradsoft/html-flip-book",
   "repository": {
     "type": "git",
@@ -20,26 +29,15 @@
     "react"
   ],
   "license": "MIT",
-  "scripts": {
-    "build": "vite build"
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "html-flip-book-base": "file:../base"
   },
   "devDependencies": {
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react-refresh": "^1.3.6",
-    "@vitejs/plugin-react-swc": "^3.7.0",
-    "html-flip-book-base": "file:../base",
-    "react-refresh": "^0.14.2",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^8.0.0-alpha.14",
-    "vite": "^5.3.3",
-    "vite-plugin-checker": "^0.7.1",
-    "vite-plugin-dts": "^3.9.1",
-    "vite-tsconfig-paths": "^4.3.2",
-    "vitest": "^1.6.0"
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3"
   }
 }

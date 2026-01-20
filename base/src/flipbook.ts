@@ -1,11 +1,11 @@
 import './pages.scss'
 import './flipbook.scss'
-import { PageSemantics } from './page-semantics'
+import type { PageSemantics } from './page-semantics'
 import Hammer from 'hammerjs'
-import { Leaf, FlipPosition, NOT_FLIPPED } from './leaf'
-import { FlipBookOptions } from './flip-book-options'
+import { Leaf, NOT_FLIPPED, type FlipPosition } from './leaf'
+import type { FlipBookOptions } from './flip-book-options'
 import { FlipDirection } from './flip-direction'
-import { AspectRatio } from './aspect-ratio'
+import type { AspectRatio } from './aspect-ratio'
 import { Size } from './size'
 
 const FAST_DELTA = 500
@@ -252,7 +252,7 @@ class FlipBook {
             ? FlipDirection.Forward
             : FlipDirection.Backward
       switch (this.flipDirection) {
-        case FlipDirection.Forward:
+        case FlipDirection.Forward: {
           const posForward = (this.flipDelta / bookWidth) as FlipPosition
           if (posForward > 1 || this.flipDelta < 0) {
             return
@@ -261,14 +261,13 @@ class FlipBook {
             if (this.isClosedInverted) {
               return
             } else {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- when `!this.isClosedInverted` there will always be a second leaf in `this.currentOrTurningLeaves`
               this.currentLeaf = this.currentOrTurningLeaves[1]!
             }
           }
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
-          this.currentLeaf!.efficientFlipToPosition(posForward)
+          this.currentLeaf.efficientFlipToPosition(posForward)
           break
-        case FlipDirection.Backward:
+        }
+        case FlipDirection.Backward: {
           const posBackward = (1 -
             Math.abs(this.flipDelta) / bookWidth) as FlipPosition
           if (posBackward < 0 || this.flipDelta > 0) {
@@ -281,9 +280,9 @@ class FlipBook {
               this.currentLeaf = this.currentOrTurningLeaves[0]
             }
           }
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- at this point `this.currentLeaf` is guaranteed to be defined
           this.currentLeaf!.efficientFlipToPosition(posBackward)
           break
+        }
       }
     } finally {
       this.isDuringManualFlip = false
