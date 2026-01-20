@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('FlipBook Page Classes', () => {
   test.beforeEach(async ({ page }) => {
@@ -34,9 +34,7 @@ test.describe('FlipBook Page Classes', () => {
     const pages = page.locator('.he-book.flipbook .page')
     const firstPage = pages.first()
 
-    const transform = await firstPage.evaluate(
-      el => window.getComputedStyle(el).transform
-    )
+    const transform = await firstPage.evaluate((el) => window.getComputedStyle(el).transform)
 
     // Transform should be set (not 'none')
     expect(transform).toBeTruthy()
@@ -47,25 +45,19 @@ test.describe('FlipBook Page Classes', () => {
     const _count = await pages.count()
 
     // Check first and last pages have z-index
-    const firstZIndex = await pages
-      .first()
-      .evaluate(el => window.getComputedStyle(el).zIndex)
-    const lastZIndex = await pages
-      .last()
-      .evaluate(el => window.getComputedStyle(el).zIndex)
+    const firstZIndex = await pages.first().evaluate((el) => window.getComputedStyle(el).zIndex)
+    const lastZIndex = await pages.last().evaluate((el) => window.getComputedStyle(el).zIndex)
 
-    expect(parseInt(firstZIndex)).toBeGreaterThan(0)
-    expect(parseInt(lastZIndex)).toBeGreaterThan(0)
+    expect(parseInt(firstZIndex, 10)).toBeGreaterThan(0)
+    expect(parseInt(lastZIndex, 10)).toBeGreaterThan(0)
     // First page should have higher z-index when not flipped
-    expect(parseInt(firstZIndex)).toBeGreaterThanOrEqual(parseInt(lastZIndex))
+    expect(parseInt(firstZIndex, 10)).toBeGreaterThanOrEqual(parseInt(lastZIndex, 10))
   })
 
-  test('should have perspective set on flipbook container', async ({
-    page
-  }) => {
+  test('should have perspective set on flipbook container', async ({ page }) => {
     const flipbook = page.locator('.he-book.flipbook')
 
-    const perspective = await flipbook.evaluate(el => el.style.perspective)
+    const perspective = await flipbook.evaluate((el) => el.style.perspective)
 
     expect(perspective).toBeTruthy()
     expect(perspective).toContain('px')
@@ -75,8 +67,8 @@ test.describe('FlipBook Page Classes', () => {
     const pages = page.locator('.he-book.flipbook .page')
     const firstPage = pages.first()
 
-    const width = await firstPage.evaluate(el => el.style.width)
-    const height = await firstPage.evaluate(el => el.style.height)
+    const width = await firstPage.evaluate((el) => el.style.width)
+    const height = await firstPage.evaluate((el) => el.style.height)
 
     expect(width).toBeTruthy()
     expect(height).toBeTruthy()
@@ -94,7 +86,7 @@ test.describe('FlipBook Responsive', () => {
 
     // Get initial dimensions
     const firstPage = page.locator('.he-book.flipbook .page').first()
-    const _initialWidth = await firstPage.evaluate(el => el.style.width)
+    const _initialWidth = await firstPage.evaluate((el) => el.style.width)
 
     // Resize viewport
     await page.setViewportSize({ width: 600, height: 800 })
@@ -104,7 +96,7 @@ test.describe('FlipBook Responsive', () => {
     await page.reload()
     await expect(flipbook).toBeVisible()
 
-    const newWidth = await firstPage.evaluate(el => el.style.width)
+    const newWidth = await firstPage.evaluate((el) => el.style.width)
 
     // Width should be different (smaller viewport = smaller pages)
     // If the same, it means CSS is responsive

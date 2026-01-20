@@ -33,13 +33,9 @@ jobs:
         id: npm-ci
         run: npm ci
 
-      - name: Check Format
-        id: npm-format-check
-        run: npm run format:check
-
-      - name: Lint
-        id: npm-lint
-        run: npm run lint
+      - name: Biome Check
+        id: npm-check
+        run: npm run check
 
       - name: Unit Tests with Coverage
         id: npm-test

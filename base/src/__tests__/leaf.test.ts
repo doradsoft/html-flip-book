@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Leaf, FLIPPED, NOT_FLIPPED, type FlipPosition } from '../leaf'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FlipDirection } from '../flip-direction'
+import { FLIPPED, type FlipPosition, Leaf, NOT_FLIPPED } from '../leaf'
 
 describe('Leaf', () => {
   let mockPage1: HTMLElement
@@ -10,7 +10,7 @@ describe('Leaf', () => {
   const defaultBookProperties = {
     isLTR: true,
     pagesCount: 10,
-    leavesCount: 5
+    leavesCount: 5,
   }
 
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('Leaf', () => {
     onTurnedMock = vi.fn()
 
     // Mock requestAnimationFrame
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       setTimeout(() => cb(performance.now()), 0)
       return 0
     })
@@ -50,13 +50,7 @@ describe('Leaf', () => {
     })
 
     it('should create a leaf with FLIPPED state', () => {
-      const leaf = new Leaf(
-        0,
-        [mockPage1, mockPage2],
-        FLIPPED,
-        defaultBookProperties,
-        onTurnedMock
-      )
+      const leaf = new Leaf(0, [mockPage1, mockPage2], FLIPPED, defaultBookProperties, onTurnedMock)
 
       expect(leaf.flipPosition).toBe(1)
       expect(leaf.isTurned).toBe(true)
@@ -232,7 +226,7 @@ describe('Leaf', () => {
     it('should update transforms for LTR across midpoints', async () => {
       const timestamps = [250, 750, 1000]
       vi.spyOn(performance, 'now').mockReturnValue(0)
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
         const ts = timestamps.shift() ?? 1000
         setTimeout(() => cb(ts), 0)
         return 0
@@ -247,7 +241,7 @@ describe('Leaf', () => {
       )
 
       const promise = leaf.flipToPosition(1 as FlipPosition, 180 as never)
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
       await promise
 
       expect(mockPage1.style.transform).toContain('rotateY')
@@ -257,7 +251,7 @@ describe('Leaf', () => {
     it('should update transforms for RTL across midpoints', async () => {
       const timestamps = [250, 750, 1000]
       vi.spyOn(performance, 'now').mockReturnValue(0)
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
         const ts = timestamps.shift() ?? 1000
         setTimeout(() => cb(ts), 0)
         return 0
@@ -272,7 +266,7 @@ describe('Leaf', () => {
       )
 
       const promise = leaf.flipToPosition(1 as FlipPosition, 180 as never)
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
       await promise
 
       expect(mockPage1.style.transformOrigin).toBeTruthy()
@@ -282,7 +276,7 @@ describe('Leaf', () => {
     it('should skip transform when page is undefined', async () => {
       const timestamps = [500, 1000]
       vi.spyOn(performance, 'now').mockReturnValue(0)
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
         const ts = timestamps.shift() ?? 1000
         setTimeout(() => cb(ts), 0)
         return 0
@@ -297,7 +291,7 @@ describe('Leaf', () => {
       )
 
       const promise = leaf.flipToPosition(1 as FlipPosition, 180 as never)
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
       await promise
 
       expect(mockPage1.style.transform).toContain('rotateY')
@@ -313,19 +307,13 @@ describe('Leaf', () => {
         onTurnedMock
       )
 
-      const forwardPromise = leaf.flipToPosition(
-        1 as FlipPosition,
-        10000 as never
-      )
+      const forwardPromise = leaf.flipToPosition(1 as FlipPosition, 10000 as never)
       await vi.runAllTimersAsync()
       await forwardPromise
 
       onTurnedMock.mockClear()
 
-      const backwardPromise = leaf.flipToPosition(
-        0 as FlipPosition,
-        10000 as never
-      )
+      const backwardPromise = leaf.flipToPosition(0 as FlipPosition, 10000 as never)
       await vi.runAllTimersAsync()
       await backwardPromise
 
@@ -337,7 +325,7 @@ describe('Leaf', () => {
     it('should retry frame when elapsed is negative', async () => {
       const timestamps = [50, 200]
       vi.spyOn(performance, 'now').mockReturnValue(100)
-      vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
         const ts = timestamps.shift() ?? 200
         setTimeout(() => cb(ts), 0)
         return 0
@@ -352,7 +340,7 @@ describe('Leaf', () => {
       )
 
       const promise = leaf.flipToPosition(1 as FlipPosition, 10000 as never)
-      await new Promise(resolve => setTimeout(resolve, 5))
+      await new Promise((resolve) => setTimeout(resolve, 5))
       await promise
 
       expect(leaf.flipPosition).toBe(1)

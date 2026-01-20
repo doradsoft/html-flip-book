@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react'
-import { FlipBook as FlipBookBase, PageSemantics } from 'html-flip-book-base'
+import { FlipBook as FlipBookBase, type PageSemantics } from 'html-flip-book-base'
+import type React from 'react'
+import { useEffect, useRef } from 'react'
 
 interface FlipBookWrapperProps {
   pages: React.ReactNode[]
@@ -15,20 +16,20 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
   className,
   debug = false,
   direction = 'ltr', // Add the direction prop
-  pageSemantics = undefined
+  pageSemantics = undefined,
 }) => {
   const flipBook = useRef(
     new FlipBookBase({
       pageSemantics: pageSemantics,
       pagesCount: pages.length,
-      direction: direction
+      direction: direction,
     })
   )
 
   useEffect(() => {
     flipBook.current.render(`.${className}`, debug)
     // Do any other necessary setup here
-  }, [])
+  }, [className, debug])
 
   return (
     <div className={className}>

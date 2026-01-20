@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('FlipBook Touch Interactions', () => {
   test.use({ hasTouch: true })
@@ -39,9 +39,7 @@ test.describe('FlipBook Touch Interactions', () => {
     expect(count).toBeGreaterThanOrEqual(1)
   })
 
-  test('should flip backward with touch swipe right (LTR)', async ({
-    page
-  }) => {
+  test('should flip backward with touch swipe right (LTR)', async ({ page }) => {
     const flipbook = page.locator('.en-book.flipbook')
     const box = await flipbook.boundingBox()
     if (!box) throw new Error('Flipbook not found')
@@ -50,7 +48,7 @@ test.describe('FlipBook Touch Interactions', () => {
     await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, {
-      steps: 10
+      steps: 10,
     })
     await page.mouse.up()
     await page.waitForTimeout(800)
@@ -59,7 +57,7 @@ test.describe('FlipBook Touch Interactions', () => {
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2, {
-      steps: 10
+      steps: 10,
     })
     await page.mouse.up()
     await page.waitForTimeout(800)
@@ -93,9 +91,7 @@ test.describe('FlipBook Touch Interactions', () => {
     await expect(firstPage).toHaveClass(/current-page/)
   })
 
-  test('should allow vertical scrolling within page content', async ({
-    page
-  }) => {
+  test('should allow vertical scrolling within page content', async ({ page }) => {
     const flipbook = page.locator('.en-book.flipbook')
     await expect(flipbook).toBeVisible()
 
@@ -107,7 +103,7 @@ test.describe('FlipBook Touch Interactions', () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.7, {
-      steps: 10
+      steps: 10,
     })
     await page.mouse.up()
 

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('FlipBook Navigation', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,7 +28,7 @@ test.describe('FlipBook Navigation', () => {
       await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2)
       await page.mouse.down()
       await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, {
-        steps: 10
+        steps: 10,
       })
       await page.mouse.up()
     }

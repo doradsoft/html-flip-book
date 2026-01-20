@@ -1,11 +1,11 @@
 import './pages.scss'
 import './flipbook.scss'
-import type { PageSemantics } from './page-semantics'
 import Hammer from 'hammerjs'
-import { Leaf, NOT_FLIPPED, type FlipPosition } from './leaf'
+import type { AspectRatio } from './aspect-ratio'
 import type { FlipBookOptions } from './flip-book-options'
 import { FlipDirection } from './flip-direction'
-import type { AspectRatio } from './aspect-ratio'
+import { type FlipPosition, Leaf, NOT_FLIPPED } from './leaf'
+import type { PageSemantics } from './page-semantics'
 import { Size } from './size'
 
 const FAST_DELTA = 500
@@ -16,7 +16,7 @@ class FlipBook {
   private readonly leafAspectRatio: AspectRatio = { width: 2, height: 3 }
   private readonly coverAspectRatio: AspectRatio = {
     width: 2.15,
-    height: 3.15
+    height: 3.15,
   }
   private readonly direction: 'rtl' | 'ltr' = 'ltr'
   private readonly onPageChanged?: (pageIndex: number) => void
@@ -49,9 +49,9 @@ class FlipBook {
         break
       }
     }
-    return secondLeafIndex == -1
+    return secondLeafIndex === -1
       ? [undefined, this.leaves[0]]
-      : secondLeafIndex == this.leaves.length
+      : secondLeafIndex === this.leaves.length
         ? [this.leaves[secondLeafIndex - 1], undefined]
         : [this.leaves[secondLeafIndex - 1], this.leaves[secondLeafIndex]]
   }
@@ -65,9 +65,9 @@ class FlipBook {
         break
       }
     }
-    return secondLeafIndex == -1
+    return secondLeafIndex === -1
       ? [undefined, this.leaves[0]]
-      : secondLeafIndex == this.leaves.length
+      : secondLeafIndex === this.leaves.length
         ? [this.leaves[secondLeafIndex - 1], undefined]
         : [this.leaves[secondLeafIndex - 1], this.leaves[secondLeafIndex]]
   }
@@ -98,20 +98,13 @@ class FlipBook {
     this.pageElements = Array.from(pageElements) as HTMLElement[]
     this.leaves.splice(0, this.leaves.length)
     const leavesCount = Math.ceil(this.pagesCount / 2)
-    const maxCoverSize = new Size(
-      this.bookElement.clientWidth / 2,
-      this.bookElement.clientHeight
-    )
+    const maxCoverSize = new Size(this.bookElement.clientWidth / 2, this.bookElement.clientHeight)
     const coverSize = maxCoverSize.aspectRatioFit(this.coverAspectRatio)
     const leafSize = new Size(
-      (coverSize.width * this.leafAspectRatio.width) /
-        this.coverAspectRatio.width,
-      (coverSize.height * this.leafAspectRatio.height) /
-        this.coverAspectRatio.height
+      (coverSize.width * this.leafAspectRatio.width) / this.coverAspectRatio.width,
+      (coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height
     )
-    this.bookElement.style.perspective = `${
-      Math.min(leafSize.width * 2, leafSize.height) * 2
-    }px`
+    this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`
     this.pageElements.forEach((pageElement, pageIndex) => {
       pageElement.style.width = `${leafSize.width}px`
       pageElement.style.height = `${leafSize.height}px`
@@ -121,13 +114,10 @@ class FlipBook {
       pageElement.style[this.isLTR ? 'left' : 'right'] = `${
         (bookElement.clientWidth - 2 * leafSize.width) / 2
       }px`
-      pageElement.style.top = `${
-        (bookElement.clientHeight - leafSize.height) / 2
-      }px`
+      pageElement.style.top = `${(bookElement.clientHeight - leafSize.height) / 2}px`
       pageElement.dataset.pageSemanticName =
         this.pageSemantics?.indexToSemanticName(pageIndex) ?? ''
-      pageElement.dataset.pageTitle =
-        this.pageSemantics?.indexToTitle(pageIndex) ?? ''
+      pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? ''
 
       const leafIndex = Math.floor(pageIndex / 2)
       const isOddPage = (pageIndex + 1) % 2 === 1
@@ -148,11 +138,11 @@ class FlipBook {
           {
             isLTR: this.isLTR,
             leavesCount: leavesCount,
-            pagesCount: this.pagesCount
+            pagesCount: this.pagesCount,
           },
           (direction: FlipDirection) => {
             const currentVisiblePageIndices: [number] | [number, number] =
-              direction == FlipDirection.Forward
+              direction === FlipDirection.Forward
                 ? pageIndex + 2 === this.pagesCount
                   ? [pageIndex + 1]
                   : [pageIndex + 1, pageIndex + 2]
@@ -161,11 +151,8 @@ class FlipBook {
                   : [pageIndex - 1, pageIndex]
             if (
               this.prevVisiblePageIndices &&
-              this.prevVisiblePageIndices.length ===
-                currentVisiblePageIndices.length &&
-              currentVisiblePageIndices.every(
-                (v, i) => v === this.prevVisiblePageIndices![i]
-              )
+              this.prevVisiblePageIndices.length === currentVisiblePageIndices.length &&
+              currentVisiblePageIndices.every((v, i) => v === this.prevVisiblePageIndices?.[i])
             ) {
               return
             }
@@ -177,9 +164,7 @@ class FlipBook {
           }
         )
       } else {
-        pageElement.style.transform = `scaleX(-1)translateX(${
-          this.isLTR ? `-` : ``
-        }100%)`
+        pageElement.style.transform = `scaleX(-1)translateX(${this.isLTR ? `-` : ``}100%)`
         this.leaves[leafIndex].pages[1] = pageElement
       }
     })
@@ -187,16 +172,12 @@ class FlipBook {
     hammer.on('panstart', this.onDragStart.bind(this))
     hammer.on('panmove', this.onDragUpdate.bind(this))
     hammer.on('panend', this.onDragEnd.bind(this))
-    this.bookElement.addEventListener(
-      'touchstart',
-      this.handleTouchStart.bind(this),
-      { passive: false }
-    )
-    this.bookElement.addEventListener(
-      'touchmove',
-      this.handleTouchMove.bind(this),
-      { passive: false }
-    )
+    this.bookElement.addEventListener('touchstart', this.handleTouchStart.bind(this), {
+      passive: false,
+    })
+    this.bookElement.addEventListener('touchmove', this.handleTouchMove.bind(this), {
+      passive: false,
+    })
     if (debug) this.fillDebugBar()
   }
   private fillDebugBar() {
@@ -207,14 +188,10 @@ class FlipBook {
       // Populate debug bar with relevant information
       debugBar.innerHTML = `
           <div>Direction: ${this.isLTR ? 'LTR' : 'RTL'}</div>
-          <div>Current Leaf: ${
-            this.currentLeaf ? this.currentLeaf.index : 'None'
-          }</div>
+          <div>Current Leaf: ${this.currentLeaf ? this.currentLeaf.index : 'None'}</div>
           <div>Flip dir: ${this.flipDirection}</div>
           <div>Flip Δ: ${this.flipDelta}</div>
-          <div>Current Leaf Flip Position: ${this.currentLeaf?.flipPosition.toFixed(
-            3
-          )}</div>
+          <div>Current Leaf Flip Position: ${this.currentLeaf?.flipPosition.toFixed(3)}</div>
           <div>Is During Auto Flip: ${this.isDuringAutoFlip}</div>
         `
     }, 10)
@@ -268,8 +245,7 @@ class FlipBook {
           break
         }
         case FlipDirection.Backward: {
-          const posBackward = (1 -
-            Math.abs(this.flipDelta) / bookWidth) as FlipPosition
+          const posBackward = (1 - Math.abs(this.flipDelta) / bookWidth) as FlipPosition
           if (posBackward < 0 || this.flipDelta > 0) {
             return
           }
@@ -280,7 +256,7 @@ class FlipBook {
               this.currentLeaf = this.currentOrTurningLeaves[0]
             }
           }
-          this.currentLeaf!.efficientFlipToPosition(posBackward)
+          this.currentLeaf?.efficientFlipToPosition(posBackward)
           break
         }
       }
@@ -376,4 +352,4 @@ class FlipBook {
   }
 }
 
-export { FlipBook, PageSemantics }
+export { FlipBook, type PageSemantics }

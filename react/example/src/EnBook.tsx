@@ -1,6 +1,7 @@
 // EnBook.tsx
-import { useEffect, useState, type ReactElement } from 'react'
+
 import { FlipBook } from 'html-flip-book-react'
+import { type ReactElement, useEffect, useState } from 'react'
 import Markdown from 'react-markdown'
 
 const markdownFiles = import.meta.glob('/assets/pages_data/en/content/*.md')
@@ -20,7 +21,7 @@ export const EnBook = () => {
           assertIsMarkdownModule(content)
           return {
             path,
-            content: content.default
+            content: content.default,
           }
         })
       )
@@ -37,19 +38,15 @@ export const EnBook = () => {
     }
 
     loadMarkdownFiles()
-  }, [])
+  }, [assertIsMarkdownModule])
 
-  function assertIsMarkdownModule(
-    module: unknown
-  ): asserts module is MarkdownModule {
+  function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModule {
     if (typeof (module as MarkdownModule).default !== 'string') {
       throw new Error('Invalid markdown module')
     }
   }
 
-  return enPages.length ? (
-    <FlipBook className="en-book" pages={enPages} debug={true} />
-  ) : null
+  return enPages.length ? <FlipBook className="en-book" pages={enPages} debug={true} /> : null
 }
 
 export default EnBook

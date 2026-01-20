@@ -1,16 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { FlipBook } from '../flipbook'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FlipDirection } from '../flip-direction'
+import { FlipBook } from '../flipbook'
 
 // Mock HammerJS - must be hoisted
 vi.mock('hammerjs', () => {
-  const MockHammer = function () {
-    return {
-      on: vi.fn(),
-      off: vi.fn(),
-      destroy: vi.fn()
-    }
-  }
+  const MockHammer = () => ({
+    on: vi.fn(),
+    off: vi.fn(),
+    destroy: vi.fn(),
+  })
   return { default: MockHammer }
 })
 
@@ -23,16 +21,16 @@ describe('FlipBook', () => {
     container.className = 'flipbook-container'
     Object.defineProperty(container, 'clientWidth', {
       value: 800,
-      configurable: true
+      configurable: true,
     })
     Object.defineProperty(container, 'clientHeight', {
       value: 600,
-      configurable: true
+      configurable: true,
     })
     document.body.appendChild(container)
 
     // Mock requestAnimationFrame
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
       setTimeout(() => cb(performance.now()), 0)
       return 0
     })
@@ -65,7 +63,7 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({
         pagesCount: 4,
         leafAspectRatio: { width: 3, height: 4 },
-        coverAspectRatio: { width: 3.2, height: 4.2 }
+        coverAspectRatio: { width: 3.2, height: 4.2 },
       })
       expect(flipBook).toBeDefined()
     })
@@ -87,7 +85,7 @@ describe('FlipBook', () => {
       const pageSemantics = {
         indexToSemanticName: vi.fn().mockReturnValue('page-1'),
         indexToTitle: vi.fn().mockReturnValue('Page 1'),
-        semanticNameToIndex: vi.fn().mockReturnValue(1)
+        semanticNameToIndex: vi.fn().mockReturnValue(1),
       }
       const flipBook = new FlipBook({ pagesCount: 4, pageSemantics })
       expect(flipBook).toBeDefined()
@@ -104,9 +102,7 @@ describe('FlipBook', () => {
 
     it('should throw error if no pages found', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
-      expect(() => flipBook.render('.flipbook-container')).toThrow(
-        'No pages found in flipbook'
-      )
+      expect(() => flipBook.render('.flipbook-container')).toThrow('No pages found in flipbook')
     })
 
     it('should render flipbook with pages', () => {
@@ -133,7 +129,7 @@ describe('FlipBook', () => {
       flipBook.render('.flipbook-container')
 
       const flipbookClassCount = Array.from(container.classList).filter(
-        c => c === 'flipbook'
+        (c) => c === 'flipbook'
       ).length
       expect(flipbookClassCount).toBe(1)
     })
@@ -193,7 +189,7 @@ describe('FlipBook', () => {
       const pageSemantics = {
         indexToSemanticName: vi.fn((idx: number) => `semantic-${idx}`),
         indexToTitle: vi.fn((idx: number) => `Title ${idx}`),
-        semanticNameToIndex: vi.fn(() => null)
+        semanticNameToIndex: vi.fn(() => null),
       }
       const flipBook = new FlipBook({ pagesCount: 4, pageSemantics })
       flipBook.render('.flipbook-container')
@@ -209,7 +205,7 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
-      pages.forEach(page => {
+      pages.forEach((page) => {
         expect(page.dataset.pageSemanticName).toBe('')
         expect(page.dataset.pageTitle).toBe('')
       })
@@ -254,7 +250,7 @@ describe('FlipBook', () => {
       flipBook.render('.flipbook-container')
 
       const touchEvent = new TouchEvent('touchstart', {
-        touches: [{ pageX: 100, pageY: 200 } as Touch]
+        touches: [{ pageX: 100, pageY: 200 } as Touch],
       })
       container.dispatchEvent(touchEvent)
 
@@ -268,17 +264,14 @@ describe('FlipBook', () => {
 
       // First set a position
       const singleTouch = new TouchEvent('touchstart', {
-        touches: [{ pageX: 100, pageY: 200 } as Touch]
+        touches: [{ pageX: 100, pageY: 200 } as Touch],
       })
       container.dispatchEvent(singleTouch)
       expect(flipBook.touchStartingPos).toEqual({ x: 100, y: 200 })
 
       // Multi-touch should not update position
       const multiTouch = new TouchEvent('touchstart', {
-        touches: [
-          { pageX: 300, pageY: 400 } as Touch,
-          { pageX: 500, pageY: 600 } as Touch
-        ]
+        touches: [{ pageX: 300, pageY: 400 } as Touch, { pageX: 500, pageY: 600 } as Touch],
       })
       container.dispatchEvent(multiTouch)
 
@@ -293,14 +286,14 @@ describe('FlipBook', () => {
 
       // Set starting position
       const touchStart = new TouchEvent('touchstart', {
-        touches: [{ pageX: 100, pageY: 200 } as Touch]
+        touches: [{ pageX: 100, pageY: 200 } as Touch],
       })
       container.dispatchEvent(touchStart)
 
       // Horizontal swipe
       const touchMove = new TouchEvent('touchmove', {
         cancelable: true,
-        touches: [{ pageX: 200, pageY: 210 } as Touch]
+        touches: [{ pageX: 200, pageY: 210 } as Touch],
       })
       const preventDefaultSpy = vi.spyOn(touchMove, 'preventDefault')
       container.dispatchEvent(touchMove)
@@ -315,14 +308,14 @@ describe('FlipBook', () => {
 
       // Set starting position
       const touchStart = new TouchEvent('touchstart', {
-        touches: [{ pageX: 100, pageY: 200 } as Touch]
+        touches: [{ pageX: 100, pageY: 200 } as Touch],
       })
       container.dispatchEvent(touchStart)
 
       // Vertical swipe
       const touchMove = new TouchEvent('touchmove', {
         cancelable: true,
-        touches: [{ pageX: 110, pageY: 300 } as Touch]
+        touches: [{ pageX: 110, pageY: 300 } as Touch],
       })
       const preventDefaultSpy = vi.spyOn(touchMove, 'preventDefault')
       container.dispatchEvent(touchMove)
@@ -336,16 +329,13 @@ describe('FlipBook', () => {
       flipBook.render('.flipbook-container')
 
       const touchStart = new TouchEvent('touchstart', {
-        touches: [{ pageX: 100, pageY: 200 } as Touch]
+        touches: [{ pageX: 100, pageY: 200 } as Touch],
       })
       container.dispatchEvent(touchStart)
 
       const multiTouchMove = new TouchEvent('touchmove', {
         cancelable: true,
-        touches: [
-          { pageX: 200, pageY: 210 } as Touch,
-          { pageX: 300, pageY: 310 } as Touch
-        ]
+        touches: [{ pageX: 200, pageY: 210 } as Touch, { pageX: 300, pageY: 310 } as Touch],
       })
       const preventDefaultSpy = vi.spyOn(multiTouchMove, 'preventDefault')
       container.dispatchEvent(multiTouchMove)
@@ -404,12 +394,12 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({
         pagesCount: 4,
         leafAspectRatio: { width: 2, height: 3 },
-        coverAspectRatio: { width: 2.15, height: 3.15 }
+        coverAspectRatio: { width: 2.15, height: 3.15 },
       })
       flipBook.render('.flipbook-container')
 
       // Pages should have width and height set
-      pages.forEach(page => {
+      pages.forEach((page) => {
         const width = parseFloat(page.style.width)
         const height = parseFloat(page.style.height)
         expect(width).toBeGreaterThan(0)
@@ -675,9 +665,7 @@ describe('FlipBook', () => {
       const flipBook = new FlipBook({ pagesCount: 4 })
       ;(flipBook as any).flipStartingPos = 100
 
-      expect(() =>
-        (flipBook as any).onDragUpdate({ center: { x: 50 } })
-      ).not.toThrow()
+      expect(() => (flipBook as any).onDragUpdate({ center: { x: 50 } })).not.toThrow()
       expect((flipBook as any).flipDirection).toBe(FlipDirection.None)
     })
 
@@ -724,10 +712,7 @@ describe('FlipBook', () => {
       const leaf = (flipBook as any).leaves[1]
       leaf.flipPosition = 1
 
-      const spy = vi.spyOn(
-        (flipBook as any).leaves[0],
-        'efficientFlipToPosition'
-      )
+      const spy = vi.spyOn((flipBook as any).leaves[0], 'efficientFlipToPosition')
 
       ;(flipBook as any).flipStartingPos = 400
       ;(flipBook as any).onDragUpdate({ center: { x: 200 } })

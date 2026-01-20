@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('FlipBook Direction (LTR default)', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,9 +9,7 @@ test.describe('FlipBook Direction (LTR default)', () => {
     const firstPage = page.locator('.en-book.flipbook .page').first()
     await expect(firstPage).toBeVisible()
 
-    const transform = await firstPage.evaluate(
-      el => window.getComputedStyle(el).transform
-    )
+    const transform = await firstPage.evaluate((el) => window.getComputedStyle(el).transform)
 
     // Expect transform to be set; LTR initial odd page has translateX applied
     expect(transform).toBeTruthy()

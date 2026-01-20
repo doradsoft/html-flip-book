@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { AspectRatio, AspectRatioImpl } from '../aspect-ratio'
+import { describe, expect, it } from 'vitest'
+import { type AspectRatio, AspectRatioImpl } from '../aspect-ratio'
 
 describe('AspectRatio', () => {
   describe('AspectRatioImpl', () => {

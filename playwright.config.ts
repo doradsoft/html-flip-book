@@ -21,33 +21,30 @@ export default defineConfig({
           outputDir: '.coverage/e2e',
           reports: ['lcovonly', 'text'],
           sourceFilter: (sourcePath: string) => {
-            return (
-              sourcePath.includes('/base/src/') ||
-              sourcePath.includes('/react/src/')
-            )
-          }
-        }
-      }
-    ]
+            return sourcePath.includes('/base/src/') || sourcePath.includes('/react/src/')
+          },
+        },
+      },
+    ],
   ],
   use: {
     baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry'
+    trace: 'on-first-retry',
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'mobile',
-      use: { ...devices['Pixel 5'] }
-    }
+      use: { ...devices['Pixel 5'] },
+    },
   ],
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !isCI,
-    timeout: 120000
-  }
+    timeout: 120000,
+  },
 })

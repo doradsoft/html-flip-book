@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
 test.describe('FlipBook Mouse Interactions', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('FlipBook Mouse Interactions', () => {
     await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2, {
-      steps: 20
+      steps: 20,
     })
     await page.mouse.up()
 
@@ -31,9 +31,7 @@ test.describe('FlipBook Mouse Interactions', () => {
     expect(count).toBeGreaterThanOrEqual(1)
   })
 
-  test('should cancel flip if dragged back before release', async ({
-    page
-  }) => {
+  test('should cancel flip if dragged back before release', async ({ page }) => {
     const flipbook = page.locator('.en-book.flipbook')
     const box = await flipbook.boundingBox()
     if (!box) throw new Error('Flipbook not found')
@@ -59,9 +57,7 @@ test.describe('FlipBook Mouse Interactions', () => {
     await expect(firstPage).toHaveClass(/current-page/)
   })
 
-  test('should flip with fast swipe even if short distance', async ({
-    page
-  }) => {
+  test('should flip with fast swipe even if short distance', async ({ page }) => {
     const flipbook = page.locator('.en-book.flipbook')
     const box = await flipbook.boundingBox()
     if (!box) throw new Error('Flipbook not found')
@@ -95,7 +91,7 @@ test.describe('FlipBook Mouse Interactions', () => {
       await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2)
       await page.mouse.down()
       await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, {
-        steps: 10
+        steps: 10,
       })
       await page.mouse.up()
       await page.waitForTimeout(1000) // Wait for animation to complete
@@ -107,9 +103,7 @@ test.describe('FlipBook Mouse Interactions', () => {
     expect(currentCount).toBeGreaterThanOrEqual(1)
   })
 
-  test('should not flip beyond first page when going backward', async ({
-    page
-  }) => {
+  test('should not flip beyond first page when going backward', async ({ page }) => {
     const flipbook = page.locator('.en-book.flipbook')
     const box = await flipbook.boundingBox()
     if (!box) throw new Error('Flipbook not found')
@@ -121,7 +115,7 @@ test.describe('FlipBook Mouse Interactions', () => {
     await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
     await page.mouse.down()
     await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2, {
-      steps: 10
+      steps: 10,
     })
     await page.mouse.up()
 

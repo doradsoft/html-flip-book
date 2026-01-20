@@ -70,7 +70,7 @@ export class Leaf {
 
     this.targetFlipPosition = flipPosition
 
-    this.currentAnimation = new Promise<void>(resolve => {
+    this.currentAnimation = new Promise<void>((resolve) => {
       const currentFlipPosition = this.flipPosition
       const distance = Math.abs(flipPosition - currentFlipPosition)
       const duration = ((distance * 180) / velocity) * 1000 // duration in milliseconds
@@ -85,8 +85,7 @@ export class Leaf {
         }
 
         const progress = Math.min(elapsed / duration, 1)
-        const newPosition =
-          currentFlipPosition + progress * (flipPosition - currentFlipPosition)
+        const newPosition = currentFlipPosition + progress * (flipPosition - currentFlipPosition)
 
         this.pages.forEach((page, index) => {
           const isLTR = this.bookProperties.isLTR
@@ -108,16 +107,8 @@ export class Leaf {
                   ? newPosition * 180
                   : -(180 - newPosition * 180)
             const rotateY = `${degrees}deg`
-            const translateX = `${
-              isOdd ? (isLTR ? `100%` : `-100%`) : isLTR ? `0px` : `0px`
-            }`
-            const scaleX = isOdd
-              ? newPosition > 0.5
-                ? -1
-                : 1
-              : newPosition < 0.5
-                ? -1
-                : 1
+            const translateX = `${isOdd ? (isLTR ? `100%` : `-100%`) : isLTR ? `0px` : `0px`}`
+            const scaleX = isOdd ? (newPosition > 0.5 ? -1 : 1) : newPosition < 0.5 ? -1 : 1
             page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`
             // console.log(page.style.transform);
             page.style.transformOrigin = isOdd
@@ -126,23 +117,15 @@ export class Leaf {
             page.style.zIndex = `${
               newPosition > 0.5
                 ? page.dataset.pageIndex
-                : this.bookProperties.pagesCount -
-                  (page.dataset.pageIndex as unknown as number)
+                : this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
             }`
           }
         })
 
         // Ensure the new position is within valid bounds [0, 1]
-        this.flipPosition = Math.max(
-          0,
-          Math.min(1, newPosition)
-        ) as FlipPosition
+        this.flipPosition = Math.max(0, Math.min(1, newPosition)) as FlipPosition
         if (this.flipPosition === 1 || this.flipPosition === 0) {
-          this.onTurned(
-            this.flipPosition === 1
-              ? FlipDirection.Forward
-              : FlipDirection.Backward
-          )
+          this.onTurned(this.flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward)
         }
         // Detailed log for debugging
         // console.log(

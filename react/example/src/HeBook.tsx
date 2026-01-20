@@ -1,5 +1,5 @@
 // HeBook.tsx
-import { FlipBook, PageSemantics } from 'html-flip-book-react'
+import { FlipBook, type PageSemantics } from 'html-flip-book-react'
 
 const hePages = Array.from({ length: 10 }, (_, index) => (
   <div key={index}>
@@ -10,7 +10,7 @@ const hePages = Array.from({ length: 10 }, (_, index) => (
 const hePageSemanticsDict: Record<number, string> = {
   4: 'א',
   5: 'ב',
-  6: 'ג'
+  6: 'ג',
 }
 
 const hePageSemantics: PageSemantics = {
@@ -21,12 +21,12 @@ const hePageSemantics: PageSemantics = {
     const entry = Object.entries(hePageSemanticsDict).find(
       ([, value]) => value === semanticPageName
     )
-    return entry ? parseInt(entry[0]) : null
+    return entry ? parseInt(entry[0], 10) : null
   },
   indexToTitle(pageIndex: number): string {
     const chapter = hePageSemanticsDict[pageIndex]
     return chapter ? `פרק ${chapter}` : ''
-  }
+  },
 }
 
 export const HeBook = () => {

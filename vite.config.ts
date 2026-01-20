@@ -1,4 +1,4 @@
-import { resolve } from 'path'
+import { resolve } from 'node:path'
 import { defineConfig, type LibraryFormats } from 'vite'
 
 // Build configuration for different modules
@@ -12,49 +12,44 @@ export default defineConfig(() => {
         lib: {
           entry: resolve(__dirname, 'base/src/flipbook.ts'),
           formats: ['es'] as LibraryFormats[],
-          fileName: 'flipbook'
+          fileName: 'flipbook',
         },
         outDir: 'base/dist',
         sourcemap: true,
         emptyOutDir: true,
         rollupOptions: {
-          external: ['hammerjs', 'throttle-debounce']
-        }
+          external: ['hammerjs', 'throttle-debounce'],
+        },
       },
-      plugins: []
+      plugins: [],
     },
     react: {
       build: {
         lib: {
           entry: resolve(__dirname, 'react/src/FlipBook.tsx'),
           formats: ['es'] as LibraryFormats[],
-          fileName: 'flip-book'
+          fileName: 'flip-book',
         },
         outDir: 'react/dist',
         sourcemap: true,
         emptyOutDir: true,
         rollupOptions: {
-          external: [
-            'react',
-            'react-dom',
-            'react/jsx-runtime',
-            'html-flip-book-base'
-          ]
-        }
+          external: ['react', 'react-dom', 'react/jsx-runtime', 'html-flip-book-base'],
+        },
       },
       plugins: [],
       esbuild: {
-        jsx: 'automatic'
-      }
+        jsx: 'automatic',
+      },
     },
     vanilla: {
       root: 'vanilla',
       build: {
         outDir: '../vanilla/dist',
-        emptyOutDir: true
+        emptyOutDir: true,
       },
-      plugins: []
-    }
+      plugins: [],
+    },
   }
 
   const config = configs[target as keyof typeof configs] || configs.base
@@ -63,8 +58,8 @@ export default defineConfig(() => {
     ...config,
     css: {
       preprocessorOptions: {
-        scss: {}
-      }
-    }
+        scss: {},
+      },
+    },
   }
 })

@@ -15,28 +15,25 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         'html-flip-book-react': path.resolve(__dirname, '../src/FlipBook.tsx'),
-        'html-flip-book-base': path.resolve(
-          __dirname,
-          '../../base/src/flipbook.ts'
-        )
-      }
+        'html-flip-book-base': path.resolve(__dirname, '../../base/src/flipbook.ts'),
+      },
     },
     build: {
       sourcemap: !isProd,
       emptyOutDir: true,
       rollupOptions: {
         external: ['react', 'react-dom'],
-        makeAbsoluteExternalsRelative: true
+        makeAbsoluteExternalsRelative: true,
       },
       terserOptions: {
         module: true,
         output: {
-          comments: () => false
+          comments: () => false,
         },
         compress: {
-          drop_console: true
-        }
-      }
+          drop_console: true,
+        },
+      },
     },
     esbuild: { legalComments: 'none' },
     server: {
@@ -44,8 +41,8 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       open: false,
       fs: {
-        allow: [path.resolve(__dirname, '..'), path.resolve(__dirname, '../..')]
-      }
+        allow: [path.resolve(__dirname, '..'), path.resolve(__dirname, '../..')],
+      },
     },
     plugins: [
       react(),
@@ -56,14 +53,14 @@ export default defineConfig(({ mode }) => {
             const mdContent = fs.readFileSync(id, 'utf-8')
             return {
               code: `export default ${JSON.stringify(mdContent)}`,
-              map: null // provide source map if available
+              map: null, // provide source map if available
             }
           }
-        }
+        },
       },
       tsconfigPaths(),
       checker({
-        typescript: true
+        typescript: true,
       }),
       {
         name: 'update-esm-package-props',
@@ -73,24 +70,17 @@ export default defineConfig(({ mode }) => {
               if (fileName.startsWith('index-')) {
                 fs.writeFile(
                   path.resolve(__dirname, './package.json'),
-                  JSON.stringify(
-                    { ...packageJson, main: `dist/${fileName}` },
-                    null,
-                    2
-                  ),
-                  err => {
+                  JSON.stringify({ ...packageJson, main: `dist/${fileName}` }, null, 2),
+                  (err) => {
                     if (err) throw err
-                    console.log(
-                      '\x1b[36m%s\x1b[0m',
-                      '\nPackage ESM main entrypoint updated!\n\r'
-                    )
+                    console.log('\x1b[36m%s\x1b[0m', '\nPackage ESM main entrypoint updated!\n\r')
                   }
                 )
               }
             }
           }
-        }
-      }
-    ]
+        },
+      },
+    ],
   }
 })
