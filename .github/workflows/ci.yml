@@ -1,6 +1,7 @@
 name: Continuous Integration
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
@@ -32,36 +33,46 @@ jobs:
         id: npm-ci
         run: npm ci
 
-      # disabled until prettier config is configured properly
-      # - name: Check Format
-      #   id: npm-format-check
-      #   run: npm run format:check
+      - name: Check Format
+        id: npm-format-check
+        run: npm run format:check
 
       - name: Lint
         id: npm-lint
         run: npm run lint
 
-      # disabled until test are added
-      # - name: Test
-      #   id: npm-ci-test
-      #   run: npm run ci-test
+      - name: Unit Tests with Coverage
+        id: npm-test
+        run: npm run test:coverage
 
       - name: Build
         id: npm-build
         run: npm run build
 
-      # - name: Archive artifact
-      #   shell: sh
-      #   run: |
-      #     echo ::group::Archive artifact
-      #     tar -cvf "$RUNNER_TEMP/artifact.tar" -C "./html-flip-book-react/html-flip-book-example/dist" .
-      #     if [ -f "$RUNNER_TEMP/artifact.tar" ]; then
-      #       echo "Artifact tar created successfully."
-      #     else
-      #       echo "Failed to create artifact tar."
-      #       exit 1
-      #     fi
-      #     echo ::endgroup::
+      - name: Build Example
+        id: npm-build-example
+        run: npm run build:example
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E Tests
+        id: npm-e2e
+        run: npm run test:e2e
+
+      - name: Merge Coverage
+        id: npm-coverage-merge
+        run: npm run coverage:merge
+
+      - name: Generate Coverage Badge
+        id: npm-coverage-badge
+        run: npm run coverage:badge
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: .coverage/merged/lcov.info
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -71,7 +82,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
-          path: ./html-flip-book-react/html-flip-book-react-example/dist
+          path: ./react/example/dist
           retention-days: 15
 
   deploy-page:

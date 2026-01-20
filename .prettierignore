@@ -1,3 +1,5 @@
 dist/
 node_modules/
-coverage/
+coverage/.coverage/
+monocart-report/
+.playwright-report/
