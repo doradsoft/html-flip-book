@@ -593,7 +593,6 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			flipBook.render(".flipbook-container");
 			const leaf0 = getFlipBookInternals(flipBook).leaves[0];
-			const _leaf1 = getFlipBookInternals(flipBook).leaves[1];
 
 			// Set up an existing auto flip on leaf 0
 			setFlipBookInternals(flipBook, {

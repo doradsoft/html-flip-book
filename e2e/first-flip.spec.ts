@@ -6,11 +6,9 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("First Page Flip - LTR", () => {
-	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
-	});
-
 	test("forward flip past middle completes", async ({ page }) => {
+		await page.goto("/");
+
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
 
@@ -33,6 +31,8 @@ test.describe("First Page Flip - LTR", () => {
 	});
 
 	test("forward flip before middle returns", async ({ page }) => {
+		await page.goto("/");
+
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
 
@@ -55,6 +55,12 @@ test.describe("First Page Flip - LTR", () => {
 	});
 
 	test("fast swipe before middle completes", async ({ page }) => {
+		// Install mocked clock for deterministic velocity detection
+		await page.clock.install();
+
+		await page.goto("/");
+		await page.waitForSelector(".en-book.flipbook .page");
+
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
 
@@ -64,20 +70,34 @@ test.describe("First Page Flip - LTR", () => {
 		const box = await flipbook.boundingBox();
 		if (!box) throw new Error("Flipbook not found");
 
-		// Fast swipe - use larger movement (80%->15%) so even if velocity isn't "fast",
-		// the position > 0.5 will trigger flip
-		await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2);
+		// Fast swipe - drag from right side toward middle with clock advancing between moves
+		const startX = box.x + box.width * 0.9;
+		const endX = box.x + box.width * 0.4; // 50% movement (before middle) but fast
+		const y = box.y + box.height / 2;
+
+		await page.mouse.move(startX, y);
 		await page.mouse.down();
-		await page.mouse.move(box.x + box.width * 0.15, box.y + box.height / 2, { steps: 2 });
+
+		// Fast movement - advance clock minimally between steps to simulate high velocity
+		const steps = 2;
+		for (let i = 1; i <= steps; i++) {
+			const progress = i / steps;
+			await page.mouse.move(startX + (endX - startX) * progress, y);
+			await page.clock.runFor(5); // Only 5ms per step = high velocity
+		}
+
 		await page.mouse.up();
 
-		await page.waitForTimeout(800);
+		// Advance time for animation to complete
+		await page.clock.runFor(1000);
 
 		// Fast swipe should complete the flip
 		await expect(firstPage).not.toHaveClass(/current-page/);
 	});
 
 	test("no movement returns to start", async ({ page }) => {
+		await page.goto("/");
+
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
 
