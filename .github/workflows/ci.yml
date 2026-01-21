@@ -8,93 +8,259 @@ on:
   push:
     branches:
       - master
+  merge_group:
+
+env:
+  NODE_VERSION_FILE: package.json
+  PLAYWRIGHT_VERSION_FILE: package.json
 
 jobs:
-  build:
-    name: TypeScript Build
+  # ============================================================================
+  # Setup Job - Extract environment info for caching
+  # ============================================================================
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
+    outputs:
+      playwright_version: ${{ steps.get_playwright_version.outputs.version }}
     steps:
       - name: Checkout
-        id: checkout
+        uses: actions/checkout@v4
+
+      - name: Get Playwright version
+        id: get_playwright_version
+        run: echo "version=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'])")" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Lint Job - Fast feedback on code quality
+  # ============================================================================
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        id: setup-node
         uses: actions/setup-node@v4
         with:
           node-version-file: package.json
           cache: npm
 
       - name: Install Dependencies
-        id: npm-ci
         run: npm ci
 
       - name: Biome Check
-        id: npm-check
         run: npm run check
 
+  # ============================================================================
+  # Unit Tests Job - Parallel with Lint
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
       - name: Unit Tests with Coverage
-        id: npm-test
         run: npm run test:coverage
 
+      - name: Upload Unit Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: .coverage/unit
+          retention-days: 7
+
+  # ============================================================================
+  # Build Job - Depends on Lint passing
+  # ============================================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: lint
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
       - name: Build
-        id: npm-build
         run: npm run build
 
       - name: Build Example
-        id: npm-build-example
+        run: npm run build:example
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            react/example/dist/
+          retention-days: 7
+
+  # ============================================================================
+  # E2E Tests Job - Depends on Build, with Playwright caching
+  # ============================================================================
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [setup, build]
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ needs.setup.outputs.playwright_version }}
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build Example
         run: npm run build:example
 
       - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
+      - name: Install Playwright System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
       - name: E2E Tests
-        id: npm-e2e
         run: npm run test:e2e
 
+      - name: Upload E2E Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-coverage
+          path: .coverage/e2e
+          retention-days: 7
+
+      - name: Upload E2E Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: monocart-report/
+          retention-days: 7
+
+  # ============================================================================
+  # Coverage Job - Merge and generate badge
+  # ============================================================================
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Download Unit Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-coverage
+          path: .coverage/unit
+
+      - name: Download E2E Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-coverage
+          path: .coverage/e2e
+
       - name: Merge Coverage
-        id: npm-coverage-merge
         run: npm run coverage:merge
 
       - name: Generate Coverage Badge
-        id: npm-coverage-badge
         run: npm run coverage:badge
 
-      - name: Upload Coverage Report
+      - name: Upload Merged Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: .coverage/merged/lcov.info
+          retention-days: 30
+
+  # ============================================================================
+  # Deploy Job - Only on master push
+  # ============================================================================
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [build, e2e-tests]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: https://doradsoft.github.io/html-flip-book/
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: artifacts/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
-        id: upload-pages-artifact
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
-          path: ./react/example/dist
+          path: artifacts/react/example/dist
           retention-days: 15
 
-  deploy-page:
-    runs-on: ubuntu-latest
-    needs: build
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      # environment created automatically by GitHub
-      name: github-pages
-      url: https://doradsoft.github.io/html-flip-book/
-
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
