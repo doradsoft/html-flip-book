@@ -117,9 +117,8 @@ class FlipBook {
 
       pageElement.style.zIndex = `${this.pagesCount - pageIndex}`
       pageElement.dataset.pageIndex = pageIndex.toString()
-      pageElement.style[this.isLTR ? 'left' : 'right'] = `${
-        (bookElement.clientWidth - 2 * leafSize.width) / 2
-      }px`
+      pageElement.style[this.isLTR ? 'left' : 'right'] =
+        `${(bookElement.clientWidth - 2 * leafSize.width) / 2}px`
       pageElement.style.top = `${(bookElement.clientHeight - leafSize.height) / 2}px`
       pageElement.dataset.pageSemanticName =
         this.pageSemantics?.indexToSemanticName(pageIndex) ?? ''
