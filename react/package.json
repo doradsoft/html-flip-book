@@ -1,43 +1,43 @@
 {
-  "name": "html-flip-book-react",
-  "description": "Flip Book React Component",
-  "version": "0.0.0-alpha.1",
-  "type": "module",
-  "author": "DoradSoft",
-  "main": "./dist/flip-book.js",
-  "types": "./dist/flip-book.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/flip-book.js",
-      "types": "./dist/flip-book.d.ts"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "homepage": "https://github.com/doradsoft/html-flip-book",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/doradsoft/html-flip-book.git"
-  },
-  "bugs": {
-    "url": "https://github.com/doradsoft/html-flip-book/issues"
-  },
-  "keywords": [
-    "book",
-    "flip-book",
-    "react"
-  ],
-  "license": "MIT",
-  "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
-  },
-  "dependencies": {
-    "html-flip-book-base": "file:../base"
-  },
-  "devDependencies": {
-    "@types/react": "^19.2.8",
-    "@types/react-dom": "^19.2.3"
-  }
+	"name": "html-flip-book-react",
+	"description": "Flip Book React Component",
+	"version": "0.0.0-alpha.1",
+	"type": "module",
+	"author": "DoradSoft",
+	"main": "./dist/flip-book.js",
+	"types": "./dist/flip-book.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/flip-book.js",
+			"types": "./dist/flip-book.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"homepage": "https://github.com/doradsoft/html-flip-book",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/doradsoft/html-flip-book.git"
+	},
+	"bugs": {
+		"url": "https://github.com/doradsoft/html-flip-book/issues"
+	},
+	"keywords": [
+		"book",
+		"flip-book",
+		"react"
+	],
+	"license": "MIT",
+	"peerDependencies": {
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0"
+	},
+	"dependencies": {
+		"html-flip-book-base": "file:../base"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.8",
+		"@types/react-dom": "^19.2.3"
+	}
 }

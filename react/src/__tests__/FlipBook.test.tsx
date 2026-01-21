@@ -1,124 +1,124 @@
-import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { FlipBook } from '../FlipBook'
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FlipBook } from "../FlipBook";
 
 const mocked = vi.hoisted(() => ({
-  instances: [] as Array<{
-    render: ReturnType<typeof vi.fn>
-    destroy: ReturnType<typeof vi.fn>
-    bookElement: HTMLElement | null
-    options: Record<string, unknown>
-  }>,
-  MockFlipBook: class {
-    render = vi.fn()
-    destroy = vi.fn()
-    bookElement: HTMLElement | null = null
-    options: Record<string, unknown>
+	instances: [] as Array<{
+		render: ReturnType<typeof vi.fn>;
+		destroy: ReturnType<typeof vi.fn>;
+		bookElement: HTMLElement | null;
+		options: Record<string, unknown>;
+	}>,
+	MockFlipBook: class {
+		render = vi.fn();
+		destroy = vi.fn();
+		bookElement: HTMLElement | null = null;
+		options: Record<string, unknown>;
 
-    constructor(options: Record<string, unknown>) {
-      this.options = options
-      mocked.instances.push(this)
-    }
-  },
-}))
+		constructor(options: Record<string, unknown>) {
+			this.options = options;
+			mocked.instances.push(this);
+		}
+	},
+}));
 
 // Mock the base FlipBook
-vi.mock('html-flip-book-base', () => ({
-  FlipBook: mocked.MockFlipBook,
-}))
+vi.mock("html-flip-book-base", () => ({
+	FlipBook: mocked.MockFlipBook,
+}));
 
-describe('FlipBook React Component', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mocked.instances.length = 0
-  })
+describe("FlipBook React Component", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocked.instances.length = 0;
+	});
 
-  it('should render pages correctly', () => {
-    const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>, <div key="3">Page 3</div>]
+	it("should render pages correctly", () => {
+		const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>, <div key="3">Page 3</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" />)
+		render(<FlipBook pages={pages} className="test-flipbook" />);
 
-    expect(screen.getByText('Page 1')).toBeTruthy()
-    expect(screen.getByText('Page 2')).toBeTruthy()
-    expect(screen.getByText('Page 3')).toBeTruthy()
-  })
+		expect(screen.getByText("Page 1")).toBeTruthy();
+		expect(screen.getByText("Page 2")).toBeTruthy();
+		expect(screen.getByText("Page 3")).toBeTruthy();
+	});
 
-  it('should apply className to container', () => {
-    const pages = [<div key="1">Page 1</div>]
+	it("should apply className to container", () => {
+		const pages = [<div key="1">Page 1</div>];
 
-    const { container } = render(<FlipBook pages={pages} className="my-flipbook" />)
+		const { container } = render(<FlipBook pages={pages} className="my-flipbook" />);
 
-    expect(container.querySelector('.my-flipbook')).toBeTruthy()
-  })
+		expect(container.querySelector(".my-flipbook")).toBeTruthy();
+	});
 
-  it('should wrap each page in a div with page class', () => {
-    const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>]
+	it("should wrap each page in a div with page class", () => {
+		const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>];
 
-    const { container } = render(<FlipBook pages={pages} className="test-flipbook" />)
+		const { container } = render(<FlipBook pages={pages} className="test-flipbook" />);
 
-    const pageElements = container.querySelectorAll('.page')
-    expect(pageElements.length).toBe(2)
-  })
+		const pageElements = container.querySelectorAll(".page");
+		expect(pageElements.length).toBe(2);
+	});
 
-  it('should call FlipBook.render on mount', async () => {
-    const pages = [<div key="1">Page 1</div>]
+	it("should call FlipBook.render on mount", async () => {
+		const pages = [<div key="1">Page 1</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" />)
+		render(<FlipBook pages={pages} className="test-flipbook" />);
 
-    expect(mocked.instances[0].render).toHaveBeenCalledWith('.test-flipbook', false)
-  })
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(".test-flipbook", false);
+	});
 
-  it('should pass debug prop to render', async () => {
-    const pages = [<div key="1">Page 1</div>]
+	it("should pass debug prop to render", async () => {
+		const pages = [<div key="1">Page 1</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" debug={true} />)
+		render(<FlipBook pages={pages} className="test-flipbook" debug={true} />);
 
-    expect(mocked.instances[0].render).toHaveBeenCalledWith('.test-flipbook', true)
-  })
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(".test-flipbook", true);
+	});
 
-  it('should pass direction to FlipBook constructor', async () => {
-    const pages = [<div key="1">Page 1</div>]
+	it("should pass direction to FlipBook constructor", async () => {
+		const pages = [<div key="1">Page 1</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" direction="rtl" />)
+		render(<FlipBook pages={pages} className="test-flipbook" direction="rtl" />);
 
-    expect(mocked.instances[0].options.direction).toBe('rtl')
-  })
+		expect(mocked.instances[0].options.direction).toBe("rtl");
+	});
 
-  it('should handle empty pages array', () => {
-    const { container } = render(<FlipBook pages={[]} className="test-flipbook" />)
+	it("should handle empty pages array", () => {
+		const { container } = render(<FlipBook pages={[]} className="test-flipbook" />);
 
-    const pageElements = container.querySelectorAll('.page')
-    expect(pageElements.length).toBe(0)
-  })
+		const pageElements = container.querySelectorAll(".page");
+		expect(pageElements.length).toBe(0);
+	});
 
-  it('should handle many pages', () => {
-    const pageIds = Array.from({ length: 100 }, (_, i) => `test-page-${i}`)
-    const pages = pageIds.map((id, i) => <div key={id}>Page {i + 1}</div>)
+	it("should handle many pages", () => {
+		const pageIds = Array.from({ length: 100 }, (_, i) => `test-page-${i}`);
+		const pages = pageIds.map((id, i) => <div key={id}>Page {i + 1}</div>);
 
-    const { container } = render(<FlipBook pages={pages} className="test-flipbook" />)
+		const { container } = render(<FlipBook pages={pages} className="test-flipbook" />);
 
-    const pageElements = container.querySelectorAll('.page')
-    expect(pageElements.length).toBe(100)
-  })
+		const pageElements = container.querySelectorAll(".page");
+		expect(pageElements.length).toBe(100);
+	});
 
-  it('should pass pageSemantics to FlipBook constructor', async () => {
-    const pageSemantics = {
-      indexToSemanticName: vi.fn(),
-      indexToTitle: vi.fn(),
-    }
+	it("should pass pageSemantics to FlipBook constructor", async () => {
+		const pageSemantics = {
+			indexToSemanticName: vi.fn(),
+			indexToTitle: vi.fn(),
+		};
 
-    const pages = [<div key="1">Page 1</div>]
+		const pages = [<div key="1">Page 1</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" pageSemantics={pageSemantics} />)
+		render(<FlipBook pages={pages} className="test-flipbook" pageSemantics={pageSemantics} />);
 
-    expect(mocked.instances[0].options.pageSemantics).toBe(pageSemantics)
-  })
+		expect(mocked.instances[0].options.pageSemantics).toBe(pageSemantics);
+	});
 
-  it('should create FlipBook with correct pagesCount', async () => {
-    const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>, <div key="3">Page 3</div>]
+	it("should create FlipBook with correct pagesCount", async () => {
+		const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>, <div key="3">Page 3</div>];
 
-    render(<FlipBook pages={pages} className="test-flipbook" />)
+		render(<FlipBook pages={pages} className="test-flipbook" />);
 
-    expect(mocked.instances[0].options.pagesCount).toBe(3)
-  })
-})
+		expect(mocked.instances[0].options.pagesCount).toBe(3);
+	});
+});

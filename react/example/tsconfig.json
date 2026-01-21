@@ -1,29 +1,29 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "ESNext"],
-    "jsx": "react-jsx",
-    "module": "ESNext",
-    "baseUrl": ".",
-    "paths": {
-      "html-flip-book-react": ["../src/FlipBook.tsx"],
-      "html-flip-book-base": ["../../base/src/flipbook.ts"]
-    },
-    "moduleResolution": "Node",
-    "resolveJsonModule": true,
-    "allowJs": false,
-    "outDir": "./dist",
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": false,
-    "useDefineForClassFields": true,
-    "strict": true,
-    "noFallthroughCasesInSwitch": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "types": ["vite/client", "react", "react-dom"]
-  },
-  "include": ["src", "declarations.d.ts"],
-  "exclude": ["node_modules", "dist"]
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["dom", "dom.iterable", "ESNext"],
+		"jsx": "react-jsx",
+		"module": "ESNext",
+		"baseUrl": ".",
+		"paths": {
+			"html-flip-book-react": ["../src/FlipBook.tsx"],
+			"html-flip-book-base": ["../../base/src/flipbook.ts"]
+		},
+		"moduleResolution": "Node",
+		"resolveJsonModule": true,
+		"allowJs": false,
+		"outDir": "./dist",
+		"isolatedModules": true,
+		"allowSyntheticDefaultImports": true,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": false,
+		"useDefineForClassFields": true,
+		"strict": true,
+		"noFallthroughCasesInSwitch": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"types": ["vite/client", "react", "react-dom"]
+	},
+	"include": ["src", "declarations.d.ts"],
+	"exclude": ["node_modules", "dist"]
 }
