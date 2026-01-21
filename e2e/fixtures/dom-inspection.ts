@@ -42,11 +42,8 @@ export function parseTransform(transformStr: string): PageTransform {
 		const values = matrix2dMatch[1].split(",").map((v) => parseFloat(v.trim()));
 		if (values.length >= 6) {
 			const a = values[0]; // scaleX * cos(angle)
-			const _b = values[1];
-			const _c = values[2];
 			const d = values[3]; // scaleY * cos(angle)
 			const tx = values[4];
-			const _ty = values[5];
 
 			result.translateX = tx;
 

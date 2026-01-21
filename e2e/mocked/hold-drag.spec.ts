@@ -39,8 +39,6 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 	// Install fake timers AFTER navigation to avoid interfering with React async loading
 	await page.clock.install();
 
-	// Get initial DOM state
-	const _initialState = await flipBookPage.getDOMState();
 	const targetPageIndex = tc.targetLeafIndex * 2;
 
 	// Act: Perform the drag interaction
@@ -161,9 +159,6 @@ test.describe("Hold & Drag - Critical Cases", () => {
 		if (!box) throw new Error("Flipbook not found");
 
 		const firstPage = page.locator('.en-book.flipbook .page[data-page-index="0"]');
-
-		// Get initial z-indices
-		const _initialZ0 = await firstPage.evaluate((el) => window.getComputedStyle(el).zIndex);
 
 		// Drag to exactly 50% position
 		const startX = box.x + box.width * 0.75;

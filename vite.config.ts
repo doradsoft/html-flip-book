@@ -39,7 +39,7 @@ export default defineConfig(() => {
 			},
 			plugins: [],
 			esbuild: {
-				jsx: "automatic",
+				jsx: "automatic" as const,
 			},
 		},
 		vanilla: {

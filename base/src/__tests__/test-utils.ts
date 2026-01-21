@@ -51,6 +51,10 @@ interface FlipBookTestable extends FlipBookTestableRaw {
 	flipDelta: number;
 	isDuringManualFlip: boolean;
 	isDuringAutoFlip: boolean;
+	// Computed properties from leaves array
+	readonly currentLeaves: [Leaf | undefined, Leaf | undefined];
+	readonly isClosed: boolean;
+	readonly isClosedInverted: boolean;
 }
 
 /** State snapshot of a Leaf for assertions */

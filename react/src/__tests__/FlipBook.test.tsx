@@ -105,6 +105,7 @@ describe("FlipBook React Component", () => {
 		const pageSemantics = {
 			indexToSemanticName: vi.fn(),
 			indexToTitle: vi.fn(),
+			semanticNameToIndex: vi.fn(),
 		};
 
 		const pages = [<div key="1">Page 1</div>];

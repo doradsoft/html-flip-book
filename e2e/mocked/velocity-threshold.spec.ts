@@ -61,17 +61,23 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			const box = await flipBookPage.container.boundingBox();
 			if (!box) throw new Error("Container not found");
 
-			// Fast drag - few steps, minimal time = high velocity
+			// Fast drag - few steps with minimal time advancing = high velocity
 			const startX = box.x + box.width * 0.9;
 			const endX = box.x + box.width * 0.4; // 50% movement but fast
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
-			// Fast movement - 2 steps, minimal time
-			await page.mouse.move(endX, y, { steps: 2 });
-			await page.mouse.up();
 
+			// Fast movement - 2 steps with minimal clock time
+			const steps = 2;
+			for (let i = 1; i <= steps; i++) {
+				const progress = i / steps;
+				await page.mouse.move(startX + (endX - startX) * progress, y);
+				await page.clock.runFor(5); // Only 5ms per step = 10ms total = very fast
+			}
+
+			await page.mouse.up();
 			await page.clock.runFor(1000);
 
 			// Fast velocity should complete the flip

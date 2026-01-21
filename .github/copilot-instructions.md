@@ -25,7 +25,7 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 ### Code Quality
 
 - **Never ignore compiler or linter errors/warnings** - always fix issues
-- Maintain 0 problems in VS Code
+- Maintain 0 errors and 0 warnings in VS Code's Problems panel
 - Use Biome for formatting (tabs, double quotes, semicolons)
 
 ### Git Workflow (for Copilot/Agents)
@@ -50,9 +50,9 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 
 ## Commands Reference
 
-| Task           | Command           |
-| -------------- | ----------------- |
-| Unit Tests     | `npm test`        |
-| E2E Tests      | `npm run test:e2e`|
-| Lint & Format  | `npx biome check --write .` |
-| Build          | `npm run build`   |
+| Task          | Command                     |
+| ------------- | --------------------------- |
+| Unit Tests    | `npm test`                  |
+| E2E Tests     | `npm run test:e2e`          |
+| Lint & Format | `npx biome check --write .` |
+| Build         | `npm run build`             |

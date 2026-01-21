@@ -8,7 +8,7 @@
 - Biome
 - Any other static analysis tool
 
-Maintain 0 problems in VS Code.
+Maintain 0 errors and 0 warnings in VS Code's Problems panel.
 
 ## Module-Specific Instructions
 
