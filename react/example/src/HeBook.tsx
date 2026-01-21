@@ -1,5 +1,6 @@
 // HeBook.tsx
 import { FlipBook, type PageSemantics } from 'html-flip-book-react'
+import { useMemo } from 'react'
 
 const hePageIds = Array.from({ length: 10 }, (_, i) => `he-page-${i}`)
 const hePages = hePageIds.map((id) => (
@@ -30,7 +31,28 @@ const hePageSemantics: PageSemantics = {
   },
 }
 
+/** Parse URL parameters for test configuration */
+function useTestParams() {
+  return useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    const initialTurnedLeaves = params.get('initialTurnedLeaves')
+    const fastDeltaThreshold = params.get('fastDeltaThreshold')
+
+    return {
+      initialTurnedLeaves: initialTurnedLeaves
+        ? initialTurnedLeaves
+            .split(',')
+            .map(Number)
+            .filter((n) => !Number.isNaN(n))
+        : undefined,
+      fastDeltaThreshold: fastDeltaThreshold ? Number(fastDeltaThreshold) : undefined,
+    }
+  }, [])
+}
+
 export const HeBook = () => {
+  const testParams = useTestParams()
+
   return (
     <FlipBook
       className="he-book"
@@ -38,6 +60,8 @@ export const HeBook = () => {
       pageSemantics={hePageSemantics}
       debug={true}
       direction="rtl"
+      initialTurnedLeaves={testParams.initialTurnedLeaves}
+      fastDeltaThreshold={testParams.fastDeltaThreshold}
     />
   )
 }

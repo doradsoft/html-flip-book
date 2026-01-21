@@ -145,7 +145,8 @@ class FlipBook {
         if (isInitiallyTurned) {
           // Fully turned: rotateY(180) or similar based on direction
           const scaleX = -1
-          pageElement.style.transform = `translateX(${this.isLTR ? '100%' : '-100%'})rotateY(${this.isLTR ? '180deg' : '-180deg'})scaleX(${scaleX})`
+          const transform = `translateX(${this.isLTR ? '100%' : '-100%'})rotateY(${this.isLTR ? '180deg' : '-180deg'})scaleX(${scaleX})`
+          pageElement.style.transform = transform
           pageElement.style.transformOrigin = this.isLTR ? 'left' : 'right'
           pageElement.style.zIndex = `${pageIndex}` // Turned pages have lower z-index
         } else {

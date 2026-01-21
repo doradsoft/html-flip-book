@@ -73,18 +73,35 @@ export function parseTransform(transformStr: string): PageTransform {
   // Handle matrix3d or matrix
   if (transformStr.includes('matrix3d')) {
     // For complex 3D transforms, we need to extract from matrix
-    // This is a simplified extraction - may need enhancement for accuracy
     const matrixMatch = transformStr.match(/matrix3d\(([^)]+)\)/)
     if (matrixMatch) {
       const values = matrixMatch[1].split(',').map((v) => parseFloat(v.trim()))
-      // matrix3d: a1,b1,c1,d1, a2,b2,c2,d2, a3,b3,c3,d3, a4,b4,c4,d4
-      // rotateY affects: a1=cos(θ), c1=-sin(θ), a3=sin(θ), c3=cos(θ)
+      // matrix3d layout:
+      // [0]=a1  [1]=b1  [2]=c1  [3]=d1
+      // [4]=a2  [5]=b2  [6]=c2  [7]=d2
+      // [8]=a3  [9]=b3  [10]=c3 [11]=d3
+      // [12]=tx [13]=ty [14]=tz [15]=tw
+      //
+      // For rotateY(θ): a1=cos(θ), c1=0, a3=sin(θ), c3=cos(θ)
+      // When combined with scaleX(-1): a1 gets multiplied by -1
+      // So we should use c3 (index 10) as the reliable cos value
       if (values.length >= 16) {
-        const cos = values[0]
-        const sin = values[8]
-        result.rotateY = Math.atan2(sin, cos) * (180 / Math.PI)
+        const a1 = values[0]
+        const a3 = values[8] // sin(θ) for rotateY
+        const c3 = values[10] // cos(θ) for rotateY
+
+        // c3 = cos(rotateY), so rotateY = acos(c3)
+        // But we need the sign, which comes from a3 = sin(θ)
+        result.rotateY = Math.atan2(a3, c3) * (180 / Math.PI)
         result.translateX = values[12] || 0
-        result.scaleX = Math.sqrt(values[0] ** 2 + values[4] ** 2) || 1
+
+        // Detect scaleX by comparing a1 with cos
+        // If a1 = -cos, then scaleX = -1
+        if (Math.abs(a1 + c3) < 0.001) {
+          result.scaleX = -1
+        } else {
+          result.scaleX = 1
+        }
       }
     }
     return result

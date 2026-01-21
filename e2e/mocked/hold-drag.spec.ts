@@ -18,11 +18,6 @@ const testCases = generateTestCases(TEST_COUNT, TEST_SEED, {
 })
 
 test.describe('Hold & Drag - Randomized', () => {
-  test.beforeEach(async ({ page }) => {
-    // Install fake timers for animation control
-    await page.clock.install()
-  })
-
   for (const tc of testCases) {
     test(`[seed:${tc.seed}] ${tc.description}`, async ({ page }) => {
       await runTestCase(page, tc)
@@ -41,6 +36,9 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 
   await flipBookPage.goto()
 
+  // Install fake timers AFTER navigation to avoid interfering with React async loading
+  await page.clock.install()
+
   // Get initial DOM state
   const _initialState = await flipBookPage.getDOMState()
   const targetPageIndex = tc.targetLeafIndex * 2
@@ -50,8 +48,12 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
   if (!container) throw new Error('Container not found')
 
   // dropPosition is 0-1 representing flip progress (0 = start, 1 = complete)
-  // A full flip requires dragging across the page width
-  const dragDistance = container.width * tc.dropPosition * 0.5
+  // The flipbook calculates position as: flipDelta / bookWidth
+  // For forward: pos = flipDelta / bookWidth, so we need flipDelta = pos * bookWidth
+  // For backward: posBackward = 1 - |flipDelta| / bookWidth, so |flipDelta| = (1 - posBackward) * bookWidth
+  // With posBackward = 1 - dropPosition, we get |flipDelta| = dropPosition * bookWidth
+  // So dragDistance = dropPosition * containerWidth for both directions
+  const dragDistance = container.width * tc.dropPosition
 
   // Calculate start and end positions based on direction and flip direction
   let startX: number
@@ -120,14 +122,27 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
     throw new Error(`Target page ${targetPageIndex} not found in final state`)
   }
 
-  if (tc.expectFlipComplete) {
-    // Page should be fully flipped (rotateY near -180 or 180)
-    const rotation = Math.abs(targetPage.transform.rotateY)
-    expect(rotation).toBeGreaterThan(90)
+  const rotation = Math.abs(targetPage.transform.rotateY)
+
+  // For forward flips: starts at 0°, completes at 180°
+  // For backward flips: starts at 180° (already turned), completes at 0°
+  if (tc.flipDir === 'forward') {
+    if (tc.expectFlipComplete) {
+      // Forward flip completed: page should be at 180°
+      expect(rotation).toBeGreaterThan(90)
+    } else {
+      // Forward flip canceled: page should return to 0°
+      expect(rotation).toBeLessThan(45)
+    }
   } else {
-    // Page should be back at start position (rotateY near 0)
-    const rotation = Math.abs(targetPage.transform.rotateY)
-    expect(rotation).toBeLessThan(45)
+    // Backward flip
+    if (tc.expectFlipComplete) {
+      // Backward flip completed: page should be at 0°
+      expect(rotation).toBeLessThan(45)
+    } else {
+      // Backward flip canceled: page should stay at 180°
+      expect(rotation).toBeGreaterThan(90)
+    }
   }
 }
 

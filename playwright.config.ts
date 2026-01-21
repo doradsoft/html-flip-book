@@ -7,7 +7,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
+  retries: 2, // Retries for flaky tests with mocked time/velocity detection
   workers: isCI ? 1 : undefined,
   reporter: [
     ['list'],

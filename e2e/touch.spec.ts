@@ -44,27 +44,32 @@ test.describe('FlipBook Touch Interactions', () => {
     const box = await flipbook.boundingBox()
     if (!box) throw new Error('Flipbook not found')
 
-    // First flip forward
-    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, {
-      steps: 10,
-    })
-    await page.mouse.up()
-    await page.waitForTimeout(800)
+    // First verify we're on page 0
+    const firstPage = flipbook.locator('.page[data-page-index="0"]')
+    await expect(firstPage).toHaveClass(/current-page/)
 
-    // Now flip backward
-    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
+    // First flip forward - drag from right to left (bigger movement for reliability)
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2)
     await page.mouse.down()
-    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2, {
-      steps: 10,
+    await page.mouse.move(box.x + box.width * 0.1, box.y + box.height / 2, {
+      steps: 20,
     })
     await page.mouse.up()
-    await page.waitForTimeout(800)
+
+    // Wait for animation and verify we're on page 2 (second leaf)
+    const secondLeafPage = flipbook.locator('.page[data-page-index="2"]')
+    await expect(secondLeafPage).toHaveClass(/current-page/, { timeout: 10000 })
+
+    // Now flip backward - drag from left to right
+    await page.mouse.move(box.x + box.width * 0.1, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2, {
+      steps: 20,
+    })
+    await page.mouse.up()
 
     // Should be back at first page
-    const firstPage = page.locator('.page').first()
-    await expect(firstPage).toHaveClass(/current-page/)
+    await expect(firstPage).toHaveClass(/current-page/, { timeout: 10000 })
   })
 
   test('should not flip when swipe is too short', async ({ page }) => {
