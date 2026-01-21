@@ -34,10 +34,7 @@ interface FlipBookTestableRaw {
   pendingFlipStartingPos: number
   pendingFlipDirection: FlipDirection
   prevVisiblePageIndices: [number] | [number, number] | undefined
-  currentLeaves: [Leaf | undefined, Leaf | undefined]
   currentOrTurningLeaves: [Leaf | undefined, Leaf | undefined]
-  isClosed: boolean
-  isClosedInverted: boolean
   fastDeltaThreshold: number
   onTurned: (newVisiblePageIndices: number[], oldVisiblePageIndices?: number[]) => void
   onDragStart: (event: { center: { x: number } }) => void
@@ -149,6 +146,32 @@ export function getLeafInternals(leaf: Leaf): LeafTestable {
 export function getFlipBookInternals(flipBook: FlipBook): FlipBookTestable {
   const raw = flipBook as unknown as FlipBookTestableRaw
 
+  // Helper to compute currentLeaves from leaves array
+  const computeCurrentLeaves = (): [Leaf | undefined, Leaf | undefined] => {
+    const leaves = raw.leaves
+    if (!leaves || leaves.length === 0) return [undefined, undefined]
+
+    // Find the last turned leaf
+    let lastTurnedIndex = -1
+    for (let i = leaves.length - 1; i >= 0; i--) {
+      if (leaves[i].isTurned) {
+        lastTurnedIndex = i
+        break
+      }
+    }
+
+    if (lastTurnedIndex === -1) {
+      // No turned leaves - book is at start
+      return [undefined, leaves[0]]
+    } else if (lastTurnedIndex === leaves.length - 1) {
+      // All leaves turned - book is at end
+      return [leaves[lastTurnedIndex], undefined]
+    } else {
+      // Somewhere in the middle
+      return [leaves[lastTurnedIndex], leaves[lastTurnedIndex + 1]]
+    }
+  }
+
   // Create a wrapper with backwards-compatible derived properties
   return {
     // Raw properties
@@ -157,15 +180,25 @@ export function getFlipBookInternals(flipBook: FlipBook): FlipBookTestable {
     pendingFlipStartingPos: raw.pendingFlipStartingPos,
     pendingFlipDirection: raw.pendingFlipDirection,
     prevVisiblePageIndices: raw.prevVisiblePageIndices,
-    currentLeaves: raw.currentLeaves,
     currentOrTurningLeaves: raw.currentOrTurningLeaves,
-    isClosed: raw.isClosed,
-    isClosedInverted: raw.isClosedInverted,
     fastDeltaThreshold: raw.fastDeltaThreshold,
     onTurned: raw.onTurned.bind(flipBook),
     onDragStart: raw.onDragStart.bind(flipBook),
     onDragUpdate: raw.onDragUpdate.bind(flipBook),
     onDragEnd: raw.onDragEnd.bind(flipBook),
+
+    // Computed properties (removed from FlipBook class)
+    get currentLeaves(): [Leaf | undefined, Leaf | undefined] {
+      return computeCurrentLeaves()
+    },
+
+    get isClosed(): boolean {
+      return !computeCurrentLeaves()[0]
+    },
+
+    get isClosedInverted(): boolean {
+      return !computeCurrentLeaves()[1]
+    },
 
     // Derived properties for backwards compatibility
     get currentLeaf(): Leaf | MockLeaf | undefined {
