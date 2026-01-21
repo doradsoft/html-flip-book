@@ -243,7 +243,7 @@ function deriveInitialState(
 
 function calculateExpectedOutcome(
   dropCategory: DropCategory,
-  velocityCategory: VelocityCategory,
+  _velocityCategory: VelocityCategory,
   dropPosition: number,
   middlePosition: number
 ): boolean {

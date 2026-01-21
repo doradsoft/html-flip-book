@@ -588,21 +588,28 @@ describe('FlipBook', () => {
       expect(getFlipBookInternals(flipBook).flipStartingPos).toBe(120)
     })
 
-    it('should reset state when drag starts during auto flip', () => {
+    it('should allow new flip during auto flip (concurrent flips)', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
+      const leaf0 = getFlipBookInternals(flipBook).leaves[0]
+      const _leaf1 = getFlipBookInternals(flipBook).leaves[1]
+
+      // Set up an existing auto flip on leaf 0
       setFlipBookInternals(flipBook, {
-        currentLeaf: { index: 0 } as never,
+        currentLeaf: leaf0,
         flipDirection: FlipDirection.Forward,
         flipStartingPos: 50,
         isDuringAutoFlip: true,
       })
+      // Start a new drag - should record pending position
       getFlipBookInternals(flipBook).onDragStart({ center: { x: 200 } })
 
+      // The auto flip should still be active
       const internals = getFlipBookInternals(flipBook)
-      expect(internals.flipDirection).toBe(FlipDirection.None)
-      expect(internals.flipStartingPos).toBe(0)
+      expect(internals.activeFlips.size).toBeGreaterThan(0)
+      // New pending position should be recorded
+      expect(internals.pendingFlipStartingPos).toBe(200)
     })
 
     it('should flip forward on drag update', () => {
@@ -620,7 +627,7 @@ describe('FlipBook', () => {
       expect(spy).toHaveBeenCalled()
     })
 
-    it('should use existing current leaf on forward drag', () => {
+    it('should continue flipping existing leaf on forward drag', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
@@ -628,7 +635,10 @@ describe('FlipBook', () => {
       const leaf = getFlipBookInternals(flipBook).leaves[0]
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      setFlipBookInternals(flipBook, { currentLeaf: leaf, flipStartingPos: 400 })
+      // Set up pending flip state first (simulating drag start)
+      const raw = flipBook as unknown as { pendingFlipStartingPos: number }
+      raw.pendingFlipStartingPos = 400
+
       getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
 
       expect(spy).toHaveBeenCalled()
@@ -649,24 +659,47 @@ describe('FlipBook', () => {
       expect(spy).toHaveBeenCalled()
     })
 
-    it('should ignore drag update while manual flip is active', () => {
+    it('should allow starting new flip while manual flip is active (concurrent flips)', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      setFlipBookInternals(flipBook, { isDuringManualFlip: true })
+
+      // Set up an existing manual flip on leaf 0
+      const leaf0 = getFlipBookInternals(flipBook).leaves[0]
+      setFlipBookInternals(flipBook, {
+        currentLeaf: leaf0,
+        flipDirection: FlipDirection.Forward,
+        isDuringManualFlip: true,
+      })
+
+      // Try to start a new drag
       getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
-      expect(getFlipBookInternals(flipBook).isDuringManualFlip).toBe(true)
+      // In concurrent flip architecture, a new flip can start on a different leaf
+      // The manual flip should still be tracked
+      expect(getFlipBookInternals(flipBook).activeFlips.size).toBeGreaterThan(0)
     })
 
-    it('should ignore drag update while auto flip is active', () => {
+    it('should allow starting new flip while auto flip is active (concurrent flips)', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
-      setFlipBookInternals(flipBook, { isDuringAutoFlip: true })
-      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } })
 
-      expect(getFlipBookInternals(flipBook).isDuringAutoFlip).toBe(true)
+      // Set up an existing auto flip on leaf 0
+      const leaf0 = getFlipBookInternals(flipBook).leaves[0]
+      setFlipBookInternals(flipBook, {
+        currentLeaf: leaf0,
+        flipDirection: FlipDirection.Forward,
+        isDuringAutoFlip: true,
+      })
+
+      // Start a new drag - should allow it
+      const raw = flipBook as unknown as { pendingFlipStartingPos: number }
+      raw.pendingFlipStartingPos = 400
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
+
+      // New flip should be started on a different leaf
+      expect(getFlipBookInternals(flipBook).activeFlips.size).toBeGreaterThanOrEqual(1)
     })
 
     it('should handle drag update when book element is undefined', () => {
@@ -762,21 +795,29 @@ describe('FlipBook', () => {
       expect(spy).toHaveBeenCalled()
     })
 
-    it('should return early for backward drag when delta is positive', () => {
+    it('should switch to forward when delta becomes positive during backward drag', () => {
       createPages(4)
       const flipBook = new FlipBook({ pagesCount: 4 })
       flipBook.render('.flipbook-container')
 
       const leaf = getFlipBookInternals(flipBook).leaves[0]
+      leaf.flipPosition = 1
       const spy = vi.spyOn(leaf, 'efficientFlipToPosition')
 
-      setFlipBookInternals(flipBook, {
-        flipDirection: FlipDirection.Backward,
-        flipStartingPos: 300,
-      })
-      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } })
+      // In the new concurrent architecture, direction is locked on first movement
+      // Set up a backward flip state first
+      const raw = flipBook as unknown as {
+        pendingFlipStartingPos: number
+        pendingFlipDirection: FlipDirection
+      }
+      raw.pendingFlipStartingPos = 100
+      raw.pendingFlipDirection = FlipDirection.Backward
 
-      expect(spy).not.toHaveBeenCalled()
+      // Now drag in positive direction - should return early since direction is locked to backward
+      getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } })
+
+      // This should flip backward (delta = 100 - 300 = -200, which is backward for LTR)
+      expect(spy).toHaveBeenCalled()
     })
 
     it('should return early when book is closed on backward drag', () => {

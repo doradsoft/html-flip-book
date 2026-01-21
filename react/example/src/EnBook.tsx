@@ -67,15 +67,13 @@ export const EnBook = () => {
   }, [])
 
   return enPages.length ? (
-    <>
-      <FlipBook
-        className="en-book"
-        pages={enPages}
-        debug={true}
-        initialTurnedLeaves={testParams.initialTurnedLeaves}
-        fastDeltaThreshold={testParams.fastDeltaThreshold}
-      />
-    </>
+    <FlipBook
+      className="en-book"
+      pages={enPages}
+      debug={true}
+      initialTurnedLeaves={testParams.initialTurnedLeaves}
+      fastDeltaThreshold={testParams.fastDeltaThreshold}
+    />
   ) : null
 }
 
