@@ -9,4 +9,8 @@ export interface FlipBookOptions {
   padding?: number
   pageSemantics?: PageSemantics
   onPageChanged?: (pageIndex: number) => void
+  /** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
+  fastDeltaThreshold?: number
+  /** Indices of leaves that should start in the turned (flipped) state. Default: [] */
+  initialTurnedLeaves?: number[]
 }

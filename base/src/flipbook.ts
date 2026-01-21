@@ -4,11 +4,11 @@ import Hammer from 'hammerjs'
 import type { AspectRatio } from './aspect-ratio'
 import type { FlipBookOptions } from './flip-book-options'
 import { FlipDirection } from './flip-direction'
-import { type FlipPosition, Leaf, NOT_FLIPPED } from './leaf'
+import { type FlipPosition, Leaf } from './leaf'
 import type { PageSemantics } from './page-semantics'
 import { Size } from './size'
 
-const FAST_DELTA = 500
+const DEFAULT_FAST_DELTA = 500
 class FlipBook {
   bookElement?: HTMLElement
   private pageElements: HTMLElement[] = []
@@ -19,6 +19,8 @@ class FlipBook {
     height: 3.15,
   }
   private readonly direction: 'rtl' | 'ltr' = 'ltr'
+  private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA
+  private readonly initialTurnedLeaves: Set<number> = new Set()
   private readonly onPageChanged?: (pageIndex: number) => void
   private readonly pageSemantics: PageSemantics | undefined
   private leaves: Leaf[] = []
@@ -31,6 +33,8 @@ class FlipBook {
   private isDuringAutoFlip = false
   touchStartingPos = { x: 0, y: 0 }
   private prevVisiblePageIndices: [number] | [number, number] | undefined
+  // Hammer instance for cleanup
+  private hammer: HammerManager | undefined
   private get isLTR(): boolean {
     return this.direction === 'ltr'
   }
@@ -77,6 +81,8 @@ class FlipBook {
     this.leafAspectRatio = options.leafAspectRatio || this.leafAspectRatio
     this.coverAspectRatio = options.coverAspectRatio || this.coverAspectRatio
     this.direction = options.direction || this.direction
+    this.fastDeltaThreshold = options.fastDeltaThreshold ?? this.fastDeltaThreshold
+    this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? [])
     this.pageSemantics = options.pageSemantics
     this.onPageChanged = options.onPageChanged
   }
@@ -121,20 +127,37 @@ class FlipBook {
 
       const leafIndex = Math.floor(pageIndex / 2)
       const isOddPage = (pageIndex + 1) % 2 === 1
-      // TODO: set dynamically by parameter and not by hardcoding eq 0
-      // TODO: set prev-page / next-page classes for prev/next pages as accordingally
+      const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex)
+
+      // Determine current page based on initial turned leaves
+      // Current pages are the first two visible pages after all initially turned leaves
+      const firstVisibleLeafIndex =
+        this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0
+      const isCurrentPage =
+        leafIndex === firstVisibleLeafIndex ||
+        (leafIndex === firstVisibleLeafIndex - 1 && isInitiallyTurned)
+
       pageElement.classList.add(
         isOddPage ? 'odd' : 'even',
-        ...(pageIndex === 0 ? ['current-page'] : [])
+        ...(isCurrentPage ? ['current-page'] : [])
       )
       if (isOddPage) {
-        pageElement.style.transform = `translateX(${this.isLTR ? `` : `-`}100%)`
+        // Apply correct initial transform based on turned state
+        if (isInitiallyTurned) {
+          // Fully turned: rotateY(180) or similar based on direction
+          const scaleX = -1
+          pageElement.style.transform = `translateX(${this.isLTR ? '100%' : '-100%'})rotateY(${this.isLTR ? '180deg' : '-180deg'})scaleX(${scaleX})`
+          pageElement.style.transformOrigin = this.isLTR ? 'left' : 'right'
+          pageElement.style.zIndex = `${pageIndex}` // Turned pages have lower z-index
+        } else {
+          pageElement.style.transform = `translateX(${this.isLTR ? `` : `-`}100%)`
+          pageElement.style.zIndex = `${this.pagesCount - pageIndex}`
+        }
 
         this.leaves[leafIndex] = new Leaf(
           leafIndex,
           [pageElement, undefined],
-          // TODO: set turned based on initialized page
-          NOT_FLIPPED,
+          isInitiallyTurned,
           {
             isLTR: this.isLTR,
             leavesCount: leavesCount,
@@ -164,14 +187,34 @@ class FlipBook {
           }
         )
       } else {
-        pageElement.style.transform = `scaleX(-1)translateX(${this.isLTR ? `-` : ``}100%)`
+        // Even page (back side of leaf)
+        if (isInitiallyTurned) {
+          // Fully turned: apply matching transform for back side
+          const scaleX = 1
+          pageElement.style.transform = `translateX(0px)rotateY(${this.isLTR ? '180deg' : '-180deg'})scaleX(${scaleX})`
+          pageElement.style.transformOrigin = this.isLTR ? 'right' : 'left'
+          pageElement.style.zIndex = `${pageIndex}` // Turned pages have lower z-index
+        } else {
+          pageElement.style.transform = `scaleX(-1)translateX(${this.isLTR ? `-` : ``}100%)`
+          pageElement.style.zIndex = `${this.pagesCount - pageIndex}`
+        }
         this.leaves[leafIndex].pages[1] = pageElement
       }
     })
-    const hammer = new Hammer(this.bookElement)
-    hammer.on('panstart', this.onDragStart.bind(this))
-    hammer.on('panmove', this.onDragUpdate.bind(this))
-    hammer.on('panend', this.onDragEnd.bind(this))
+
+    // Set initial visible page indices based on initially turned leaves
+    const firstVisibleLeafIndex =
+      this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0
+    const firstVisiblePageIndex = firstVisibleLeafIndex * 2
+    this.prevVisiblePageIndices =
+      firstVisiblePageIndex + 1 < this.pagesCount
+        ? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
+        : [firstVisiblePageIndex]
+
+    this.hammer = new Hammer(this.bookElement)
+    this.hammer.on('panstart', this.onDragStart.bind(this))
+    this.hammer.on('panmove', this.onDragUpdate.bind(this))
+    this.hammer.on('panend', this.onDragEnd.bind(this))
     this.bookElement.addEventListener('touchstart', this.handleTouchStart.bind(this), {
       passive: false,
     })
@@ -198,7 +241,6 @@ class FlipBook {
   }
 
   private onDragStart(event: HammerInput) {
-    console.log('drag start')
     if (this.currentLeaf || this.isDuringAutoFlip) {
       this.flipDirection = FlipDirection.None
       this.flipStartingPos = 0
@@ -208,7 +250,6 @@ class FlipBook {
   }
 
   private onDragUpdate(event: HammerInput) {
-    console.log('drag update')
     if (this.isDuringAutoFlip || this.isDuringManualFlip) {
       return
     }
@@ -269,7 +310,6 @@ class FlipBook {
   }
 
   private async onDragEnd(event: HammerInput) {
-    console.log('drag end')
     if (!this.currentLeaf || this.isDuringAutoFlip) {
       this.flipDirection = FlipDirection.None
       this.flipStartingPos = 0
@@ -280,7 +320,7 @@ class FlipBook {
     switch (this.flipDirection) {
       case FlipDirection.Forward:
         if (
-          (this.isLTR ? ppsX < -FAST_DELTA : ppsX > FAST_DELTA) ||
+          (this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
           this.currentLeaf.flipPosition >= 0.5
         ) {
           flipTo = 1
@@ -290,7 +330,7 @@ class FlipBook {
         break
       case FlipDirection.Backward:
         if (
-          (this.isLTR ? ppsX > FAST_DELTA : ppsX < -FAST_DELTA) ||
+          (this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
           this.currentLeaf.flipPosition <= 0.5
         ) {
           flipTo = 0
@@ -337,9 +377,11 @@ class FlipBook {
   ) {
     for (let i = 0; i < this.pageElements.length; i++) {
       const pageElement = this.pageElements[i]
-      const action = currentVisiblePageIndices.includes(i)
+      const inCurrent = currentVisiblePageIndices.includes(i)
+      const inPrev = prevVisibilePageIndices?.includes(i)
+      const action = inCurrent
         ? pageElement.classList.add
-        : !prevVisibilePageIndices || !prevVisibilePageIndices.includes
+        : !prevVisibilePageIndices || !inPrev
           ? () => null
           : pageElement.classList.remove
       action.bind(pageElement.classList)('current-page')
@@ -351,6 +393,21 @@ class FlipBook {
     // TODO: drop as probably totally replaced ith onTurned. maybe change onTurned name to onPageChanged.
     if (this.onPageChanged) {
       this.onPageChanged(pageIndex)
+    }
+  }
+
+  /**
+   * Clean up event listeners and Hammer instance.
+   * Should be called when the FlipBook is no longer needed.
+   */
+  destroy() {
+    if (this.hammer) {
+      this.hammer.destroy()
+      this.hammer = undefined
+    }
+    if (this.bookElement) {
+      this.bookElement.removeEventListener('touchstart', this.handleTouchStart as EventListener)
+      this.bookElement.removeEventListener('touchmove', this.handleTouchMove as EventListener)
     }
   }
 }
