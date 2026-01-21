@@ -314,6 +314,17 @@ class FlipBook {
 			this.pendingFlipDirection = direction;
 		}
 
+		// Block starting a new flip in opposite direction while auto-flip is in progress
+		// This prevents visual glitches when swiping backward while a forward flip is animating
+		if (!flipState) {
+			for (const state of this.activeFlips.values()) {
+				if (state.isDuringAutoFlip && state.direction !== direction) {
+					// There's an auto-flip in the opposite direction - block this new flip
+					return;
+				}
+			}
+		}
+
 		// If we don't have a flip state yet, create one
 		if (!flipState) {
 			const leaf = this.getNextAvailableLeaf(direction);
