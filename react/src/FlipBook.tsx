@@ -7,28 +7,40 @@ interface FlipBookWrapperProps {
   className: string
   pageSemantics?: PageSemantics
   debug?: boolean
-  direction?: 'rtl' | 'ltr' // Add the direction property to the interface
-  // Add any other props that the wrapper might need
+  direction?: 'rtl' | 'ltr'
+  /** Indices of leaves that should start in the turned (flipped) state */
+  initialTurnedLeaves?: number[]
+  /** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
+  fastDeltaThreshold?: number
 }
 
 const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
   pages,
   className,
   debug = false,
-  direction = 'ltr', // Add the direction prop
+  direction = 'ltr',
   pageSemantics = undefined,
+  initialTurnedLeaves = [],
+  fastDeltaThreshold,
 }) => {
   const flipBook = useRef(
     new FlipBookBase({
       pageSemantics: pageSemantics,
       pagesCount: pages.length,
       direction: direction,
+      initialTurnedLeaves: initialTurnedLeaves,
+      fastDeltaThreshold: fastDeltaThreshold,
     })
   )
 
   useEffect(() => {
-    flipBook.current.render(`.${className}`, debug)
-    // Do any other necessary setup here
+    const currentFlipBook = flipBook.current
+    currentFlipBook.render(`.${className}`, debug)
+
+    // Cleanup function to destroy Hammer instance and event listeners
+    return () => {
+      currentFlipBook.destroy()
+    }
   }, [className, debug])
 
   // Use Children.toArray to get stable keys for each page element

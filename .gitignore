@@ -105,6 +105,11 @@ __tests__/runner/*
 .playwright-report
 playwright-report
 test-results
+monocart-report
+
+# Built artifacts
+base/dist
+react/dist
 
 # IDE files
 .idea

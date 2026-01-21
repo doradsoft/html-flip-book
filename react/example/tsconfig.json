@@ -4,7 +4,11 @@
     "lib": ["dom", "dom.iterable", "ESNext"],
     "jsx": "react-jsx",
     "module": "ESNext",
-    "baseUrl": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "html-flip-book-react": ["../src/FlipBook.tsx"],
+      "html-flip-book-base": ["../../base/src/flipbook.ts"]
+    },
     "moduleResolution": "Node",
     "resolveJsonModule": true,
     "allowJs": false,

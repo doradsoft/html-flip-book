@@ -5,11 +5,13 @@ import { FlipBook } from '../FlipBook'
 const mocked = vi.hoisted(() => ({
   instances: [] as Array<{
     render: ReturnType<typeof vi.fn>
+    destroy: ReturnType<typeof vi.fn>
     bookElement: HTMLElement | null
     options: Record<string, unknown>
   }>,
   MockFlipBook: class {
     render = vi.fn()
+    destroy = vi.fn()
     bookElement: HTMLElement | null = null
     options: Record<string, unknown>
 

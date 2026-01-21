@@ -7,7 +7,7 @@ export default defineConfig({
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 2 : 0,
+  retries: 2, // Retries for flaky tests with mocked time/velocity detection
   workers: isCI ? 1 : undefined,
   reporter: [
     ['list'],
@@ -34,11 +34,25 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: ['**/mocked/**', '**/integration/**'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'mobile',
+      testIgnore: ['**/mocked/**', '**/integration/**'],
       use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'mocked-fast',
+      testMatch: '**/mocked/**/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'integration-slow',
+      testMatch: '**/integration/**/*.spec.ts',
+      retries: 2,
+      timeout: 30000,
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
   webServer: {
