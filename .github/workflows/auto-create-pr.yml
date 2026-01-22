@@ -54,4 +54,4 @@ jobs:
             --title "${{ steps.commit-msg.outputs.title }}" \
             --body "${{ steps.commit-msg.outputs.body }}" \
             --base master \
-            --head "${{ github.ref_name }}"
+            --head "${{ github.ref_name }}" || echo "PR already exists or creation failed (may be a race condition)"
