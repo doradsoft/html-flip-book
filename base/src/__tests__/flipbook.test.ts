@@ -1164,4 +1164,245 @@ describe("FlipBook", () => {
 			expect(pages[2].style.display).toBe("none"); // leaf 1 - outside buffer
 		});
 	});
+
+	describe("navigation properties", () => {
+		it("currentPageIndex returns 0 initially", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(0);
+		});
+
+		it("currentPageIndex reflects initialTurnedLeaves", () => {
+			createPages(10);
+			const flipBook = new FlipBook({
+				pagesCount: 10,
+				initialTurnedLeaves: [0, 1],
+			});
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(4); // leaf 2, page 4
+		});
+
+		it("totalPages returns correct count", () => {
+			createPages(8);
+			const flipBook = new FlipBook({ pagesCount: 8 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.totalPages).toBe(8);
+		});
+
+		it("isFirstPage is true initially", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.isFirstPage).toBe(true);
+		});
+
+		it("isFirstPage is false when not at first page", () => {
+			createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0],
+			});
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.isFirstPage).toBe(false);
+		});
+
+		it("isLastPage is false initially", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.isLastPage).toBe(false);
+		});
+
+		it("isLastPage is true when at last page", () => {
+			createPages(6); // 3 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0, 1, 2], // all turned
+			});
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.isLastPage).toBe(true);
+		});
+	});
+
+	describe("flipNext", () => {
+		it("flips to the next leaf", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(0);
+
+			await flipBook.flipNext();
+			// Wait for event loop to process callbacks
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			// After flipping leaf 0, visible pages are [1, 2] (back of leaf 0, front of leaf 1)
+			expect(flipBook.currentPageIndex).toBe(1);
+		});
+
+		it("does nothing when at last page", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0, 1, 2],
+			});
+			flipBook.render(".flipbook-container");
+
+			const initialPage = flipBook.currentPageIndex;
+			await flipBook.flipNext();
+
+			expect(flipBook.currentPageIndex).toBe(initialPage);
+		});
+
+		it("flips multiple times correctly", async () => {
+			createPages(8);
+			const flipBook = new FlipBook({ pagesCount: 8 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(0);
+
+			await flipBook.flipNext();
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			expect(flipBook.currentPageIndex).toBe(1); // [1, 2]
+
+			await flipBook.flipNext();
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			expect(flipBook.currentPageIndex).toBe(3); // [3, 4]
+
+			await flipBook.flipNext();
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			expect(flipBook.currentPageIndex).toBe(5); // [5, 6]
+		});
+	});
+
+	describe("flipPrev", () => {
+		it("flips to the previous leaf", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0],
+			});
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(2);
+
+			await flipBook.flipPrev();
+
+			expect(flipBook.currentPageIndex).toBe(0);
+		});
+
+		it("does nothing when at first page", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			expect(flipBook.currentPageIndex).toBe(0);
+
+			await flipBook.flipPrev();
+
+			expect(flipBook.currentPageIndex).toBe(0);
+		});
+	});
+
+	describe("goToPage", () => {
+		it("navigates forward to target page", async () => {
+			createPages(10);
+			const flipBook = new FlipBook({ pagesCount: 10 });
+			flipBook.render(".flipbook-container");
+
+			// goToPage uses leaf-based navigation, so going to page 6 means going to leaf 3
+			// After flipping leaves 0, 1, 2, visible pages are [5, 6]
+			await flipBook.goToPage(6);
+			// Wait for event loop to process callbacks
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			expect(flipBook.currentPageIndex).toBe(5);
+		});
+
+		it("navigates backward to target page", async () => {
+			createPages(10);
+			const flipBook = new FlipBook({
+				pagesCount: 10,
+				initialTurnedLeaves: [0, 1, 2, 3],
+			});
+			flipBook.render(".flipbook-container");
+
+			// Starting at page 8, go to page 2 (leaf 1)
+			// After unflipping leaves 3, 2, visible pages should be [1, 2]
+			await flipBook.goToPage(2);
+			// Wait for event loop to process callbacks
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			expect(flipBook.currentPageIndex).toBe(1);
+		});
+
+		it("logs warning for invalid page index", async () => {
+			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			await flipBook.goToPage(-1);
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
+
+			await flipBook.goToPage(10);
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
+		});
+	});
+
+	describe("jumpToPage", () => {
+		it("instantly jumps to target page", () => {
+			createPages(10);
+			const flipBook = new FlipBook({ pagesCount: 10 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(6);
+
+			expect(flipBook.currentPageIndex).toBe(6);
+		});
+
+		it("updates current-page classes", () => {
+			const pages = createPages(10);
+			const flipBook = new FlipBook({ pagesCount: 10 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(4);
+
+			expect(pages[4].classList.contains("current-page")).toBe(true);
+			expect(pages[5].classList.contains("current-page")).toBe(true);
+			expect(pages[0].classList.contains("current-page")).toBe(false);
+		});
+
+		it("calls onPageChanged callback", () => {
+			const onPageChanged = vi.fn();
+			createPages(10);
+			const flipBook = new FlipBook({ pagesCount: 10, onPageChanged });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(6);
+
+			expect(onPageChanged).toHaveBeenCalledWith(6);
+		});
+
+		it("logs warning for invalid page index", () => {
+			const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(-1);
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
+
+			flipBook.jumpToPage(10);
+			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
+		});
+	});
 });

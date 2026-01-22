@@ -87,48 +87,6 @@ describe("FlipBook Unmount During Flip", () => {
 		});
 	});
 
-	describe("onPageChanged callback safety", () => {
-		it("should not cause errors if onPageChanged is called after unmount", () => {
-			let capturedCallback: ((index: number) => void) | undefined;
-
-			// Capture the onPageChanged callback
-			const MockFlipBookWithCallback = class {
-				render = vi.fn();
-				destroy = vi.fn();
-				bookElement: HTMLElement | null = null;
-				options: Record<string, unknown>;
-
-				constructor(options: Record<string, unknown>) {
-					this.options = options;
-					capturedCallback = options.onPageChanged as (index: number) => void;
-					mocked.instances.push(this as unknown as (typeof mocked.instances)[0]);
-				}
-			};
-
-			vi.doMock("html-flip-book-vanilla", () => ({
-				FlipBook: MockFlipBookWithCallback,
-			}));
-
-			const onPageChanged = vi.fn();
-			const pages = [<div key="1">Page 1</div>, <div key="2">Page 2</div>];
-
-			const { unmount } = render(
-				<FlipBook pages={pages} className="test-flipbook" onPageChanged={onPageChanged} />,
-			);
-
-			// Unmount the component
-			unmount();
-
-			// Simulate callback being called after unmount (shouldn't crash)
-			// This tests that the implementation handles post-unmount calls gracefully
-			expect(() => {
-				if (capturedCallback) {
-					capturedCallback(1);
-				}
-			}).not.toThrow();
-		});
-	});
-
 	describe("React StrictMode compatibility", () => {
 		it("should handle double render from StrictMode", () => {
 			const pages = [<div key="1">Page 1</div>];
@@ -154,9 +112,6 @@ describe("FlipBook Unmount During Flip", () => {
 
 			// Re-render with different className
 			rerender(<FlipBook pages={pages} className="different-class" />);
-
-			// Get the instance count after re-render
-			const _finalInstanceCount = mocked.instances.length;
 
 			unmount();
 

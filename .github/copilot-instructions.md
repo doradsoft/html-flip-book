@@ -41,6 +41,13 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 - Extract pure business logic into testable functions
 - Use Vitest for unit tests, Playwright for E2E
 
+### Issue Ownership
+
+- **Never claim an issue is "pre-existing"** unless there is an open GitHub Issue documenting it
+- If CI fails after your changes, assume your changes caused or exposed the issue
+- Investigate and fix failures - don't dismiss them as unrelated
+- The only legitimate pre-existing issues are those tracked in GitHub Issues
+
 ### Tool Learning Protocol
 
 1. Check `.github/tool-registry.md` for existing research

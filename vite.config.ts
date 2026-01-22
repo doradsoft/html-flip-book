@@ -26,15 +26,21 @@ export default defineConfig(() => {
 		react: {
 			build: {
 				lib: {
-					entry: resolve(__dirname, "react/src/FlipBook.tsx"),
+					entry: {
+						"flip-book": resolve(__dirname, "react/src/FlipBook.tsx"),
+						"toolbar/index": resolve(__dirname, "react/src/toolbar/index.ts"),
+					},
 					formats: ["es"] as LibraryFormats[],
-					fileName: "flip-book",
 				},
 				outDir: "react/dist",
 				sourcemap: true,
 				emptyOutDir: true,
 				rollupOptions: {
 					external: ["react", "react-dom", "react/jsx-runtime", "html-flip-book-vanilla"],
+					output: {
+						preserveModules: false,
+						assetFileNames: "assets/[name][extname]",
+					},
 				},
 			},
 			plugins: [],

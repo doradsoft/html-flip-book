@@ -1,0 +1,84 @@
+.flipbook-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 8px 16px;
+	background-color: rgba(0, 0, 0, 0.7);
+	border-radius: 8px;
+	user-select: none;
+}
+
+/* RTL layout - reverse flex direction */
+.flipbook-toolbar--rtl {
+	flex-direction: row-reverse;
+}
+
+/* Base button styles */
+.flipbook-toolbar-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: none;
+	border-radius: 6px;
+	background-color: transparent;
+	color: #fff;
+	font-size: 20px;
+	cursor: pointer;
+	transition:
+		background-color 0.2s ease,
+		opacity 0.2s ease;
+}
+
+.flipbook-toolbar-button:hover:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.15);
+}
+
+.flipbook-toolbar-button:active:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.25);
+}
+
+.flipbook-toolbar-button:focus-visible {
+	outline: 2px solid #fff;
+	outline-offset: 2px;
+}
+
+.flipbook-toolbar-button:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+/* Navigation buttons - slightly larger icons */
+.flipbook-toolbar-prev,
+.flipbook-toolbar-next {
+	font-size: 28px;
+	font-weight: bold;
+}
+
+/* First/Last page buttons */
+.flipbook-toolbar-first,
+.flipbook-toolbar-last {
+	font-size: 16px;
+}
+
+/* Fullscreen button */
+.flipbook-toolbar-fullscreen {
+	font-size: 18px;
+}
+
+.flipbook-toolbar-fullscreen--active {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Page indicator */
+.flipbook-toolbar-indicator {
+	color: #fff;
+	font-size: 14px;
+	font-weight: 500;
+	min-width: 60px;
+	text-align: center;
+	padding: 0 8px;
+}
