@@ -34,7 +34,7 @@ export default defineConfig(() => {
 				sourcemap: true,
 				emptyOutDir: true,
 				rollupOptions: {
-					external: ["react", "react-dom", "react/jsx-runtime", "html-flip-book-base"],
+					external: ["react", "react-dom", "react/jsx-runtime", "html-flip-book-vanilla"],
 				},
 			},
 			plugins: [],

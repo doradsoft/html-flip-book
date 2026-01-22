@@ -34,7 +34,7 @@
 		"react-dom": "^18.0.0"
 	},
 	"dependencies": {
-		"html-flip-book-base": "file:../base"
+		"html-flip-book-vanilla": "file:../base"
 	},
 	"devDependencies": {
 		"@types/react": "^19.2.8",

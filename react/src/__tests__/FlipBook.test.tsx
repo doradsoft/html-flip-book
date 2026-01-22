@@ -23,7 +23,7 @@ const mocked = vi.hoisted(() => ({
 }));
 
 // Mock the base FlipBook
-vi.mock("html-flip-book-base", () => ({
+vi.mock("html-flip-book-vanilla", () => ({
 	FlipBook: mocked.MockFlipBook,
 }));
 

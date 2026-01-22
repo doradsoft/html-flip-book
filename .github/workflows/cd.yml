@@ -48,7 +48,7 @@ jobs:
           cd react
           npm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
-      - name: Publish base package
+      - name: Publish vanilla package
         run: |
           cd base
           npm publish --provenance --access public
@@ -58,7 +58,7 @@ jobs:
       - name: Update react package dependency
         run: |
           cd react
-          npm pkg set dependencies.html-flip-book-base=${{ steps.version.outputs.version }}
+          npm pkg set dependencies.html-flip-book-vanilla=${{ steps.version.outputs.version }}
 
       - name: Publish react package
         run: |

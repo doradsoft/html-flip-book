@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			alias: {
 				"html-flip-book-react": path.resolve(__dirname, "../src/FlipBook.tsx"),
-				"html-flip-book-base": path.resolve(__dirname, "../../base/src/flipbook.ts"),
+				"html-flip-book-vanilla": path.resolve(__dirname, "../../base/src/flipbook.ts"),
 			},
 		},
 		build: {

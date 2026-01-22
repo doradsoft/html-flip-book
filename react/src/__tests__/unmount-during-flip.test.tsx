@@ -28,7 +28,7 @@ const mocked = vi.hoisted(() => ({
 }));
 
 // Mock the base FlipBook
-vi.mock("html-flip-book-base", () => ({
+vi.mock("html-flip-book-vanilla", () => ({
 	FlipBook: mocked.MockFlipBook,
 }));
 
@@ -105,7 +105,7 @@ describe("FlipBook Unmount During Flip", () => {
 				}
 			};
 
-			vi.doMock("html-flip-book-base", () => ({
+			vi.doMock("html-flip-book-vanilla", () => ({
 				FlipBook: MockFlipBookWithCallback,
 			}));
 
