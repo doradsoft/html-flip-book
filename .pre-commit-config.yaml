@@ -17,6 +17,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: verify-version-bump
+        name: verify-version-bump
+        entry: npx tsx scripts/verify-version-bump.mts
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: biome
         name: biome
         entry: npx biome check --write --staged --no-errors-on-unmatched
