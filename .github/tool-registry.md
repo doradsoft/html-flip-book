@@ -13,7 +13,7 @@ Each entry should include:
 
 ## Biome
 
-**Version**: 2.x  
+**Version**: 2.x
 **Date**: 2026-01-21
 
 ### Key Learnings
@@ -27,7 +27,7 @@ Each entry should include:
 
 ## Vitest
 
-**Version**: 4.x  
+**Version**: 4.x
 **Date**: 2026-01-21
 
 ### Key Learnings
@@ -41,7 +41,7 @@ Each entry should include:
 
 ## Playwright
 
-**Version**: Latest  
+**Version**: Latest
 **Date**: 2026-01-21
 
 ### Key Learnings

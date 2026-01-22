@@ -1,17 +1,2 @@
-# Verify all package.json versions are in sync
-node -e "
-const base = require('./base/package.json').version;
-const react = require('./react/package.json').version;
-const example = require('./react/example/package.json').version;
-if (base !== react || base !== example) {
-  console.error('Version mismatch!');
-  console.error('  base:', base);
-  console.error('  react:', react);
-  console.error('  example:', example);
-  process.exit(1);
-}
-console.log('All package versions in sync:', base);
-"
-
-# Run Biome linting/formatting checks
-npm run check
+# Run pre-commit framework
+pre-commit run --files $(git diff --cached --name-only --diff-filter=ACM | tr '\n' ' ')

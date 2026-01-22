@@ -2,12 +2,34 @@
 
 ## Pre-commit Hooks
 
-The repository uses pre-commit hooks managed by Husky:
+The repository uses pre-commit hooks managed by [pre-commit](https://pre-commit.com/) framework, triggered via Husky:
 
-| Item          | Location                         |
-| ------------- | -------------------------------- |
-| Configuration | `.husky/pre-commit`              |
-| Linter        | Biome (runs on staged files)     |
+| Item          | Location                    |
+| ------------- | --------------------------- |
+| Configuration | `.pre-commit-config.yaml`   |
+| Husky trigger | `.husky/pre-commit`         |
+
+### Hooks
+
+| Hook                 | Description                                  |
+| -------------------- | -------------------------------------------- |
+| trailing-whitespace  | Removes trailing whitespace                  |
+| end-of-file-fixer    | Ensures files end with a newline             |
+| check-yaml           | Validates YAML syntax                        |
+| check-added-large-files | Prevents large files from being committed |
+| check-case-conflict  | Detects case-insensitive filename conflicts  |
+| check-merge-conflict | Detects unresolved merge conflicts           |
+| mixed-line-ending    | Enforces consistent line endings             |
+| verify-versions-sync | Ensures all package.json versions match      |
+| biome                | Runs Biome linter/formatter on staged files  |
+
+### Setup
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 
 ## Git Workflow
 
