@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { test as clockedTest } from "./fixtures/clocked-test";
 
 /**
  * Simplified tests for first page flip
@@ -54,10 +55,9 @@ test.describe("First Page Flip - LTR", () => {
 		await expect(firstPage).toHaveClass(/current-page/);
 	});
 
-	test("fast swipe before middle completes", async ({ page }) => {
-		// Install mocked clock for deterministic velocity detection
-		await page.clock.install();
-
+	// Uses clockedTest fixture which auto-skips on mobile and pre-installs clock
+	// This scenario is also covered in mocked/velocity-threshold.spec.ts
+	clockedTest("fast swipe before middle completes", async ({ clockedPage: page }) => {
 		await page.goto("/");
 		await page.waitForSelector(".en-book.flipbook .page");
 
