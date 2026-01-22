@@ -1,6 +1,15 @@
 // HeBook.tsx
-import { FlipBook, type PageSemantics } from "html-flip-book-react";
-import { useMemo } from "react";
+import { FlipBook, type FlipBookHandle, type PageSemantics } from "html-flip-book-react";
+import {
+	FirstPageButton,
+	FullscreenButton,
+	LastPageButton,
+	NextButton,
+	PageIndicator,
+	PrevButton,
+	Toolbar,
+} from "html-flip-book-react/toolbar";
+import { useMemo, useRef } from "react";
 
 const hePageIds = Array.from({ length: 10 }, (_, i) => `he-page-${i}`);
 const hePages = hePageIds.map((id) => (
@@ -52,17 +61,29 @@ function useTestParams() {
 
 export const HeBook = () => {
 	const testParams = useTestParams();
+	const flipBookRef = useRef<FlipBookHandle>(null);
 
 	return (
-		<FlipBook
-			className="he-book"
-			pages={hePages}
-			pageSemantics={hePageSemantics}
-			debug={true}
-			direction="rtl"
-			initialTurnedLeaves={testParams.initialTurnedLeaves}
-			fastDeltaThreshold={testParams.fastDeltaThreshold}
-		/>
+		<>
+			<FlipBook
+				ref={flipBookRef}
+				className="he-book"
+				pages={hePages}
+				pageSemantics={hePageSemantics}
+				debug={true}
+				direction="rtl"
+				initialTurnedLeaves={testParams.initialTurnedLeaves}
+				fastDeltaThreshold={testParams.fastDeltaThreshold}
+			/>
+			<Toolbar flipBookRef={flipBookRef} direction="rtl">
+				<FullscreenButton />
+				<FirstPageButton />
+				<PrevButton />
+				<PageIndicator />
+				<NextButton />
+				<LastPageButton />
+			</Toolbar>
+		</>
 	);
 };
 

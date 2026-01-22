@@ -23,6 +23,21 @@ header {
 	gap: 20px;
 }
 
+/* Stack books vertically on narrow screens */
+@media (max-width: 600px) {
+	.books-container {
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.he-book-container,
+	.en-book-container {
+		flex-basis: auto;
+		width: 100%;
+		max-width: 400px;
+	}
+}
+
 .he-book-container,
 .en-book-container {
 	flex-basis: 50%;

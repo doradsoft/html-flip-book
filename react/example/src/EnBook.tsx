@@ -77,7 +77,7 @@ export const EnBook = () => {
 	}, []);
 
 	return enPages.length ? (
-		<div className="en-book-container">
+		<>
 			<FlipBook
 				ref={flipBookRef}
 				className="en-book"
@@ -94,7 +94,7 @@ export const EnBook = () => {
 				<NextButton />
 				<LastPageButton />
 			</Toolbar>
-		</div>
+		</>
 	) : null;
 };
 
