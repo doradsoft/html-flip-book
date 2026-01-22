@@ -114,3 +114,4 @@ react/dist
 # IDE files
 .idea
 *.code-workspace
+reference_flutter_flip_book/

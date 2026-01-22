@@ -13,6 +13,7 @@
 			"**/*.js",
 			"**/*.mjs",
 			"**/*.json",
+			"**/*.css",
 			"!**/dist",
 			"!**/node_modules",
 			"!**/.coverage",
