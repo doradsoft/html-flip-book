@@ -1,0 +1,34 @@
+{
+	"servers": {
+		"playwright": {
+			"command": "npx",
+			"args": ["@playwright/mcp@latest", "--vision"],
+			"type": "stdio"
+		},
+		"io.github.ChromeDevTools/chrome-devtools-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["chrome-devtools-mcp@0.13.0"]
+		},
+		"io.github.upstash/context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["@upstash/context7-mcp@1.0.31"],
+			"env": {
+				"CONTEXT7_API_KEY": "${input:CONTEXT7_API_KEY}"
+			}
+		},
+		"microsoftdocs/mcp": {
+			"type": "http",
+			"url": "https://learn.microsoft.com/api/mcp"
+		}
+	},
+	"inputs": [
+		{
+			"id": "CONTEXT7_API_KEY",
+			"type": "promptString",
+			"description": "API key for authentication",
+			"password": true
+		}
+	]
+}
