@@ -29,10 +29,16 @@ jobs:
           NEW_VERSION=$(node -e "console.log(require('./package.json').version)")
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
+      - name: Update react package version and dependency
+        run: |
+          cd react
+          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
+          npm pkg set dependencies.html-flip-book-vanilla=${{ env.NEW_VERSION }}
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add base/package.json
+          git add base/package.json react/package.json
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
           git push
