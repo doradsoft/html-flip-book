@@ -1,13 +1,13 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "base watch",
-        "type": "npm",
-        "script": "watch",
-        "path": "./base",
-        "isBackground": true,
-        "problemMatcher": [],
-      }
-    ]
-  }
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "base watch",
+			"type": "npm",
+			"script": "watch",
+			"path": "./base",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}
