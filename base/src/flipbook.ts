@@ -32,6 +32,7 @@ class FlipBook {
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
 	private readonly pageSemantics: PageSemantics | undefined;
+	private readonly leavesBuffer?: number;
 	private leaves: Leaf[] = [];
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
@@ -70,6 +71,7 @@ class FlipBook {
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
 		this.pageSemantics = options.pageSemantics;
 		this.onPageChanged = options.onPageChanged;
+		this.leavesBuffer = options.leavesBuffer;
 	}
 
 	render(selector: string, debug = false) {
@@ -206,8 +208,45 @@ class FlipBook {
 		this.bookElement.addEventListener("touchmove", this.handleTouchMove.bind(this), {
 			passive: false,
 		});
+		// Apply initial leaves buffer visibility
+		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
 	}
+
+	/**
+	 * Update visibility of leaves based on the buffer setting.
+	 * Leaves outside the buffer range are hidden for performance.
+	 */
+	private updateLeavesBufferVisibility(): void {
+		if (this.leavesBuffer === undefined) {
+			return; // No buffer - all leaves stay visible
+		}
+
+		const leavesCount = this.leaves.length;
+		if (leavesCount === 0) return;
+
+		// Find the current leaf index (the first non-turned leaf, or last leaf if all turned)
+		const [leftLeaf, rightLeaf] = this.currentOrTurningLeaves;
+		const currentLeafIndex = rightLeaf?.index ?? leftLeaf?.index ?? 0;
+
+		// Calculate buffer range
+		const bufferStart = Math.max(0, currentLeafIndex - this.leavesBuffer);
+		const bufferEnd = Math.min(leavesCount - 1, currentLeafIndex + this.leavesBuffer);
+
+		// Update visibility of all leaves
+		for (let i = 0; i < leavesCount; i++) {
+			const leaf = this.leaves[i];
+			const isWithinBuffer = i >= bufferStart && i <= bufferEnd;
+
+			// Update both pages of the leaf
+			for (const page of leaf.pages) {
+				if (page) {
+					page.style.display = isWithinBuffer ? "" : "none";
+				}
+			}
+		}
+	}
+
 	private fillDebugBar() {
 		const debugBar = document.createElement("div");
 		debugBar.className = "flipbook-debug-bar";
@@ -443,6 +482,8 @@ class FlipBook {
 					: pageElement.classList.remove;
 			action.bind(pageElement.classList)("current-page");
 		}
+		// Update leaves buffer visibility after turn completes
+		this.updateLeavesBufferVisibility();
 		// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally.
 		// TODO: set prev-page / next-page classes for prev/next pages as accordingally
 	}
