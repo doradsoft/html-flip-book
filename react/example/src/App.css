@@ -1,56 +1,56 @@
 html,
 body {
-  margin: 0;
+	margin: 0;
 }
 
 .app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
 }
 
 header {
-  /* your styles */
-  flex-shrink: 0;
+	/* your styles */
+	flex-shrink: 0;
 }
 
 .books-container {
-  flex-grow: 1;
-  overflow: auto;
-  display: flex;
-  justify-content: space-between;
-  padding: 20px;
-  gap: 20px;
+	flex-grow: 1;
+	overflow: auto;
+	display: flex;
+	justify-content: space-between;
+	padding: 20px;
+	gap: 20px;
 }
 
 .he-book-container,
 .en-book-container {
-  flex-basis: 50%;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+	flex-basis: 50%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
 }
 
 .he-book-container {
-  direction: rtl;
-  text-align: right;
+	direction: rtl;
+	text-align: right;
 }
 
 .en-page,
 .he-page {
-  background-color: white;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  border: 1px solid #00000056;
-  padding: 2%;
+	background-color: white;
+	overflow-y: scroll;
+	overflow-x: hidden;
+	border: 1px solid #00000056;
+	padding: 2%;
 }
 
 .en-page img {
-  max-width: 100%;
+	max-width: 100%;
 }
 
 .en-page * {
-  overflow: auto;
+	overflow: auto;
 }
