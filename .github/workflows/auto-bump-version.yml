@@ -35,10 +35,15 @@ jobs:
           npm version ${{ env.NEW_VERSION }} --no-git-tag-version
           npm pkg set dependencies.html-flip-book-vanilla=${{ env.NEW_VERSION }}
 
+      - name: Update example package version
+        run: |
+          cd react/example
+          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
+
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add base/package.json react/package.json
+          git add base/package.json react/package.json react/example/package.json
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
           git push
