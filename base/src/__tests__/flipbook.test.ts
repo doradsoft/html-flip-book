@@ -701,6 +701,47 @@ describe("FlipBook", () => {
 			expect(getFlipBookInternals(flipBook).activeFlips.size).toBeGreaterThanOrEqual(1);
 		});
 
+		it("should block starting opposite direction flip while auto-flip is in progress", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			const internals = getFlipBookInternals(flipBook);
+			const leaf0 = internals.leaves[0];
+			const leaf1 = internals.leaves[1];
+
+			// First, flip leaf 0 forward so leaf 1 becomes the "left" leaf
+			leaf0.flipPosition = 1;
+
+			// Set up an existing auto flip going FORWARD on leaf 1 (mid-flip)
+			leaf1.flipPosition = 0.5;
+			internals.activeFlips.set(leaf1.index, {
+				leaf: leaf1,
+				direction: FlipDirection.Forward,
+				startingPos: 400,
+				delta: 200,
+				isDuringAutoFlip: true,
+			});
+
+			// Try to start a new drag in the BACKWARD direction
+			// Simulate starting from the left side and dragging right (backward in LTR)
+			const raw = flipBook as unknown as { pendingFlipStartingPos: number };
+			raw.pendingFlipStartingPos = 100;
+
+			const initialActiveFlipsSize = internals.activeFlips.size;
+
+			// Try to create a backward flip while forward auto-flip is active
+			internals.onDragUpdate({ center: { x: 300 } }); // Moving right = backward in LTR
+
+			// The backward flip should be BLOCKED - no new flip should be created
+			// Only the existing forward auto-flip should remain
+			expect(internals.activeFlips.size).toBe(initialActiveFlipsSize);
+			// And there should be no manual flip created
+			for (const state of internals.activeFlips.values()) {
+				expect(state.isDuringAutoFlip).toBe(true);
+			}
+		});
+
 		it("should handle drag update when book element is undefined", () => {
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			setFlipBookInternals(flipBook, { flipStartingPos: 100 });
