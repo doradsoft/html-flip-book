@@ -45,7 +45,16 @@ jobs:
         id: version
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
-          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          # Check if this is a prerelease version (contains hyphen like -alpha, -beta, -rc)
+          if [[ "$VERSION" == *-* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "npm_tag=next" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "npm_tag=latest" >> $GITHUB_OUTPUT
+          fi
 
       - name: Update vanilla package version
         run: |
@@ -60,7 +69,7 @@ jobs:
       - name: Publish vanilla package
         run: |
           cd base
-          npm publish --access public
+          npm publish --access public --tag ${{ steps.version.outputs.npm_tag }}
 
       - name: Update react package dependency
         run: |
@@ -70,4 +79,4 @@ jobs:
       - name: Publish react package
         run: |
           cd react
-          npm publish --access public
+          npm publish --access public --tag ${{ steps.version.outputs.npm_tag }}
