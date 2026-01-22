@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
 			alias: {
+				"html-flip-book-react/toolbar": path.resolve(__dirname, "../src/toolbar/index.ts"),
 				"html-flip-book-react": path.resolve(__dirname, "../src/FlipBook.tsx"),
 				"html-flip-book-vanilla": path.resolve(__dirname, "../../base/src/flipbook.ts"),
 			},

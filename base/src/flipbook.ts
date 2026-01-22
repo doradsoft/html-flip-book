@@ -193,10 +193,22 @@ class FlipBook {
 		const firstVisibleLeafIndex =
 			this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0;
 		const firstVisiblePageIndex = firstVisibleLeafIndex * 2;
-		this.prevVisiblePageIndices =
-			firstVisiblePageIndex + 1 < this.pagesCount
-				? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
-				: [firstVisiblePageIndex];
+
+		// Handle edge case where all leaves are turned (showing last page only)
+		if (firstVisiblePageIndex >= this.pagesCount) {
+			// All leaves are turned - show the last page(s)
+			const lastLeafIndex = Math.ceil(this.pagesCount / 2) - 1;
+			const lastLeafFirstPage = lastLeafIndex * 2;
+			this.prevVisiblePageIndices =
+				lastLeafFirstPage + 1 < this.pagesCount
+					? [lastLeafFirstPage, lastLeafFirstPage + 1]
+					: [lastLeafFirstPage];
+		} else {
+			this.prevVisiblePageIndices =
+				firstVisiblePageIndex + 1 < this.pagesCount
+					? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
+					: [firstVisiblePageIndex];
+		}
 
 		this.hammer = new Hammer(this.bookElement);
 		this.hammer.on("panstart", this.onDragStart.bind(this));
@@ -487,10 +499,215 @@ class FlipBook {
 		// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally.
 		// TODO: set prev-page / next-page classes for prev/next pages as accordingally
 	}
-	jumpToPage(pageIndex: number) {
-		// TODO: drop as probably totally replaced ith onTurned. maybe change onTurned name to onPageChanged.
+	/**
+	 * Get the index of the current (leftmost visible) page.
+	 * Returns 0 if no pages are visible.
+	 */
+	get currentPageIndex(): number {
+		return this.prevVisiblePageIndices?.[0] ?? 0;
+	}
+
+	/**
+	 * Get the total number of pages in the flipbook.
+	 */
+	get totalPages(): number {
+		return this.pagesCount;
+	}
+
+	/**
+	 * Check if the book is currently showing the first page(s).
+	 */
+	get isFirstPage(): boolean {
+		return this.currentPageIndex === 0;
+	}
+
+	/**
+	 * Check if the book is currently showing the last page(s).
+	 */
+	get isLastPage(): boolean {
+		const lastPageIndex = this.pagesCount - 1;
+		return this.prevVisiblePageIndices?.includes(lastPageIndex) ?? false;
+	}
+
+	/**
+	 * Animate flip to the next page.
+	 * @returns Promise that resolves when the flip animation completes
+	 */
+	async flipNext(): Promise<void> {
+		const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
+		if (!leaf) return;
+
+		const flipState: FlipState = {
+			leaf,
+			direction: FlipDirection.Forward,
+			startingPos: 0,
+			delta: 0,
+			isDuringAutoFlip: true,
+		};
+		this.activeFlips.set(leaf.index, flipState);
+
+		try {
+			await leaf.flipToPosition(1);
+		} finally {
+			this.activeFlips.delete(leaf.index);
+		}
+	}
+
+	/**
+	 * Animate flip to the previous page.
+	 * @returns Promise that resolves when the flip animation completes
+	 */
+	async flipPrev(): Promise<void> {
+		const leaf = this.getNextAvailableLeaf(FlipDirection.Backward);
+		if (!leaf) return;
+
+		const flipState: FlipState = {
+			leaf,
+			direction: FlipDirection.Backward,
+			startingPos: 0,
+			delta: 0,
+			isDuringAutoFlip: true,
+		};
+		this.activeFlips.set(leaf.index, flipState);
+
+		try {
+			await leaf.flipToPosition(0);
+		} finally {
+			this.activeFlips.delete(leaf.index);
+		}
+	}
+
+	/**
+	 * Animate to a specific page index.
+	 * Flips through pages sequentially to reach the target.
+	 * @param pageIndex - The target page index (0-based)
+	 * @returns Promise that resolves when all flip animations complete
+	 */
+	async goToPage(pageIndex: number): Promise<void> {
+		if (pageIndex < 0 || pageIndex >= this.pagesCount) {
+			console.warn(
+				`goToPage: Invalid page index ${pageIndex}. Must be between 0 and ${this.pagesCount - 1}.`,
+			);
+			return;
+		}
+
+		const targetLeafIndex = Math.floor(pageIndex / 2);
+		const currentLeafIndex = Math.floor(this.currentPageIndex / 2);
+
+		if (targetLeafIndex === currentLeafIndex) {
+			return; // Already at the target page
+		}
+
+		if (targetLeafIndex > currentLeafIndex) {
+			// Flip forward
+			for (let i = currentLeafIndex; i < targetLeafIndex; i++) {
+				await this.flipNext();
+			}
+		} else {
+			// Flip backward
+			for (let i = currentLeafIndex; i > targetLeafIndex; i--) {
+				await this.flipPrev();
+			}
+		}
+	}
+
+	/**
+	 * Jump to a specific page instantly without animation.
+	 * @param pageIndex - The target page index (0-based)
+	 */
+	jumpToPage(pageIndex: number): void {
+		if (pageIndex < 0 || pageIndex >= this.pagesCount) {
+			console.warn(
+				`jumpToPage: Invalid page index ${pageIndex}. Must be between 0 and ${this.pagesCount - 1}.`,
+			);
+			return;
+		}
+
+		const targetLeafIndex = Math.floor(pageIndex / 2);
+
+		// Set all leaves before target as turned, all after as not turned
+		for (let i = 0; i < this.leaves.length; i++) {
+			const leaf = this.leaves[i];
+			const shouldBeTurned = i < targetLeafIndex;
+
+			if (shouldBeTurned && !leaf.isTurned) {
+				// Turn this leaf instantly
+				leaf.flipPosition = 1;
+				this.applyLeafTransform(leaf, 1);
+			} else if (!shouldBeTurned && leaf.isTurned) {
+				// Unturn this leaf instantly
+				leaf.flipPosition = 0;
+				this.applyLeafTransform(leaf, 0);
+			}
+		}
+
+		// Update visible page indices
+		const firstVisiblePageIndex = targetLeafIndex * 2;
+		this.prevVisiblePageIndices =
+			firstVisiblePageIndex + 1 < this.pagesCount
+				? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
+				: [firstVisiblePageIndex];
+
+		// Update current-page classes
+		for (let i = 0; i < this.pageElements.length; i++) {
+			const pageElement = this.pageElements[i];
+			if (this.prevVisiblePageIndices.includes(i)) {
+				pageElement.classList.add("current-page");
+			} else {
+				pageElement.classList.remove("current-page");
+			}
+		}
+
+		// Update leaves buffer visibility
+		this.updateLeavesBufferVisibility();
+
+		// Notify callback
 		if (this.onPageChanged) {
-			this.onPageChanged(pageIndex);
+			this.onPageChanged(this.currentPageIndex);
+		}
+	}
+
+	/**
+	 * Apply transform styles to a leaf's pages for a given flip position.
+	 * Used for instant positioning (jumpToPage).
+	 */
+	private applyLeafTransform(leaf: Leaf, position: number): void {
+		const isLTR = this.isLTR;
+
+		for (let index = 0; index < leaf.pages.length; index++) {
+			const page = leaf.pages[index];
+			if (!page) continue;
+
+			const isOdd = (index % 2) + 1 === 1;
+			const degrees = isOdd
+				? isLTR
+					? position > 0.5
+						? 180 - position * 180
+						: -position * 180
+					: position > 0.5
+						? -(180 - position * 180)
+						: position * 180
+				: isLTR
+					? position < 0.5
+						? -position * 180
+						: 180 - position * 180
+					: position < 0.5
+						? position * 180
+						: -(180 - position * 180);
+
+			const rotateY = `${degrees}deg`;
+			const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : isLTR ? "0px" : "0px"}`;
+			const scaleX = isOdd ? (position > 0.5 ? -1 : 1) : position < 0.5 ? -1 : 1;
+
+			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+			page.style.transformOrigin = isOdd
+				? `${isLTR ? "left" : "right"}`
+				: `${isLTR ? "right" : "left"}`;
+			page.style.zIndex = `${
+				position > 0.5
+					? page.dataset.pageIndex
+					: this.pagesCount - (page.dataset.pageIndex as unknown as number)
+			}`;
 		}
 	}
 

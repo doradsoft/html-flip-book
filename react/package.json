@@ -10,6 +10,10 @@
 		".": {
 			"import": "./dist/flip-book.js",
 			"types": "./dist/flip-book.d.ts"
+		},
+		"./toolbar": {
+			"import": "./dist/toolbar/index.js",
+			"types": "./dist/toolbar/index.d.ts"
 		}
 	},
 	"files": [

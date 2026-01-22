@@ -27,6 +27,10 @@ header {
 .en-book-container {
   flex-basis: 50%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .he-book-container {
