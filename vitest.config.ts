@@ -7,7 +7,7 @@ export default defineConfig({
 	resolve: {
 		conditions: ["development", "browser", "module", "default"],
 		alias: {
-			"html-flip-book-base": path.resolve(__dirname, "base/src/flipbook.ts"),
+			"html-flip-book-vanilla": path.resolve(__dirname, "base/src/flipbook.ts"),
 		},
 	},
 	test: {

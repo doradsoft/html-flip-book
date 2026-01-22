@@ -1,7 +1,7 @@
 {
-	"name": "html-flip-book-base",
-	"version": "1.0.0",
-	"description": "Flipbook component for HTML",
+	"name": "html-flip-book-vanilla",
+	"version": "0.0.0-alpha.2",
+	"description": "Flipbook component for HTML (vanilla JavaScript)",
 	"author": "DoradSoft",
 	"type": "module",
 	"license": "MIT",

@@ -270,7 +270,7 @@ Add two project configurations:
 ### Out of Scope (Unrealistic)
 
 - `direction` prop changes mid-flip
-- `pagesCount` prop changes mid-flip  
+- `pagesCount` prop changes mid-flip
 - `onPageChanged` callback ref changes mid-flip
 
 ---
@@ -378,5 +378,3 @@ jobs:
 1. **Hammer.js mock approach** — Inject via `page.addInitScript` or expose `window.__flipbook_hammer__`?
 2. **Touch simulation** — Use Playwright's touch API or Hammer's programmatic trigger?
 3. **Animation easing** — Should tests verify easing curve accuracy or just endpoints?
-
-

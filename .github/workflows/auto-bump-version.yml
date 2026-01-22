@@ -1,0 +1,49 @@
+name: Auto Bump Version
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  bump-version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+
+      - name: Bump patch version
+        run: |
+          cd base
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Update react package version and dependency
+        run: |
+          cd react
+          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
+          npm pkg set dependencies.html-flip-book-vanilla=${{ env.NEW_VERSION }}
+
+      - name: Update example package version
+        run: |
+          cd react/example
+          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add base/package.json react/package.json react/example/package.json
+          git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
+          git push

@@ -1,16 +1,24 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-ast
       - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: mixed-line-ending
   - repo: local
     hooks:
-      - id: eslint
-        name: eslint
-        entry: npx eslint --debug
-        pass_filenames: false
+      - id: verify-versions-sync
+        name: verify-versions-sync
+        entry: npx tsx scripts/verify-versions-sync.mts
         language: system
+        pass_filenames: false
+        always_run: true
+      - id: biome
+        name: biome
+        entry: npx biome check --write --staged --no-errors-on-unmatched
+        language: system
+        pass_filenames: false

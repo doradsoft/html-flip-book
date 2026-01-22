@@ -7,7 +7,7 @@
 		"baseUrl": ".",
 		"paths": {
 			"html-flip-book-react": ["../src/FlipBook.tsx"],
-			"html-flip-book-base": ["../../base/src/flipbook.ts"]
+			"html-flip-book-vanilla": ["../../base/src/flipbook.ts"]
 		},
 		"moduleResolution": "Node",
 		"resolveJsonModule": true,

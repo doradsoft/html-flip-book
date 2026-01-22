@@ -1,4 +1,4 @@
-import { FlipBook as FlipBookBase, type PageSemantics } from "html-flip-book-base";
+import { FlipBook as FlipBookBase, type PageSemantics } from "html-flip-book-vanilla";
 import type React from "react";
 import { Children, useEffect, useRef } from "react";
 
