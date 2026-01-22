@@ -12,6 +12,12 @@ interface FlipBookWrapperProps {
 	initialTurnedLeaves?: number[];
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
 	fastDeltaThreshold?: number;
+	/**
+	 * Number of leaves to keep rendered before and after the current position.
+	 * When set, only leaves within the buffer range are visible for performance.
+	 * Default: undefined (all leaves are always rendered)
+	 */
+	leavesBuffer?: number;
 }
 
 const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
@@ -22,6 +28,7 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
 	pageSemantics = undefined,
 	initialTurnedLeaves = [],
 	fastDeltaThreshold,
+	leavesBuffer,
 }) => {
 	const flipBook = useRef(
 		new FlipBookBase({
@@ -30,6 +37,7 @@ const FlipBookReact: React.FC<FlipBookWrapperProps> = ({
 			direction: direction,
 			initialTurnedLeaves: initialTurnedLeaves,
 			fastDeltaThreshold: fastDeltaThreshold,
+			leavesBuffer: leavesBuffer,
 		}),
 	);
 

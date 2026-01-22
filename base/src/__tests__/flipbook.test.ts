@@ -1000,4 +1000,168 @@ describe("FlipBook", () => {
 			expect(spy).not.toHaveBeenCalled();
 		});
 	});
+
+	describe("leavesBuffer", () => {
+		it("should accept leavesBuffer option", () => {
+			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 3 });
+			expect(flipBook).toBeDefined();
+		});
+
+		it("should render all leaves visible when leavesBuffer is undefined", () => {
+			const pages = createPages(20);
+			const flipBook = new FlipBook({ pagesCount: 20 });
+			flipBook.render(".flipbook-container");
+
+			// All pages should be visible (display is not 'none')
+			pages.forEach((page) => {
+				expect(page.style.display).not.toBe("none");
+			});
+		});
+
+		it("should hide leaves outside buffer range on initial render", () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 2 });
+			flipBook.render(".flipbook-container");
+
+			// With buffer=2 starting at leaf 0, leaves 0,1,2 should be visible (buffer after)
+			// Leaves 3-9 should be hidden
+			// Leaf 0 = pages 0,1; Leaf 1 = pages 2,3; Leaf 2 = pages 4,5
+			expect(pages[0].style.display).not.toBe("none"); // leaf 0
+			expect(pages[1].style.display).not.toBe("none"); // leaf 0
+			expect(pages[2].style.display).not.toBe("none"); // leaf 1
+			expect(pages[3].style.display).not.toBe("none"); // leaf 1
+			expect(pages[4].style.display).not.toBe("none"); // leaf 2
+			expect(pages[5].style.display).not.toBe("none"); // leaf 2
+			expect(pages[6].style.display).toBe("none"); // leaf 3 - outside buffer
+			expect(pages[7].style.display).toBe("none"); // leaf 3 - outside buffer
+		});
+
+		it("should show leaves within buffer on both sides when starting in middle", () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				leavesBuffer: 2,
+				initialTurnedLeaves: [0, 1, 2, 3, 4], // Start at leaf 5
+			});
+			flipBook.render(".flipbook-container");
+
+			// Current position is after leaf 4, so leaves 3,4,5,6,7 should be visible
+			// Leaves 0,1,2 and 8,9 should be hidden
+			expect(pages[0].style.display).toBe("none"); // leaf 0 - outside buffer
+			expect(pages[1].style.display).toBe("none"); // leaf 0 - outside buffer
+			expect(pages[4].style.display).toBe("none"); // leaf 2 - outside buffer
+			expect(pages[5].style.display).toBe("none"); // leaf 2 - outside buffer
+			expect(pages[6].style.display).not.toBe("none"); // leaf 3 - within buffer
+			expect(pages[7].style.display).not.toBe("none"); // leaf 3 - within buffer
+			expect(pages[8].style.display).not.toBe("none"); // leaf 4 - within buffer
+			expect(pages[9].style.display).not.toBe("none"); // leaf 4 - within buffer
+			expect(pages[10].style.display).not.toBe("none"); // leaf 5 - current
+			expect(pages[11].style.display).not.toBe("none"); // leaf 5 - current
+			expect(pages[12].style.display).not.toBe("none"); // leaf 6 - within buffer
+			expect(pages[13].style.display).not.toBe("none"); // leaf 6 - within buffer
+			expect(pages[14].style.display).not.toBe("none"); // leaf 7 - within buffer
+			expect(pages[15].style.display).not.toBe("none"); // leaf 7 - within buffer
+			expect(pages[16].style.display).toBe("none"); // leaf 8 - outside buffer
+			expect(pages[17].style.display).toBe("none"); // leaf 8 - outside buffer
+		});
+
+		it("should clamp buffer to available leaves at start of book", () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 5 });
+			flipBook.render(".flipbook-container");
+
+			// At start (leaf 0), buffer of 5 means leaves 0-5 should be visible
+			// No leaves before 0, so just 0-5 after
+			for (let i = 0; i < 12; i++) {
+				// leaves 0-5 = pages 0-11
+				expect(pages[i].style.display).not.toBe("none");
+			}
+			// Leaves 6-9 should be hidden
+			for (let i = 12; i < 20; i++) {
+				expect(pages[i].style.display).toBe("none");
+			}
+		});
+
+		it("should clamp buffer to available leaves at end of book", () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				leavesBuffer: 5,
+				initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6, 7, 8], // All but last turned
+			});
+			flipBook.render(".flipbook-container");
+
+			// At end (leaf 9), buffer of 5 means leaves 4-9 should be visible
+			// Leaves 0-3 should be hidden
+			for (let i = 0; i < 8; i++) {
+				// leaves 0-3 = pages 0-7
+				expect(pages[i].style.display).toBe("none");
+			}
+			// Leaves 4-9 should be visible
+			for (let i = 8; i < 20; i++) {
+				expect(pages[i].style.display).not.toBe("none");
+			}
+		});
+
+		it("should update buffer when flipping forward", async () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 2 });
+			flipBook.render(".flipbook-container");
+
+			// Initially at leaf 0, leaves 0-2 visible
+			expect(pages[6].style.display).toBe("none"); // leaf 3 hidden
+
+			// Flip forward - simulate completing a flip
+			const leaf = getFlipBookInternals(flipBook).leaves[0];
+			await leaf.flipToPosition(1);
+
+			// Now at leaf 1, leaves 0-3 should be visible (buffer around new position)
+			// Actually: current is between leaf 0 (turned) and leaf 1
+			// Buffer should now show leaves around the new current position
+			expect(pages[6].style.display).not.toBe("none"); // leaf 3 now visible
+		});
+
+		it("should update buffer when flipping backward", async () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				leavesBuffer: 2,
+				initialTurnedLeaves: [0, 1, 2, 3, 4], // Start at middle
+			});
+			flipBook.render(".flipbook-container");
+
+			// At leaf 5, leaves 3-7 visible, 0-2 and 8-9 hidden
+			expect(pages[0].style.display).toBe("none"); // leaf 0 hidden
+
+			// Flip backward - simulate completing a backward flip
+			const leaf = getFlipBookInternals(flipBook).leaves[4];
+			await leaf.flipToPosition(0);
+
+			// Now buffer should have shifted back
+			// Leaf 4 is now not turned, so current is between 3 and 4
+			expect(pages[4].style.display).not.toBe("none"); // leaf 2 now visible
+		});
+
+		it("should handle buffer size larger than total leaves", () => {
+			const pages = createPages(6); // 3 leaves
+			const flipBook = new FlipBook({ pagesCount: 6, leavesBuffer: 10 });
+			flipBook.render(".flipbook-container");
+
+			// All leaves should be visible since buffer exceeds total
+			pages.forEach((page) => {
+				expect(page.style.display).not.toBe("none");
+			});
+		});
+
+		it("should handle buffer size of 0", () => {
+			const pages = createPages(20);
+			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 0 });
+			flipBook.render(".flipbook-container");
+
+			// Only the current leaf (leaf 0) should be visible
+			expect(pages[0].style.display).not.toBe("none"); // leaf 0
+			expect(pages[1].style.display).not.toBe("none"); // leaf 0
+			expect(pages[2].style.display).toBe("none"); // leaf 1 - outside buffer
+		});
+	});
 });

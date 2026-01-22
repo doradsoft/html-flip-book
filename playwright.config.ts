@@ -8,7 +8,7 @@ export default defineConfig({
 	fullyParallel: true,
 	forbidOnly: isCI,
 	retries: 2, // Retries for flaky tests with mocked time/velocity detection
-	workers: isCI ? 1 : undefined,
+	workers: isCI ? "100%" : "50%",
 	reporter: [
 		["list"],
 		["html", { outputFolder: ".playwright-report", open: "never" }],
