@@ -1312,6 +1312,62 @@ describe("FlipBook", () => {
 		});
 	});
 
+	describe("flipNext and flipPrev race conditions", () => {
+		it("blocks flipPrev during active flipNext auto-flip", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0], // Start with leaf 0 turned (showing pages 1, 2)
+			});
+			flipBook.render(".flipbook-container");
+
+			const internals = getFlipBookInternals(flipBook);
+
+			// Start flipNext (should flip leaf 1 forward to show pages 3, 4)
+			const nextPromise = flipBook.flipNext();
+
+			// During the flip, call flipPrev - should be blocked
+			const prevPromise = flipBook.flipPrev();
+
+			// Wait for both to complete
+			await Promise.all([nextPromise, prevPromise]);
+
+			// flipNext should have completed, flipPrev should have been blocked
+			// So we should be at page 3 (after flipping leaf 1), not back at page 0
+			expect(flipBook.currentPageIndex).toBe(3);
+			// Leaf 0 and 1 should be turned, leaf 2 should not
+			expect(internals.leaves[0].isTurned).toBe(true);
+			expect(internals.leaves[1].isTurned).toBe(true);
+			expect(internals.leaves[2].isTurned).toBe(false);
+		});
+
+		it("does not flip two different leaves simultaneously in opposite directions", async () => {
+			createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				initialTurnedLeaves: [0, 1, 2], // All turned - at last page
+			});
+			flipBook.render(".flipbook-container");
+
+			// Go back one page
+			await flipBook.flipPrev();
+			// Now at pages 4, 5 with leaf 2 not turned
+
+			// Start flipNext (flipping leaf 2 forward)
+			const nextPromise = flipBook.flipNext();
+
+			// Immediately try flipPrev - should be blocked (leaf 1 should NOT start flipping back)
+			const prevPromise = flipBook.flipPrev();
+
+			await Promise.all([nextPromise, prevPromise]);
+
+			// The book should be in a consistent state
+			// If flipNext completed, we should be at page 5 (last page, closed reversed)
+			// If flipPrev was blocked correctly, only the flipNext should have taken effect
+			expect(flipBook.isLastPage).toBe(true);
+		});
+	});
+
 	describe("goToPage", () => {
 		it("navigates forward to target page", async () => {
 			createPages(10);

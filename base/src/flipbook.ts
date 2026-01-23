@@ -531,10 +531,27 @@ class FlipBook {
 	}
 
 	/**
+	 * Check if there's an active auto-flip in the given direction.
+	 */
+	private hasActiveAutoFlipInDirection(direction: FlipDirection): boolean {
+		for (const state of this.activeFlips.values()) {
+			if (state.isDuringAutoFlip && state.direction === direction) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Animate flip to the next page.
 	 * @returns Promise that resolves when the flip animation completes
 	 */
 	async flipNext(): Promise<void> {
+		// Block if there's an active auto-flip in the opposite direction
+		if (this.hasActiveAutoFlipInDirection(FlipDirection.Backward)) {
+			return;
+		}
+
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
 		if (!leaf) return;
 
@@ -559,6 +576,11 @@ class FlipBook {
 	 * @returns Promise that resolves when the flip animation completes
 	 */
 	async flipPrev(): Promise<void> {
+		// Block if there's an active auto-flip in the opposite direction
+		if (this.hasActiveAutoFlipInDirection(FlipDirection.Forward)) {
+			return;
+		}
+
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Backward);
 		if (!leaf) return;
 
