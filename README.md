@@ -1,6 +1,10 @@
+# HTML Flip Book
+
+A TypeScript library for creating realistic page-flip animations in the browser.
+
 ## Features
 
-**Madatory for production**
+**Mandatory for production**
 
 - [x] Horizontal flip direction - Both RTL and LTR
 - [x] Manual page flipping

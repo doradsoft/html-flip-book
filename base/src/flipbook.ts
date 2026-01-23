@@ -8,6 +8,7 @@ import { type FlipPosition, Leaf } from "./leaf";
 import type { PageSemantics } from "./page-semantics";
 import { Size } from "./size";
 
+/** Default threshold for fast flip detection (in ms) */
 const DEFAULT_FAST_DELTA = 500;
 
 /** State for a single flip operation - enables concurrent page flipping */
