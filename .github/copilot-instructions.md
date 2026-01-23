@@ -67,6 +67,24 @@ When fixing bugs, follow this test-driven process:
 3. Update registry with: tool name, version, date, key learnings
 4. Apply learnings
 
+### Changelog Maintenance
+
+After completing any fix, feature, or breaking change, update `CHANGELOG.md`:
+
+1. **Add entries under `[Unreleased]`** in the appropriate section:
+   - **Added**: New user-facing features
+   - **Fixed**: Bug fixes (user-facing description)
+   - **Changed**: Changes to existing functionality
+   - **Breaking Changes**: API or behavior changes that may affect users
+   - **Engineering**: Internal changes (refactoring, tests, tooling, docs)
+
+2. **Writing guidelines**:
+   - User-facing bullets should be clear to end-users (not implementation details)
+   - Breaking changes must be clearly marked and explain migration path
+   - Engineering bullets are for internal reference (tests added, refactoring, etc.)
+
+3. **On release**: The `[Unreleased]` section is automatically moved to a versioned section by the release workflow
+
 ## Commands Reference
 
 | Task          | Command                     |

@@ -36,7 +36,11 @@
 		"lint": "biome lint .",
 		"check": "biome check .",
 		"ci-test": "vitest run --coverage && playwright test && npm run coverage:merge",
-		"all": "npm run check && npm run test:coverage && npm run build"
+		"all": "npm run check && npm run test:coverage && npm run build",
+		"release": "tsx scripts/release.mts",
+		"release:patch": "tsx scripts/release.mts patch",
+		"release:minor": "tsx scripts/release.mts minor",
+		"release:major": "tsx scripts/release.mts major"
 	},
 	"author": "DoradSoft",
 	"license": "MIT",
