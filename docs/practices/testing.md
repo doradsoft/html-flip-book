@@ -36,6 +36,18 @@ describe("FlipBook", () => {
 });
 ```
 
+## Bug Fix Workflow (Red-Green TDD)
+
+When fixing bugs, follow this test-driven process:
+
+1. **Write failing tests first (Red)**:
+   - Add a test that exposes the bug (should fail with current code)
+   - Add a negative test ensuring the bug behavior doesn't occur
+2. **Run tests** to confirm they fail as expected
+3. **Fix the bug** in the implementation
+4. **Run tests again** to confirm they pass (Green)
+5. **Run full test suite** to check for regressions
+
 ## Test Types
 
 | Module | Unit Tests | E2E Tests |

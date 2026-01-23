@@ -1404,5 +1404,36 @@ describe("FlipBook", () => {
 			flipBook.jumpToPage(10);
 			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
 		});
+
+		it("jumps to the last page and closes the book reversed", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(5); // Last page (index 5)
+
+			// Book should show only the last page (closed reversed)
+			expect(flipBook.currentPageIndex).toBe(5);
+			expect(flipBook.isLastPage).toBe(true);
+			expect(pages[5].classList.contains("current-page")).toBe(true);
+			// All leaves should be turned
+			const internals = getFlipBookInternals(flipBook);
+			for (const leaf of internals.leaves) {
+				expect(leaf.isTurned).toBe(true);
+			}
+		});
+
+		it("does not jump to one-before-last when targeting last page", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(5); // Last page (index 5)
+
+			// Should NOT show page 4 as the current page
+			expect(flipBook.currentPageIndex).not.toBe(4);
+			// Should NOT have page 4 visible without page 5
+			expect(pages[4].classList.contains("current-page")).toBe(false);
+		});
 	});
 });

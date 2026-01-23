@@ -625,11 +625,16 @@ class FlipBook {
 		}
 
 		const targetLeafIndex = Math.floor(pageIndex / 2);
+		const isLastPage = pageIndex === this.pagesCount - 1;
+		const isOddPage = pageIndex % 2 === 1;
+		// If targeting the last page and it's odd (back of leaf), close the book reversed
+		const closeBookReversed = isLastPage && isOddPage;
 
 		// Set all leaves before target as turned, all after as not turned
 		for (let i = 0; i < this.leaves.length; i++) {
 			const leaf = this.leaves[i];
-			const shouldBeTurned = i < targetLeafIndex;
+			// Turn leaves before target, or the target leaf itself if closing book reversed
+			const shouldBeTurned = i < targetLeafIndex || (closeBookReversed && i === targetLeafIndex);
 
 			if (shouldBeTurned && !leaf.isTurned) {
 				// Turn this leaf instantly
@@ -643,11 +648,16 @@ class FlipBook {
 		}
 
 		// Update visible page indices
-		const firstVisiblePageIndex = targetLeafIndex * 2;
-		this.prevVisiblePageIndices =
-			firstVisiblePageIndex + 1 < this.pagesCount
-				? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
-				: [firstVisiblePageIndex];
+		if (closeBookReversed) {
+			// Closed reversed: only show the last page
+			this.prevVisiblePageIndices = [pageIndex];
+		} else {
+			const firstVisiblePageIndex = targetLeafIndex * 2;
+			this.prevVisiblePageIndices =
+				firstVisiblePageIndex + 1 < this.pagesCount
+					? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
+					: [firstVisiblePageIndex];
+		}
 
 		// Update current-page classes
 		for (let i = 0; i < this.pageElements.length; i++) {

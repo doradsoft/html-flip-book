@@ -41,6 +41,18 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 - Extract pure business logic into testable functions
 - Use Vitest for unit tests, Playwright for E2E
 
+### Bug Fix Workflow (Red-Green TDD)
+
+When fixing bugs, follow this test-driven process:
+
+1. **Write failing tests first (Red)**:
+   - Add a test that exposes the bug (should fail with current code)
+   - Add a negative test ensuring the bug behavior doesn't occur
+2. **Run tests** to confirm they fail as expected
+3. **Fix the bug** in the implementation
+4. **Run tests again** to confirm they pass (Green)
+5. **Run full test suite** to check for regressions
+
 ### Issue Ownership
 
 - **Never claim an issue is "pre-existing"** unless there is an open GitHub Issue documenting it
