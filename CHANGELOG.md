@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - flipNext/flipPrev now block when there's an active auto-flip in the opposite direction
 - Added Red-Green TDD workflow to copilot-instructions.md and testing.md
 - Added comprehensive tests for jumpToPage edge cases and flip race conditions
+- Updated auto-create-pr workflow to use BOT_PAT for CI workflow triggering on auto-created PRs
 
 ---
 
