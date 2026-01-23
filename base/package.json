@@ -1,10 +1,23 @@
 {
 	"name": "html-flip-book-vanilla",
-	"version": "0.0.0-alpha.8",
+	"version": "0.0.0-alpha.9",
 	"description": "Flipbook component for HTML (vanilla JavaScript)",
 	"author": "DoradSoft",
 	"type": "module",
 	"license": "MIT",
+	"homepage": "https://github.com/doradsoft/html-flip-book",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/doradsoft/html-flip-book.git"
+	},
+	"bugs": {
+		"url": "https://github.com/doradsoft/html-flip-book/issues"
+	},
+	"keywords": [
+		"flipbook",
+		"page-flip",
+		"vanilla-javascript"
+	],
 	"main": "./dist/flipbook.js",
 	"types": "./dist/flipbook.d.ts",
 	"exports": {
