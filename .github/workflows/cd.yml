@@ -69,7 +69,7 @@ jobs:
       - name: Publish vanilla package
         run: |
           cd base
-          npm publish --access public --tag ${{ steps.version.outputs.npm_tag }}
+          npm publish --access public --provenance --tag ${{ steps.version.outputs.npm_tag }}
 
       - name: Update react package dependency
         run: |
@@ -79,4 +79,4 @@ jobs:
       - name: Publish react package
         run: |
           cd react
-          npm publish --access public --tag ${{ steps.version.outputs.npm_tag }}
+          npm publish --access public --provenance --tag ${{ steps.version.outputs.npm_tag }}
