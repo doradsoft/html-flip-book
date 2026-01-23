@@ -41,6 +41,18 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 - Extract pure business logic into testable functions
 - Use Vitest for unit tests, Playwright for E2E
 
+### Bug Fix Workflow (Red-Green TDD)
+
+When fixing bugs, follow this test-driven process:
+
+1. **Write failing tests first (Red)**:
+   - Add a test that exposes the bug (should fail with current code)
+   - Add a negative test ensuring the bug behavior doesn't occur
+2. **Run tests** to confirm they fail as expected
+3. **Fix the bug** in the implementation
+4. **Run tests again** to confirm they pass (Green)
+5. **Run full test suite** to check for regressions
+
 ### Issue Ownership
 
 - **Never claim an issue is "pre-existing"** unless there is an open GitHub Issue documenting it
@@ -54,6 +66,24 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 2. If missing/outdated: use Context7, official docs, or GitHub
 3. Update registry with: tool name, version, date, key learnings
 4. Apply learnings
+
+### Changelog Maintenance
+
+After completing any fix, feature, or breaking change, update `CHANGELOG.md`:
+
+1. **Add entries under `[Unreleased]`** in the appropriate section:
+   - **Added**: New user-facing features
+   - **Fixed**: Bug fixes (user-facing description)
+   - **Changed**: Changes to existing functionality
+   - **Breaking Changes**: API or behavior changes that may affect users
+   - **Engineering**: Internal changes (refactoring, tests, tooling, docs)
+
+2. **Writing guidelines**:
+   - User-facing bullets should be clear to end-users (not implementation details)
+   - Breaking changes must be clearly marked and explain migration path
+   - Engineering bullets are for internal reference (tests added, refactoring, etc.)
+
+3. **On release**: The `[Unreleased]` section is automatically moved to a versioned section by the release workflow
 
 ## Commands Reference
 
