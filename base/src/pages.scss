@@ -2,6 +2,46 @@
   position: absolute;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  --inner-shadow-progress: 0;
+  --inner-shadow-shadow: 0;
+  --inner-shadow-highlight: 0;
+  --inner-shadow-lift: 0px;
+  --inner-shadow-edge: right;
+}
+
+.page::before,
+.page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  will-change: opacity, transform;
+}
+
+.page::before {
+  background: linear-gradient(
+    to var(--inner-shadow-edge),
+    rgba(0, 0, 0, calc(0.35 * var(--inner-shadow-shadow))) 0%,
+    rgba(0, 0, 0, 0) 40%
+  );
+  opacity: var(--inner-shadow-shadow);
+  mix-blend-mode: multiply;
+  transform: translateZ(var(--inner-shadow-lift));
+}
+
+.page::after {
+  background: linear-gradient(
+    to var(--inner-shadow-edge),
+    rgba(255, 255, 255, calc(0.4 * var(--inner-shadow-highlight))) 0%,
+    rgba(255, 255, 255, 0) 45%
+  );
+  opacity: var(--inner-shadow-highlight);
+  transform: translateZ(calc(var(--inner-shadow-lift) * 0.6));
 }
 
 .page > * {

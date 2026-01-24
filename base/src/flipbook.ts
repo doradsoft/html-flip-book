@@ -39,6 +39,8 @@ class FlipBook {
 	private activeFlips: Map<number, FlipState> = new Map();
 	private pendingFlipStartingPos = 0;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
+	private isDragging = false;
+	private hoveredLeaf: Leaf | undefined;
 	touchStartingPos = { x: 0, y: 0 };
 	private prevVisiblePageIndices: [number] | [number, number] | undefined;
 	// Hammer instance for cleanup
@@ -221,6 +223,8 @@ class FlipBook {
 		this.bookElement.addEventListener("touchmove", this.handleTouchMove.bind(this), {
 			passive: false,
 		});
+		this.bookElement.addEventListener("mousemove", this.handleMouseMove as EventListener);
+		this.bookElement.addEventListener("mouseleave", this.handleMouseLeave as EventListener);
 		// Apply initial leaves buffer visibility
 		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
@@ -334,6 +338,8 @@ class FlipBook {
 			this.pendingFlipStartingPos = 0;
 			return;
 		}
+		this.isDragging = true;
+		this.clearHoverShadow();
 		this.pendingFlipStartingPos = event.center.x;
 		this.pendingFlipDirection = FlipDirection.None;
 	}
@@ -417,6 +423,8 @@ class FlipBook {
 		if (!flipState) {
 			this.pendingFlipDirection = FlipDirection.None;
 			this.pendingFlipStartingPos = 0;
+			this.isDragging = false;
+			this.clearHoverShadow();
 			return;
 		}
 
@@ -452,6 +460,7 @@ class FlipBook {
 		flipState.isDuringAutoFlip = true;
 		this.pendingFlipDirection = FlipDirection.None;
 		this.pendingFlipStartingPos = 0;
+		this.isDragging = false;
 
 		// Complete the flip asynchronously - don't block new flips!
 		flipState.leaf.flipToPosition(flipTo).then(() => {
@@ -480,6 +489,54 @@ class FlipBook {
 			e.preventDefault();
 		}
 	};
+
+	private handleMouseMove = (event: MouseEvent) => {
+		if (!this.bookElement) return;
+		if (this.isDragging || this.currentManualFlip || this.activeFlips.size > 0) {
+			this.clearHoverShadow();
+			return;
+		}
+
+		const rect = this.bookElement.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		const edgeZone = rect.width * 0.18;
+		const isLeftEdge = x <= edgeZone;
+		const isRightEdge = x >= rect.width - edgeZone;
+
+		if (!isLeftEdge && !isRightEdge) {
+			this.clearHoverShadow();
+			return;
+		}
+
+		const isForward = this.isLTR ? isRightEdge : isLeftEdge;
+		const direction = isForward ? FlipDirection.Forward : FlipDirection.Backward;
+		const leaf = this.getNextAvailableLeaf(direction);
+		if (!leaf) {
+			this.clearHoverShadow();
+			return;
+		}
+
+		const distanceFromEdge = isForward ? rect.width - x : x;
+		const edgeProgress = 1 - Math.min(1, distanceFromEdge / edgeZone);
+		const hoverStrength = edgeProgress * 0.12;
+
+		if (this.hoveredLeaf && this.hoveredLeaf !== leaf) {
+			this.hoveredLeaf.setHoverShadow(0);
+		}
+		this.hoveredLeaf = leaf;
+		leaf.setHoverShadow(hoverStrength);
+	};
+
+	private handleMouseLeave = () => {
+		this.clearHoverShadow();
+	};
+
+	private clearHoverShadow() {
+		if (this.hoveredLeaf) {
+			this.hoveredLeaf.setHoverShadow(0);
+			this.hoveredLeaf = undefined;
+		}
+	}
 	private onTurned(
 		currentVisiblePageIndices: [number] | [number, number],
 		prevVisibilePageIndices?: [number] | [number, number],
@@ -705,43 +762,7 @@ class FlipBook {
 	 * Used for instant positioning (jumpToPage).
 	 */
 	private applyLeafTransform(leaf: Leaf, position: number): void {
-		const isLTR = this.isLTR;
-
-		for (let index = 0; index < leaf.pages.length; index++) {
-			const page = leaf.pages[index];
-			if (!page) continue;
-
-			const isOdd = (index % 2) + 1 === 1;
-			const degrees = isOdd
-				? isLTR
-					? position > 0.5
-						? 180 - position * 180
-						: -position * 180
-					: position > 0.5
-						? -(180 - position * 180)
-						: position * 180
-				: isLTR
-					? position < 0.5
-						? -position * 180
-						: 180 - position * 180
-					: position < 0.5
-						? position * 180
-						: -(180 - position * 180);
-
-			const rotateY = `${degrees}deg`;
-			const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : isLTR ? "0px" : "0px"}`;
-			const scaleX = isOdd ? (position > 0.5 ? -1 : 1) : position < 0.5 ? -1 : 1;
-
-			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
-			page.style.transformOrigin = isOdd
-				? `${isLTR ? "left" : "right"}`
-				: `${isLTR ? "right" : "left"}`;
-			page.style.zIndex = `${
-				position > 0.5
-					? page.dataset.pageIndex
-					: this.pagesCount - (page.dataset.pageIndex as unknown as number)
-			}`;
-		}
+		leaf.applyTransform(position);
 	}
 
 	/**
@@ -756,6 +777,8 @@ class FlipBook {
 		if (this.bookElement) {
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);
+			this.bookElement.removeEventListener("mousemove", this.handleMouseMove as EventListener);
+			this.bookElement.removeEventListener("mouseleave", this.handleMouseLeave as EventListener);
 		}
 	}
 }
