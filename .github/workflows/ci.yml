@@ -55,8 +55,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Verify Version is Bumped
-        run: npx tsx scripts/verify-version-bump.mts
+      - name: Verify Version
+        run: npx tsx scripts/verify-version.mts
 
   # ============================================================================
   # Lint Job - Fast feedback on code quality

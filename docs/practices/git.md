@@ -20,8 +20,7 @@ The repository uses pre-commit hooks managed by [pre-commit](https://pre-commit.
 | check-case-conflict  | Detects case-insensitive filename conflicts  |
 | check-merge-conflict | Detects unresolved merge conflicts           |
 | mixed-line-ending    | Enforces consistent line endings             |
-| verify-versions-sync | Ensures all package.json versions match      |
-| verify-version-bump  | Ensures version is greater than released     |
+| verify-version       | Ensures versions are in sync and bumped      |
 | biome                | Runs Biome linter/formatter on staged files  |
 
 ### Setup
