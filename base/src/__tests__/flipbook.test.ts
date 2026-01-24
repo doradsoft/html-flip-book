@@ -1492,4 +1492,299 @@ describe("FlipBook", () => {
 			expect(pages[4].classList.contains("current-page")).toBe(false);
 		});
 	});
+
+	describe("hover shadow", () => {
+		/** Helper to get book element with assertion - safe after render() is called */
+		function getBookElement(flipBook: FlipBook): HTMLElement {
+			expect(flipBook.bookElement).toBeDefined();
+			// biome-ignore lint/style/noNonNullAssertion: assertion above ensures defined
+			return flipBook.bookElement!;
+		}
+
+		it("shows hover shadow when hovering right edge in LTR mode", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+
+			// Mock getBoundingClientRect
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// Simulate mouse move to right edge (within 18% of width = 144px from right)
+			const event = new MouseEvent("mousemove", {
+				clientX: 750, // 50px from right edge, within edge zone
+				clientY: 300,
+				bubbles: true,
+			});
+			bookElement.dispatchEvent(event);
+
+			// Check that leaf has hover shadow applied
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			// Hover shadow should be set on the first leaf (forward flip direction)
+			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe("0.000");
+		});
+
+		it("shows hover shadow when hovering left edge in LTR mode after flipping", async () => {
+			vi.useFakeTimers();
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			// Flip to page 2 so backward flip is available
+			flipBook.flipNext();
+			await vi.runAllTimersAsync();
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// Simulate mouse move to left edge
+			const event = new MouseEvent("mousemove", {
+				clientX: 50, // 50px from left edge, within edge zone
+				clientY: 300,
+				bubbles: true,
+			});
+			bookElement.dispatchEvent(event);
+
+			// Check that leaf has hover shadow applied
+			const internals = getFlipBookInternals(flipBook);
+			const turnedLeaf = internals.leaves[0];
+			expect(turnedLeaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe(
+				"0.000",
+			);
+
+			vi.useRealTimers();
+		});
+
+		it("clears hover shadow when not in edge zone", async () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// First hover near edge to set shadow
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 750,
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			// Wait for throttle
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
+			// Then move to center (outside edge zones)
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 400, // center, outside both edge zones
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			// Wait for throttle
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
+			// Shadow should be cleared (back to 0)
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+		});
+
+		it("clears hover shadow on mouse leave", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// First hover near edge to set shadow
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 750,
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			// Then leave the book element
+			bookElement.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+
+			// Shadow should be cleared
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+		});
+
+		it("does not show hover shadow when dragging", async () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// Simulate drag start
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart({ center: { x: 750 } });
+
+			// Wait for any pending events
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
+			// Try to trigger hover shadow
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 750,
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			// Wait for throttle
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
+			// Shadow should still be 0 since drag clears it
+			const leaf = internals.leaves[0];
+			const shadowValue = leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow");
+			// Either empty (never set) or "0.000" (cleared by drag) is acceptable
+			expect(shadowValue === "" || shadowValue === "0.000").toBe(true);
+		});
+
+		it("calculates correct hover strength based on distance from edge", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// At the very edge (x=800), hover strength should be max
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 800, // at edge
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const shadowValue = Number.parseFloat(
+				leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow") || "0",
+			);
+
+			// Should have shadow (exact value depends on HOVER_STRENGTH_MAX * 1.1)
+			expect(shadowValue).toBeGreaterThan(0);
+		});
+
+		it("shows correct edge hover for RTL mode", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4, isRTL: true });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 800,
+				right: 800,
+				top: 0,
+				bottom: 600,
+				height: 600,
+			});
+
+			// In RTL, left edge should trigger forward flip (opposite of LTR)
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 50, // left edge in RTL = forward
+					clientY: 300,
+					bubbles: true,
+				}),
+			);
+
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe("0.000");
+		});
+
+		it("ignores mouse events when book element has zero width", async () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			const bookElement = getBookElement(flipBook);
+			bookElement.getBoundingClientRect = vi.fn().mockReturnValue({
+				left: 0,
+				width: 0, // zero width
+				right: 0,
+				top: 0,
+				bottom: 0,
+				height: 0,
+			});
+
+			// This should not throw or set any shadow
+			bookElement.dispatchEvent(
+				new MouseEvent("mousemove", {
+					clientX: 0,
+					clientY: 0,
+					bubbles: true,
+				}),
+			);
+
+			// Wait for throttle
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const shadowValue = leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow");
+			// Either empty (never set because guard early-returned) or "0.000" is acceptable
+			expect(shadowValue === "" || shadowValue === "0.000").toBe(true);
+		});
+	});
 });

@@ -2,6 +2,13 @@ import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
 
+/** Multiplier for shadow intensity (slightly stronger than base) */
+const SHADOW_STRENGTH_MULTIPLIER = 1.1;
+/** Multiplier for highlight intensity (slightly weaker than base) */
+const HIGHLIGHT_STRENGTH_MULTIPLIER = 0.9;
+/** Maximum lift in pixels for the shadow effect */
+const SHADOW_LIFT_PX = 8;
+
 // number between 1 to infinity
 export type DegreesPerSecond = IntRange<1, typeof Infinity>;
 export type FlipPosition = IntRange<0, 2>;
@@ -133,9 +140,9 @@ export class Leaf {
 		const clampedPosition = Math.max(0, Math.min(1, position));
 		const shadowFromFlip = Math.sin(clampedPosition * Math.PI);
 		const shadowProgress = Math.max(shadowFromFlip, this.hoverShadow);
-		const shadowStrength = Math.min(1, shadowProgress * 1.1);
-		const highlightStrength = Math.min(1, shadowProgress * 0.9);
-		const lift = `${(shadowProgress * 8).toFixed(3)}px`;
+		const shadowStrength = Math.min(1, shadowProgress * SHADOW_STRENGTH_MULTIPLIER);
+		const highlightStrength = Math.min(1, shadowProgress * HIGHLIGHT_STRENGTH_MULTIPLIER);
+		const lift = `${(shadowProgress * SHADOW_LIFT_PX).toFixed(3)}px`;
 
 		this.pages.forEach((page, index) => {
 			const isLTR = this.bookProperties.isLTR;
@@ -170,7 +177,6 @@ export class Leaf {
 					? page.dataset.pageIndex
 					: this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
 			}`;
-			page.style.setProperty("--inner-shadow-progress", shadowProgress.toFixed(3));
 			page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
 			page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
 			page.style.setProperty("--inner-shadow-lift", lift);

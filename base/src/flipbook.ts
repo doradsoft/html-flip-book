@@ -1,6 +1,7 @@
 import "./pages.scss";
 import "./flipbook.scss";
 import Hammer from "hammerjs";
+import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
 import type { FlipBookOptions } from "./flip-book-options";
 import { FlipDirection } from "./flip-direction";
@@ -10,6 +11,13 @@ import { Size } from "./size";
 
 /** Default threshold for fast flip detection (in ms) */
 const DEFAULT_FAST_DELTA = 500;
+
+/** Percentage of book width that triggers hover shadow effect */
+const EDGE_ZONE_RATIO = 0.18;
+/** Maximum hover shadow strength (0-1) */
+const HOVER_STRENGTH_MAX = 0.12;
+/** Throttle interval for mouse move handler in ms */
+const MOUSE_MOVE_THROTTLE_MS = 16;
 
 /** State for a single flip operation - enables concurrent page flipping */
 interface FlipState {
@@ -223,7 +231,10 @@ class FlipBook {
 		this.bookElement.addEventListener("touchmove", this.handleTouchMove.bind(this), {
 			passive: false,
 		});
-		this.bookElement.addEventListener("mousemove", this.handleMouseMove as EventListener);
+		this.bookElement.addEventListener(
+			"mousemove",
+			this.handleMouseMove as unknown as EventListener,
+		);
 		this.bookElement.addEventListener("mouseleave", this.handleMouseLeave as EventListener);
 		// Apply initial leaves buffer visibility
 		this.updateLeavesBufferVisibility();
@@ -490,7 +501,7 @@ class FlipBook {
 		}
 	};
 
-	private handleMouseMove = (event: MouseEvent) => {
+	private handleMouseMove = throttle(MOUSE_MOVE_THROTTLE_MS, (event: MouseEvent) => {
 		if (!this.bookElement) return;
 		if (this.isDragging || this.currentManualFlip || this.activeFlips.size > 0) {
 			this.clearHoverShadow();
@@ -498,8 +509,10 @@ class FlipBook {
 		}
 
 		const rect = this.bookElement.getBoundingClientRect();
+		if (rect.width <= 0) return;
+
 		const x = event.clientX - rect.left;
-		const edgeZone = rect.width * 0.18;
+		const edgeZone = rect.width * EDGE_ZONE_RATIO;
 		const isLeftEdge = x <= edgeZone;
 		const isRightEdge = x >= rect.width - edgeZone;
 
@@ -516,16 +529,22 @@ class FlipBook {
 			return;
 		}
 
-		const distanceFromEdge = isForward ? rect.width - x : x;
+		const distanceFromEdge = isForward
+			? this.isLTR
+				? rect.width - x
+				: x
+			: this.isLTR
+				? x
+				: rect.width - x;
 		const edgeProgress = 1 - Math.min(1, distanceFromEdge / edgeZone);
-		const hoverStrength = edgeProgress * 0.12;
+		const hoverStrength = edgeProgress * HOVER_STRENGTH_MAX;
 
 		if (this.hoveredLeaf && this.hoveredLeaf !== leaf) {
 			this.hoveredLeaf.setHoverShadow(0);
 		}
 		this.hoveredLeaf = leaf;
 		leaf.setHoverShadow(hoverStrength);
-	};
+	});
 
 	private handleMouseLeave = () => {
 		this.clearHoverShadow();
@@ -777,7 +796,10 @@ class FlipBook {
 		if (this.bookElement) {
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);
-			this.bookElement.removeEventListener("mousemove", this.handleMouseMove as EventListener);
+			this.bookElement.removeEventListener(
+				"mousemove",
+				this.handleMouseMove as unknown as EventListener,
+			);
 			this.bookElement.removeEventListener("mouseleave", this.handleMouseLeave as EventListener);
 		}
 	}

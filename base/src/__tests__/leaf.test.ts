@@ -399,4 +399,286 @@ describe("Leaf", () => {
 			expect(leaf.pages[1]).toBeUndefined();
 		});
 	});
+
+	describe("setHoverShadow", () => {
+		it("sets hover shadow to specified value", () => {
+			const leaf = new Leaf(
+				0,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+
+			leaf.setHoverShadow(0.5);
+			expect(getLeafInternals(leaf).hoverShadow).toBe(0.5);
+		});
+
+		it("clamps values above 1 to 1", () => {
+			const leaf = new Leaf(
+				0,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+
+			leaf.setHoverShadow(1.5);
+			expect(getLeafInternals(leaf).hoverShadow).toBe(1);
+		});
+
+		it("clamps values below 0 to 0", () => {
+			const leaf = new Leaf(
+				0,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+
+			leaf.setHoverShadow(-0.5);
+			expect(getLeafInternals(leaf).hoverShadow).toBe(0);
+		});
+
+		it("skips update when setting same value", () => {
+			const leaf = new Leaf(
+				0,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+
+			leaf.setHoverShadow(0.3);
+			const spy = vi.spyOn(leaf, "applyTransform");
+			leaf.setHoverShadow(0.3);
+
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it("calls applyTransform with current flipPosition", () => {
+			const leaf = new Leaf(
+				0,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+
+			leaf.flipPosition = 0.4;
+			const spy = vi.spyOn(leaf, "applyTransform");
+			leaf.setHoverShadow(0.2);
+
+			expect(spy).toHaveBeenCalledWith(0.4);
+		});
+	});
+
+	describe("applyTransform", () => {
+		describe("shadow calculations", () => {
+			it("sets shadow progress to zero at position 0", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0);
+
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+			});
+
+			it("sets shadow progress to max at position 0.5", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.5);
+
+				// sin(0.5 * PI) = 1, shadowStrength = min(1, 1 * 1.1) = 1
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-shadow")).toBe("1.000");
+			});
+
+			it("sets shadow progress to zero at position 1", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(1);
+
+				// sin(1 * PI) ≈ 0
+				expect(
+					Number.parseFloat(mockPage1.style.getPropertyValue("--inner-shadow-shadow")),
+				).toBeCloseTo(0, 2);
+			});
+
+			it("uses hoverShadow when greater than flip shadow", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.setHoverShadow(0.8);
+				// At position 0, shadowFromFlip = 0, so hoverShadow (0.8) is used
+				// shadowStrength = min(1, 0.8 * 1.1) = 0.88
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.880");
+			});
+		});
+
+		describe("highlight calculations", () => {
+			it("sets highlight strength based on shadow progress", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.5);
+
+				// shadowProgress = 1, highlightStrength = min(1, 1 * 0.9) = 0.9
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-highlight")).toBe("0.900");
+			});
+		});
+
+		describe("lift calculations", () => {
+			it("sets lift to 0 at position 0", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0);
+
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-lift")).toBe("0.000px");
+			});
+
+			it("sets lift to max at position 0.5", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.5);
+
+				// shadowProgress = 1, lift = 1 * 8 = 8
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-lift")).toBe("8.000px");
+			});
+		});
+
+		describe("edge direction", () => {
+			it("sets edge to right for LTR odd page", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					{ ...defaultBookProperties, isLTR: true },
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.25);
+
+				// odd page (index 0), LTR: origin=left, edge=right
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-edge")).toBe("right");
+			});
+
+			it("sets edge to left for LTR even page", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					{ ...defaultBookProperties, isLTR: true },
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.25);
+
+				// even page (index 1), LTR: origin=right, edge=left
+				expect(mockPage2.style.getPropertyValue("--inner-shadow-edge")).toBe("left");
+			});
+
+			it("sets edge to left for RTL odd page", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					{ ...defaultBookProperties, isLTR: false },
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.25);
+
+				// odd page (index 0), RTL: origin=right, edge=left
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-edge")).toBe("left");
+			});
+
+			it("sets edge to right for RTL even page", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					{ ...defaultBookProperties, isLTR: false },
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(0.25);
+
+				// even page (index 1), RTL: origin=left, edge=right
+				expect(mockPage2.style.getPropertyValue("--inner-shadow-edge")).toBe("right");
+			});
+		});
+
+		describe("position clamping", () => {
+			it("clamps position above 1 to 1", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(1.5);
+
+				// Should be same as position 1
+				expect(
+					Number.parseFloat(mockPage1.style.getPropertyValue("--inner-shadow-shadow")),
+				).toBeCloseTo(0, 2);
+			});
+
+			it("clamps position below 0 to 0", () => {
+				const leaf = new Leaf(
+					0,
+					[mockPage1, mockPage2],
+					NOT_FLIPPED,
+					defaultBookProperties,
+					onTurnedMock,
+				);
+
+				leaf.applyTransform(-0.5);
+
+				// Should be same as position 0
+				expect(mockPage1.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+			});
+		});
+	});
 });

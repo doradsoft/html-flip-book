@@ -2,7 +2,6 @@
   position: absolute;
   backface-visibility: hidden;
   transform-style: preserve-3d;
-  --inner-shadow-progress: 0;
   --inner-shadow-shadow: 0;
   --inner-shadow-highlight: 0;
   --inner-shadow-lift: 0px;
@@ -23,6 +22,9 @@
   will-change: opacity, transform;
 }
 
+// Inner shadow: simulates shadow cast by lifted page onto the page below
+// - 0.35 opacity provides subtle but visible shadow
+// - 40% gradient stop creates a soft fade matching natural shadow falloff
 .page::before {
   background: linear-gradient(
     to var(--inner-shadow-edge),
@@ -34,6 +36,10 @@
   transform: translateZ(var(--inner-shadow-lift));
 }
 
+// Edge highlight: simulates light catching the lifted page edge
+// - 0.4 opacity balances visibility without washing out content
+// - 45% gradient stop slightly wider than shadow for realistic light spread
+// - 0.6 lift multiplier places highlight closer to page than shadow
 .page::after {
   background: linear-gradient(
     to var(--inner-shadow-edge),
