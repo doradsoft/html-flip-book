@@ -339,17 +339,6 @@ jobs:
       released: ${{ steps.check_tag.outputs.exists == 'false' }}
       tag: ${{ steps.version.outputs.tag }}
 
-  # ============================================================================
-  # Publish Job - Trigger CD workflow after release is created
-  # ============================================================================
-  publish:
-    name: Publish
-    needs: release
-    if: needs.release.outputs.released == 'true'
-    uses: ./.github/workflows/cd.yml
-    with:
-      tag: ${{ needs.release.outputs.tag }}
-    secrets: inherit
-    permissions:
-      contents: read
-      id-token: write
+  # Note: Publishing is handled by cicd.yml, which is triggered automatically
+  # when softprops/action-gh-release creates a new GitHub release above.
+  # This ensures OIDC tokens are issued with the correct ref (tag) for npm trusted publishing.
