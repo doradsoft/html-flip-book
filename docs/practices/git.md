@@ -20,7 +20,7 @@ The repository uses pre-commit hooks managed by [pre-commit](https://pre-commit.
 | check-case-conflict  | Detects case-insensitive filename conflicts  |
 | check-merge-conflict | Detects unresolved merge conflicts           |
 | mixed-line-ending    | Enforces consistent line endings             |
-| verify-versions-sync | Ensures all package.json versions match      |
+| verify-version       | Ensures versions are in sync and bumped      |
 | biome                | Runs Biome linter/formatter on staged files  |
 
 ### Setup
@@ -60,3 +60,32 @@ Copilot and agents follow the same workflow as above but should:
 
 - Always create a new branch for each feature or fix
 - Only @DoradSoft can merge PRs unless explicitly delegated to do so
+
+## Version Verification
+
+The repository enforces version bumping before releases at two levels:
+
+### Pre-commit Hook (Local)
+
+The `verify-version-bump` hook runs locally and warns if your version is not greater than the latest released version. This is a soft check - you can bypass it with `--no-verify`.
+
+### CI Verification (Enforced)
+
+On pull requests, the **Verify Version Bump** CI job enforces that the version in `package.json` is greater than the latest git tag. This cannot be bypassed and will block merging.
+
+### How to Bump Version
+
+Before merging a PR, bump the version:
+
+```bash
+# In root directory
+cd base && npm version patch --no-git-tag-version  # for bug fixes
+cd base && npm version minor --no-git-tag-version  # for new features
+cd base && npm version major --no-git-tag-version  # for breaking changes
+
+# Then sync other packages
+cd ../react && npm version <same-version> --no-git-tag-version
+cd example && npm version <same-version> --no-git-tag-version
+```
+
+The `verify-versions-sync` hook ensures all package.json files have matching versions.

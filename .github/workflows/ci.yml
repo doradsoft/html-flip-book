@@ -32,6 +32,33 @@ jobs:
         run: echo "version=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'])")" >> $GITHUB_OUTPUT
 
   # ============================================================================
+  # Verify Version Job - Ensure version is bumped before merge (PR only)
+  # ============================================================================
+  verify-version:
+    name: Verify Version Bump
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for git tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify Version
+        run: npx tsx scripts/verify-version.mts
+
+  # ============================================================================
   # Lint Job - Fast feedback on code quality
   # ============================================================================
   lint:
