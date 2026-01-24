@@ -346,7 +346,7 @@ jobs:
     name: Publish
     needs: release
     if: needs.release.outputs.released == 'true'
-    uses: ./.github/workflows/cd.yml
+    uses: ./.github/workflows/cicd.yml
     with:
       tag: ${{ needs.release.outputs.tag }}
     secrets: inherit
