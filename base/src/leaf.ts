@@ -2,6 +2,13 @@ import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
 
+/** Multiplier for shadow intensity (slightly stronger than base) */
+const SHADOW_STRENGTH_MULTIPLIER = 1.1;
+/** Multiplier for highlight intensity (slightly weaker than base) */
+const HIGHLIGHT_STRENGTH_MULTIPLIER = 0.9;
+/** Maximum lift in pixels for the shadow effect */
+const SHADOW_LIFT_PX = 8;
+
 // number between 1 to infinity
 export type DegreesPerSecond = IntRange<1, typeof Infinity>;
 export type FlipPosition = IntRange<0, 2>;
@@ -11,6 +18,7 @@ export class Leaf {
 	private currentAnimation: Promise<void> | null = null;
 	private targetFlipPosition: FlipPosition | null = null;
 	private wrappedFlipPosition: number;
+	private hoverShadow = 0;
 
 	constructor(
 		readonly index: number,
@@ -52,6 +60,13 @@ export class Leaf {
 		return this.wrappedFlipPosition;
 	}
 
+	setHoverShadow(progress: number): void {
+		const clamped = Math.max(0, Math.min(1, progress));
+		if (this.hoverShadow === clamped) return;
+		this.hoverShadow = clamped;
+		this.applyTransform(this.flipPosition);
+	}
+
 	async flipToPosition(
 		flipPosition: FlipPosition,
 		velocity: DegreesPerSecond = 225 as DegreesPerSecond,
@@ -87,40 +102,7 @@ export class Leaf {
 				const progress = Math.min(elapsed / duration, 1);
 				const newPosition = currentFlipPosition + progress * (flipPosition - currentFlipPosition);
 
-				this.pages.forEach((page, index) => {
-					const isLTR = this.bookProperties.isLTR;
-					if (page) {
-						const isOdd = (index % 2) + 1 === 1;
-						const degrees = isOdd
-							? isLTR
-								? newPosition > 0.5
-									? 180 - newPosition * 180
-									: -newPosition * 180
-								: newPosition > 0.5
-									? -(180 - newPosition * 180)
-									: newPosition * 180
-							: isLTR
-								? newPosition < 0.5
-									? -newPosition * 180
-									: 180 - newPosition * 180
-								: newPosition < 0.5
-									? newPosition * 180
-									: -(180 - newPosition * 180);
-						const rotateY = `${degrees}deg`;
-						const translateX = `${isOdd ? (isLTR ? `100%` : `-100%`) : isLTR ? `0px` : `0px`}`;
-						const scaleX = isOdd ? (newPosition > 0.5 ? -1 : 1) : newPosition < 0.5 ? -1 : 1;
-						page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
-						// console.log(page.style.transform);
-						page.style.transformOrigin = isOdd
-							? `${isLTR ? "left" : "right"}`
-							: `${isLTR ? "right" : "left"}`;
-						page.style.zIndex = `${
-							newPosition > 0.5
-								? page.dataset.pageIndex
-								: this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
-						}`;
-					}
-				});
+				this.applyTransform(newPosition);
 
 				// Ensure the new position is within valid bounds [0, 1]
 				this.flipPosition = Math.max(0, Math.min(1, newPosition)) as FlipPosition;
@@ -152,5 +134,53 @@ export class Leaf {
 		velocity: DegreesPerSecond = 20000 as DegreesPerSecond,
 	) {
 		return throttle(1, this.flipToPosition.bind(this))(flipPosition, velocity);
+	}
+
+	applyTransform(position: number): void {
+		const clampedPosition = Math.max(0, Math.min(1, position));
+		const shadowFromFlip = Math.sin(clampedPosition * Math.PI);
+		const shadowProgress = Math.max(shadowFromFlip, this.hoverShadow);
+		const shadowStrength = Math.min(1, shadowProgress * SHADOW_STRENGTH_MULTIPLIER);
+		const highlightStrength = Math.min(1, shadowProgress * HIGHLIGHT_STRENGTH_MULTIPLIER);
+		const lift = `${(shadowProgress * SHADOW_LIFT_PX).toFixed(3)}px`;
+
+		this.pages.forEach((page, index) => {
+			const isLTR = this.bookProperties.isLTR;
+			if (!page) return;
+
+			const isOdd = (index % 2) + 1 === 1;
+			const degrees = isOdd
+				? isLTR
+					? clampedPosition > 0.5
+						? 180 - clampedPosition * 180
+						: -clampedPosition * 180
+					: clampedPosition > 0.5
+						? -(180 - clampedPosition * 180)
+						: clampedPosition * 180
+				: isLTR
+					? clampedPosition < 0.5
+						? -clampedPosition * 180
+						: 180 - clampedPosition * 180
+					: clampedPosition < 0.5
+						? clampedPosition * 180
+						: -(180 - clampedPosition * 180);
+			const rotateY = `${degrees}deg`;
+			const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : "0px"}`;
+			const scaleX = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
+			const origin = isOdd ? (isLTR ? "left" : "right") : isLTR ? "right" : "left";
+			const edge = origin === "left" ? "right" : "left";
+
+			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+			page.style.transformOrigin = origin;
+			page.style.zIndex = `${
+				clampedPosition > 0.5
+					? page.dataset.pageIndex
+					: this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
+			}`;
+			page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
+			page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
+			page.style.setProperty("--inner-shadow-lift", lift);
+			page.style.setProperty("--inner-shadow-edge", edge);
+		});
 	}
 }

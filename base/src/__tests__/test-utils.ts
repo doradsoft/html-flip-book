@@ -8,6 +8,7 @@ import type { FlipPosition, Leaf } from "../leaf";
 interface LeafTestable {
 	currentAnimation: Promise<void> | null;
 	targetFlipPosition: FlipPosition | null;
+	hoverShadow: number;
 }
 
 interface MockLeaf {

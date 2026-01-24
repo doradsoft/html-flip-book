@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Skip to last page now properly closes the book in reversed position (showing only the back cover)
+- Subtle hover inner-shadow effect with dynamic shadow/highlight to preview page turns
 
 ### Fixed
 
