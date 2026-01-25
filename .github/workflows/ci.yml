@@ -262,12 +262,21 @@ jobs:
           retention-days: 30
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: .coverage/merged/lcov.info
           flags: base,react
           fail_ci_if_error: true
+
+      - name: Upload Coverage to Codacy
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -fLsS https://coverage.codacy.com/get.sh -o /tmp/codacy-coverage.sh
+          bash /tmp/codacy-coverage.sh report -r .coverage/merged/lcov.info
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
   # ============================================================================
   # Deploy Job - Only on master push

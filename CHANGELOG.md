@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Skip to last page now properly closes the book in reversed position (showing only the back cover)
 - Subtle hover inner-shadow effect with dynamic shadow/highlight to preview page turns
-- Codecov integration for code coverage reporting on PRs
 
 ### Fixed
 
@@ -36,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added codecov.yml configuration with coverage thresholds and PR comments
 - Added Codecov badge to README.md
 - Integrated codecov/codecov-action@v5 in CI workflow
+- Added Codacy coverage upload step in CI workflow
+- Added Codacy badge to README.md
 
 ---
 

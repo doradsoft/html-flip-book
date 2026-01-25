@@ -5,19 +5,21 @@ coverage:
   status:
     project:
       default:
-        target: 60%
+        target: 65%
         threshold: 5%
       base:
-        target: 70%
+        target: 75%
+        threshold: 5%
         flags:
           - base
       react:
-        target: 60%
+        target: 65%
+        threshold: 5%
         flags:
           - react
     patch:
       default:
-        target: 60%
+        target: 65%
         threshold: 5%
 
 comment:
