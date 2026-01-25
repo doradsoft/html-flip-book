@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated codecov/codecov-action@v5 in CI workflow
 - Added Codacy coverage upload step in CI workflow
 - Added Codacy badge to README.md
+- Removed flaky E2E test "fast swipe before middle completes" (already covered in mocked velocity-threshold tests)
 
 ---
 
