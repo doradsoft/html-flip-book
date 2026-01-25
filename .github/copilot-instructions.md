@@ -30,10 +30,11 @@ See [docs/practices/](../docs/practices/) for detailed guidelines:
 
 ### Git Workflow (for Copilot/Agents)
 
-1. Always check for PII before committing
-2. After committing, check `git status` for any auto-fix changes
-3. If changes exist, stage and amend automatically
-4. Verify clean working tree before pushing
+1. **Always sync master before creating branches**: Fetch latest and branch from `github/master` unless explicitly requested otherwise
+2. Always check for PII before committing
+3. After committing, check `git status` for any auto-fix changes
+4. If changes exist, stage and amend automatically
+5. Verify clean working tree before pushing
 
 ### Testing
 
