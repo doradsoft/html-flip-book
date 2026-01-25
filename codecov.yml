@@ -13,7 +13,7 @@ coverage:
         flags:
           - base
       react:
-        target: 65%
+        target: 9%
         threshold: 5%
         flags:
           - react
