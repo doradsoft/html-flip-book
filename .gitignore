@@ -117,4 +117,8 @@ react/dist
 # IDE files
 .idea
 *.code-workspace
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 reference_flutter_flip_book/

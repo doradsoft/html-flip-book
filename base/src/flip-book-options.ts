@@ -1,13 +1,32 @@
 import type { AspectRatio } from "./aspect-ratio";
 import type { PageSemantics } from "./page-semantics";
 
+/**
+ * Configuration options for creating a FlipBook instance.
+ *
+ * @example
+ * ```typescript
+ * const flipBook = new FlipBook({
+ *   pagesCount: 10,
+ *   direction: 'ltr',
+ *   leafAspectRatio: { width: 2, height: 3 },
+ * });
+ * ```
+ */
 export interface FlipBookOptions {
+	/** Total number of pages in the book */
 	pagesCount: number;
+	/** Aspect ratio for inner pages. Default: { width: 2, height: 3 } */
 	leafAspectRatio?: AspectRatio;
+	/** Aspect ratio for cover pages. Default: { width: 2.15, height: 3.15 } */
 	coverAspectRatio?: AspectRatio;
+	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left). Default: 'ltr' */
 	direction?: "rtl" | "ltr";
+	/** Padding around the book */
 	padding?: number;
+	/** Define which pages are covers for special styling */
 	pageSemantics?: PageSemantics;
+	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
 	fastDeltaThreshold?: number;

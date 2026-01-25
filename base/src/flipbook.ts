@@ -27,6 +27,26 @@ interface FlipState {
 	delta: number;
 	isDuringAutoFlip: boolean;
 }
+
+/**
+ * Core FlipBook class for creating realistic page-flip animations.
+ *
+ * @example
+ * ```typescript
+ * import { FlipBook } from 'html-flip-book-vanilla';
+ *
+ * const flipBook = new FlipBook({
+ *   pagesCount: 10,
+ *   direction: 'ltr',
+ * });
+ *
+ * flipBook.render('#book-container');
+ *
+ * // Navigate programmatically
+ * await flipBook.flipNext();
+ * await flipBook.goToPage(5);
+ * ```
+ */
 class FlipBook {
 	bookElement?: HTMLElement;
 	private pageElements: HTMLElement[] = [];

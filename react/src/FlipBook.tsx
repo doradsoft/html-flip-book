@@ -4,8 +4,15 @@ import { Children, forwardRef, useEffect, useImperativeHandle, useRef } from "re
 
 /**
  * Imperative handle exposed via ref for programmatic control of the FlipBook.
+ *
+ * @example
+ * ```tsx
+ * const ref = useRef<FlipBookHandle>(null);
+ * // Later:
+ * await ref.current?.flipNext();
+ * ```
  */
-interface FlipBookHandle {
+export interface FlipBookHandle {
 	/** Animate flip to the next page */
 	flipNext: () => Promise<void>;
 	/** Animate flip to the previous page */
@@ -24,11 +31,19 @@ interface FlipBookHandle {
 	isLastPage: () => boolean;
 }
 
-interface FlipBookWrapperProps {
+/**
+ * Props for the FlipBook React component.
+ */
+export interface FlipBookProps {
+	/** Array of React elements to render as pages */
 	pages: React.ReactNode[];
+	/** CSS class name for the flipbook container */
 	className: string;
+	/** Define which pages are covers for special styling */
 	pageSemantics?: PageSemantics;
+	/** Enable debug mode */
 	debug?: boolean;
+	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left) */
 	direction?: "rtl" | "ltr";
 	/** Indices of leaves that should start in the turned (flipped) state */
 	initialTurnedLeaves?: number[];
@@ -42,7 +57,27 @@ interface FlipBookWrapperProps {
 	leavesBuffer?: number;
 }
 
-const FlipBookReact = forwardRef<FlipBookHandle, FlipBookWrapperProps>(
+/**
+ * A React component for creating realistic page-flip animations.
+ *
+ * @example
+ * ```tsx
+ * import { FlipBook } from 'html-flip-book-react';
+ *
+ * function App() {
+ *   const ref = useRef<FlipBookHandle>(null);
+ *   return (
+ *     <FlipBook
+ *       ref={ref}
+ *       pages={[<div>Page 1</div>, <div>Page 2</div>]}
+ *       className="my-book"
+ *       direction="ltr"
+ *     />
+ *   );
+ * }
+ * ```
+ */
+const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 	(
 		{
 			pages,
@@ -111,4 +146,4 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookWrapperProps>(
 FlipBookReact.displayName = "FlipBook";
 
 export { FlipBookReact as FlipBook };
-export type { FlipBookHandle, PageSemantics };
+export type { PageSemantics };

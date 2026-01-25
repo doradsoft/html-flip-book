@@ -61,11 +61,4 @@ npm install html-flip-book-react
 - [ ] Vue component
 - [ ] Angular component
 
-## DevOps
-
-- [x] GitHub Actions CI/CD
-- [x] Auto deploy to GitHub Pages
-- [x] Auto publish to npm (on release)
-- [x] API documentation (TypeDoc)
-
 ## Bugs
