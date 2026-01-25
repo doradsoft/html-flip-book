@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import { test as clockedTest } from "./fixtures/clocked-test";
 
 /**
  * Simplified tests for first page flip
@@ -55,45 +54,9 @@ test.describe("First Page Flip - LTR", () => {
 		await expect(firstPage).toHaveClass(/current-page/);
 	});
 
-	// Uses clockedTest fixture which auto-skips on mobile and pre-installs clock
-	// This scenario is also covered in mocked/velocity-threshold.spec.ts
-	clockedTest("fast swipe before middle completes", async ({ clockedPage: page }) => {
-		await page.goto("/");
-		await page.waitForSelector(".en-book.flipbook .page");
-
-		const flipbook = page.locator(".en-book.flipbook");
-		await expect(flipbook).toBeVisible();
-
-		const firstPage = flipbook.locator(".page").first();
-		await expect(firstPage).toHaveClass(/current-page/);
-
-		const box = await flipbook.boundingBox();
-		if (!box) throw new Error("Flipbook not found");
-
-		// Fast swipe - drag from right side toward middle with clock advancing between moves
-		const startX = box.x + box.width * 0.9;
-		const endX = box.x + box.width * 0.4; // 50% movement (before middle) but fast
-		const y = box.y + box.height / 2;
-
-		await page.mouse.move(startX, y);
-		await page.mouse.down();
-
-		// Fast movement - advance clock minimally between steps to simulate high velocity
-		const steps = 2;
-		for (let i = 1; i <= steps; i++) {
-			const progress = i / steps;
-			await page.mouse.move(startX + (endX - startX) * progress, y);
-			await page.clock.runFor(5); // Only 5ms per step = high velocity
-		}
-
-		await page.mouse.up();
-
-		// Advance time for animation to complete
-		await page.clock.runFor(1000);
-
-		// Fast swipe should complete the flip
-		await expect(firstPage).not.toHaveClass(/current-page/);
-	});
+	// NOTE: "fast swipe before middle completes" test was removed from here
+	// as it was flaky and is properly covered in mocked/velocity-threshold.spec.ts
+	// which provides deterministic clock control for velocity-based tests
 
 	test("no movement returns to start", async ({ page }) => {
 		await page.goto("/");
