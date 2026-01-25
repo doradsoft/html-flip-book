@@ -1,7 +1,8 @@
 # HTML Flip Book
 
 [![Continuous Integration](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml/badge.svg)](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml?query=branch%3Amaster)
-[![Coverage](https://codecov.io/gh/DoradSoft/html-flip-book/branch/master/graph/badge.svg)](https://codecov.io/gh/DoradSoft/html-flip-book)
+[![Codecov](https://codecov.io/gh/DoradSoft/html-flip-book/branch/master/graph/badge.svg)](https://codecov.io/gh/DoradSoft/html-flip-book)
+[![Codacy Grade](https://app.codacy.com/project/badge/Grade/87a9b9d4c81b49b8b49115c4ac7ec486)](https://app.codacy.com/gh/DoradSoft/html-flip-book/dashboard)
 
 A TypeScript library for creating realistic page-flip animations in the browser.
 
