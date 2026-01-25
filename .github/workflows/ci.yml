@@ -334,11 +334,12 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
+          token: ${{ secrets.BOT_PAT }}
 
     outputs:
       released: ${{ steps.check_tag.outputs.exists == 'false' }}
       tag: ${{ steps.version.outputs.tag }}
 
-  # Note: Publishing is handled by cicd.yml, which is triggered automatically
-  # when softprops/action-gh-release creates a new GitHub release above.
-  # This ensures OIDC tokens are issued with the correct ref (tag) for npm trusted publishing.
+  # Note: Publishing is handled by cd.yml, which is triggered automatically
+  # when the release is created above. Using BOT_PAT ensures the release event
+  # triggers the CD workflow (GITHUB_TOKEN doesn't trigger other workflows).
