@@ -1,61 +1,71 @@
 # HTML Flip Book
 
-[![Continuous Integration](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml/badge.svg)](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml?query=branch%3Amaster)
+[![CI](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml/badge.svg)](https://github.com/DoradSoft/html-flip-book/actions/workflows/ci.yml?query=branch%3Amaster)
+[![CD](https://github.com/DoradSoft/html-flip-book/actions/workflows/cd.yml/badge.svg)](https://github.com/DoradSoft/html-flip-book/actions/workflows/cd.yml)
 [![Codecov](https://codecov.io/gh/DoradSoft/html-flip-book/branch/master/graph/badge.svg)](https://codecov.io/gh/DoradSoft/html-flip-book)
 [![Codacy Grade](https://app.codacy.com/project/badge/Grade/87a9b9d4c81b49b8b49115c4ac7ec486)](https://app.codacy.com/gh/DoradSoft/html-flip-book/dashboard)
+[![Documentation](https://img.shields.io/badge/docs-API%20Reference-blue)](https://html-flip-book.readthedocs.io/)
+
+[![npm vanilla](https://img.shields.io/npm/v/html-flip-book-vanilla?label=vanilla)](https://www.npmjs.com/package/html-flip-book-vanilla)
+[![npm react](https://img.shields.io/npm/v/html-flip-book-react?label=react)](https://www.npmjs.com/package/html-flip-book-react)
 
 A TypeScript library for creating realistic page-flip animations in the browser.
 
+**[📖 Live Demo](https://doradsoft.github.io/html-flip-book/)** · **[📚 API Docs](https://html-flip-book.readthedocs.io/)**
+
+## Installation
+
+```bash
+# Vanilla JavaScript
+npm install html-flip-book-vanilla
+
+# React
+npm install html-flip-book-react
+```
+
 ## Features
 
-**Mandatory for production**
+### Core
 
-- [x] Horizontal flip direction - Both RTL and LTR
-- [x] Manual page flipping
-- [x] Automatic page flipping - based on velocity / based on progress
-- [x] Page flipping with mouse
-- [x] Page flipping with touch
-- [ ] Toolbar
+- **RTL & LTR Support** — Horizontal flip direction for both reading directions
+- **Touch & Mouse Input** — Drag pages with touch gestures or mouse
+- **Velocity-based Flipping** — Fast swipes complete the flip automatically
+- **Progress-based Flipping** — Partial drags complete based on progress threshold
+- **Concurrent Flip Animations** — Multiple pages can flip simultaneously
+- **Hover Effects** — Subtle inner-shadow preview on page edges
+- **Leaves Buffer** — Performance optimization for large books (only render nearby pages)
 
----
+### React Component
 
+- **Toolbar Components** — Pre-built navigation UI:
+  - `Toolbar` — Container component
+  - `PrevButton` / `NextButton` — Navigate pages
+  - `FirstPageButton` / `LastPageButton` — Jump to ends
+  - `PageIndicator` — Current page display
+  - `FullscreenButton` — Toggle fullscreen mode
+- **Imperative API** — `flipNext()`, `flipPrev()`, `goToPage()`, `jumpToPage()`
+- **Ref Handle** — Access current page index, total pages, navigation state
+
+### Examples
+
+- [Live Demo](https://doradsoft.github.io/html-flip-book/) — English (LTR) and Hebrew (RTL) books
+
+## Roadmap
+
+- [ ] Cover pages styling
 - [ ] Render on resize
-- [ ] Allow flipping during running flips
 - [ ] Internationalization
-- [ ] Animate page edges/corners
-- [ ] Curl animation
+- [ ] Curl animation / animated page edges
 - [ ] Lazy page building
 - [ ] Vertical flip direction
-- [ ] Implement Vue component
-- [ ] Implement Angular component
-- [ ] Allow scrolling of an overflowed element within page on the opposite axis
-      of the flip Examples
-
----
-
-**Madatory for production**
-
-- [x] English example
-- [ ] Hebrew example
-
----
-
-- [ ] add cover for English example
-- [ ] Complete vanilla example
-- [ ] Implement Vue example
-- [ ] Implement Angular example
+- [ ] Vue component
+- [ ] Angular component
 
 ## DevOps
 
-**Madatory for production**
-
-- [ ] Manual npm package
-
----
-
-- [ ] Documentation
-- [x] Github Actions
-- [x] Auto build and deploy to github.io
-- [ ] Auto build and deploy to npm
+- [x] GitHub Actions CI/CD
+- [x] Auto deploy to GitHub Pages
+- [x] Auto publish to npm (on release)
+- [x] API documentation (TypeDoc)
 
 ## Bugs

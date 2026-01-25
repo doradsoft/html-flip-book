@@ -1,6 +1,6 @@
 {
 	"name": "html-flip-book",
-	"version": "0.0.0-alpha.16",
+	"version": "0.0.0-alpha.17",
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -37,6 +37,7 @@
 		"check": "biome check .",
 		"ci-test": "vitest run --coverage && playwright test && npm run coverage:merge",
 		"all": "npm run check && npm run test:coverage && npm run build",
+		"docs": "typedoc",
 		"release": "tsx scripts/release.mts",
 		"release:patch": "tsx scripts/release.mts patch",
 		"release:minor": "tsx scripts/release.mts minor",
@@ -65,6 +66,7 @@
 		"sass": "^1.97.2",
 		"semver": "^7.7.3",
 		"tsx": "^4.21.0",
+		"typedoc": "^0.28.16",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1",
 		"vite-plugin-dts": "^4.5.4",
