@@ -1,0 +1,37 @@
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 5%
+      base:
+        target: 70%
+        flags:
+          - base
+      react:
+        target: 60%
+        flags:
+          - react
+    patch:
+      default:
+        target: 60%
+        threshold: 5%
+
+comment:
+  layout: "reach, diff, flags, files, footer"
+  behavior: default
+  require_changes: false # if true: only post the comment if coverage changes
+  require_base: false # [true :: must have a base report to post]
+  require_head: false # [true :: must have a head report to post]
+  hide_project_coverage: false # [true :: only show coverage on the git diff aka patch coverage]
+
+flags:
+  base:
+    paths:
+      - base/src/
+  react:
+    paths:
+      - react/src/

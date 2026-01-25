@@ -261,6 +261,14 @@ jobs:
           path: .coverage/merged/lcov.info
           retention-days: 30
 
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: .coverage/merged/lcov.info
+          flags: base,react
+          fail_ci_if_error: true
+
   # ============================================================================
   # Deploy Job - Only on master push
   # ============================================================================
