@@ -1,0 +1,22 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"entryPoints": [
+		"./base/src/flipbook.ts",
+		"./react/src/FlipBook.tsx",
+		"./react/src/toolbar/index.ts"
+	],
+	"out": "./docs-dist",
+	"name": "HTML Flip Book",
+	"readme": "./README.md",
+	"includeVersion": true,
+	"categorizeByGroup": true,
+	"navigationLinks": {
+		"Demo": "https://doradsoft.github.io/html-flip-book/",
+		"GitHub": "https://github.com/DoradSoft/html-flip-book"
+	},
+	"projectDocuments": ["./docs/guides/*.md"],
+	"exclude": ["**/__tests__/**", "**/node_modules/**"],
+	"excludePrivate": true,
+	"excludeProtected": true,
+	"skipErrorChecking": true
+}
