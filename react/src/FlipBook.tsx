@@ -1,6 +1,6 @@
 import { FlipBook as FlipBookBase, type PageSemantics } from "html-flip-book-vanilla";
 import type React from "react";
-import { Children, forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
 /**
  * Imperative handle exposed via ref for programmatic control of the FlipBook.
@@ -91,6 +91,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		},
 		ref,
 	) => {
+		const [currentPageIndex, setCurrentPageIndex] = useState(0);
+		const setPageIndexRef = useRef(setCurrentPageIndex);
+		setPageIndexRef.current = setCurrentPageIndex;
+
 		const flipBook = useRef(
 			new FlipBookBase({
 				pageSemantics: pageSemantics,
@@ -99,6 +103,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				initialTurnedLeaves: initialTurnedLeaves,
 				fastDeltaThreshold: fastDeltaThreshold,
 				leavesBuffer: leavesBuffer,
+				onPageChanged: (index: number) => setPageIndexRef.current?.(index),
 			}),
 		);
 
@@ -121,6 +126,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		useEffect(() => {
 			const currentFlipBook = flipBook.current;
 			currentFlipBook.render(`.${className}`, debug);
+			setCurrentPageIndex(currentFlipBook.currentPageIndex);
 
 			// Cleanup function to destroy Hammer instance and event listeners
 			return () => {
@@ -130,12 +136,36 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 
 		// Use Children.toArray to get stable keys for each page element
 		const pagesWithKeys = Children.toArray(pages);
+		const totalPages = pagesWithKeys.length;
+
+		// When leavesBuffer is set, only mount content for pages within the buffer (keep .page wrappers for layout).
+		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
+		const contentByIndex =
+			leavesBuffer != null && totalPages > 0
+				? (() => {
+						const currentLeaf = Math.floor(currentPageIndex / 2);
+						const leavesCount = Math.ceil(totalPages / 2);
+						const margin = 2; // extra leaves each side so content exists when vanilla reveals them
+						const leafStart = Math.max(0, currentLeaf - leavesBuffer - margin);
+						const leafEnd = Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin);
+						const pageStart = leafStart * 2;
+						const pageEnd = Math.min(totalPages - 1, leafEnd * 2 + 1);
+						const inRange = new Set(
+							Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i),
+						);
+						return (index: number) => (inRange.has(index) ? pagesWithKeys[index] : null);
+					})()
+				: (index: number) => pagesWithKeys[index];
 
 		return (
 			<div className={className}>
-				{pagesWithKeys.map((page) => (
-					<div key={(page as React.ReactElement).key} className="page">
-						{page}
+				{pagesWithKeys.map((_, index) => (
+					<div
+						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness
+						key={`page-${index}`}
+						className="page"
+					>
+						{contentByIndex(index)}
 					</div>
 				))}
 			</div>
@@ -147,3 +177,5 @@ FlipBookReact.displayName = "FlipBook";
 
 export { FlipBookReact as FlipBook };
 export type { PageSemantics };
+export type { TocEntry, TocPageProps } from "./TocPage";
+export { TocPage } from "./TocPage";

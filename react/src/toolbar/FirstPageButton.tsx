@@ -13,11 +13,14 @@ interface FirstPageButtonProps {
  * Button to navigate to the first page.
  */
 const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isFirstPage } = useToolbar();
+	const { flipBookRef, isFirstPage, direction } = useToolbar();
 
 	const handleClick = () => {
 		flipBookRef.current?.jumpToPage(0);
 	};
+
+	// In RTL, "first" page is on the right; use icon pointing right so it matches visual direction
+	const defaultIcon = direction === "rtl" ? "⏭" : "⏮";
 
 	return (
 		<ToolbarButton
@@ -26,7 +29,7 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 			disabled={isFirstPage}
 			className={`flipbook-toolbar-first ${className ?? ""}`.trim()}
 		>
-			{children ?? "⏮"}
+			{children ?? defaultIcon}
 		</ToolbarButton>
 	);
 };

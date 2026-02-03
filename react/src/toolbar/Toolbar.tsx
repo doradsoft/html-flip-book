@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
-import type { FlipBookHandle } from "../FlipBook";
+import type { FlipBookHandle, PageSemantics } from "../FlipBook";
 import { ToolbarContext } from "./ToolbarContext";
 import "./Toolbar.css";
 
@@ -9,9 +9,11 @@ interface ToolbarProps {
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
 	/** Text direction for button layout. Defaults to "ltr" */
 	direction?: "ltr" | "rtl";
+	/** Optional page semantics for semantic indicator (e.g. perek/chapter) */
+	pageSemantics?: PageSemantics;
 	/** Additional CSS class name */
 	className?: string;
-	/** Toolbar children (buttons, indicators, etc.) */
+	/** Toolbar children in reading order: First, Prev, Indicator, Next, Last */
 	children: React.ReactNode;
 }
 
@@ -22,6 +24,7 @@ interface ToolbarProps {
 const Toolbar: React.FC<ToolbarProps> = ({
 	flipBookRef,
 	direction = "ltr",
+	pageSemantics,
 	className = "",
 	children,
 }) => {
@@ -54,6 +57,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			value={{
 				flipBookRef,
 				direction,
+				pageSemantics,
 				currentPage,
 				totalPages,
 				isFirstPage,
@@ -61,9 +65,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			}}
 		>
 			<div
-				className={`flipbook-toolbar ${direction === "rtl" ? "flipbook-toolbar--rtl" : ""} ${className}`.trim()}
+				className={`flipbook-toolbar ${className}`.trim()}
 				role="toolbar"
 				aria-label="FlipBook navigation"
+				dir={direction}
 			>
 				{children}
 			</div>

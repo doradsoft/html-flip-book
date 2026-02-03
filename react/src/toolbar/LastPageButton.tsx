@@ -13,11 +13,14 @@ interface LastPageButtonProps {
  * Button to navigate to the last page.
  */
 const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isLastPage, totalPages } = useToolbar();
+	const { flipBookRef, isLastPage, totalPages, direction } = useToolbar();
 
 	const handleClick = () => {
 		flipBookRef.current?.jumpToPage(totalPages - 1);
 	};
+
+	// In RTL, "last" page is on the left; use icon pointing left so it matches visual direction
+	const defaultIcon = direction === "rtl" ? "⏮" : "⏭";
 
 	return (
 		<ToolbarButton
@@ -26,7 +29,7 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 			disabled={isLastPage}
 			className={`flipbook-toolbar-last ${className ?? ""}`.trim()}
 		>
-			{children ?? "⏭"}
+			{children ?? defaultIcon}
 		</ToolbarButton>
 	);
 };

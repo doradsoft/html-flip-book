@@ -1,0 +1,68 @@
+.toc-page {
+	background-color: #fffef8;
+	padding: 8% 6%;
+	font-family: Georgia, "Times New Roman", serif;
+	line-height: 1.6;
+	height: 100%;
+	box-sizing: border-box;
+	overflow-y: auto;
+}
+
+.toc-heading {
+	text-align: center;
+	margin-bottom: 24px;
+	color: #2c1810;
+	font-size: 1.4rem;
+	border-bottom: none;
+}
+
+.toc-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.toc-list li {
+	margin-bottom: 8px;
+}
+
+.toc-link {
+	display: flex;
+	align-items: baseline;
+	width: 100%;
+	padding: 8px 4px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: inherit;
+	text-align: inherit;
+	color: inherit;
+	transition: background-color 0.15s ease;
+}
+
+.toc-link:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.toc-link:focus {
+	outline: 2px solid #1a3a5c;
+	outline-offset: 2px;
+}
+
+.toc-title {
+	flex-shrink: 0;
+}
+
+.toc-dots {
+	flex-grow: 1;
+	border-bottom: 1px dotted #999;
+	margin: 0 8px;
+	min-width: 20px;
+}
+
+.toc-page-num {
+	flex-shrink: 0;
+	font-weight: 600;
+	color: #1a3a5c;
+}

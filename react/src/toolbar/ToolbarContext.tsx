@@ -1,10 +1,11 @@
 import type React from "react";
 import { createContext, useContext } from "react";
-import type { FlipBookHandle } from "../FlipBook";
+import type { FlipBookHandle, PageSemantics } from "../FlipBook";
 
 interface ToolbarContextValue {
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
 	direction: "ltr" | "rtl";
+	pageSemantics?: PageSemantics;
 	currentPage: number;
 	totalPages: number;
 	isFirstPage: boolean;

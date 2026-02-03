@@ -70,9 +70,17 @@ class FlipBook {
 	private isDragging = false;
 	private hoveredLeaf: Leaf | undefined;
 	touchStartingPos = { x: 0, y: 0 };
+	/** True when the current touch started inside a [data-flipbook-no-flip] element (e.g. carousel). */
+	private touchStartedInNoFlipZone = false;
 	private prevVisiblePageIndices: [number] | [number, number] | undefined;
 	// Hammer instance for cleanup
 	private hammer: HammerManager | undefined;
+
+	private static readonly NO_FLIP_SELECTOR = "[data-flipbook-no-flip]";
+
+	private isInsideNoFlipZone(el: EventTarget | null): boolean {
+		return el instanceof Element && el.closest(FlipBook.NO_FLIP_SELECTOR) != null;
+	}
 	private get isLTR(): boolean {
 		return this.direction === "ltr";
 	}
@@ -362,6 +370,10 @@ class FlipBook {
 	}
 
 	private onDragStart(event: HammerInput) {
+		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
+		if (this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) {
+			return;
+		}
 		// Allow starting a new flip even if others are in auto-flip mode
 		// Only block if we already have a manual flip in progress
 		if (this.currentManualFlip) {
@@ -505,17 +517,21 @@ class FlipBook {
 		}
 		const touch = e.touches[0];
 		this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
+		this.touchStartedInNoFlipZone = this.isInsideNoFlipZone(e.target);
 	};
 
 	private handleTouchMove = (e: TouchEvent) => {
 		if (e.touches.length > 1) {
 			return;
 		}
+		// Allow horizontal scroll (e.g. carousel) when touch started inside a no-flip zone
+		if (this.touchStartedInNoFlipZone) {
+			return;
+		}
 		const touch = e.touches[0];
 		const deltaX = touch.pageX - this.touchStartingPos.x;
 		const deltaY = touch.pageY - this.touchStartingPos.y;
 		// only allow vertical scrolling, as if allowing horizontal scrolling, it will interfere with the flip gesture (for touch devices)
-		// TODO: allow horizontal scrolling if the user is not trying to flip, say if is scrolling an overflowed element
 		if (Math.abs(deltaX) > Math.abs(deltaY)) {
 			e.preventDefault();
 		}
@@ -593,6 +609,10 @@ class FlipBook {
 		}
 		// Update leaves buffer visibility after turn completes
 		this.updateLeavesBufferVisibility();
+		// Notify React/consumer so content buffer can update (e.g. mount content for new visible range)
+		if (this.onPageChanged) {
+			this.onPageChanged(this.currentPageIndex);
+		}
 		// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally.
 		// TODO: set prev-page / next-page classes for prev/next pages as accordingally
 	}

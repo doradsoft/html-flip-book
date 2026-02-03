@@ -12,6 +12,8 @@ export type { PageIndicatorProps } from "./PageIndicator";
 export { PageIndicator } from "./PageIndicator";
 export type { PrevButtonProps } from "./PrevButton";
 export { PrevButton } from "./PrevButton";
+export type { SemanticPageIndicatorProps } from "./SemanticPageIndicator";
+export { SemanticPageIndicator } from "./SemanticPageIndicator";
 export type { ToolbarProps } from "./Toolbar";
 export { Toolbar } from "./Toolbar";
 export type { ToolbarButtonProps } from "./ToolbarButton";
