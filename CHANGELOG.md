@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **react package**: Point `types` and `exports["."].types` to `FlipBook.d.ts` so consumers resolve declaration files correctly
 - **jumpToPage**: Now correctly handles jumping to the last page when it's an odd-indexed page, closing the book reversed
 - **flipNext/flipPrev race condition**: Prevented broken state when calling flipPrev during an active flipNext animation (or vice versa)
 

@@ -1,15 +1,15 @@
 {
 	"name": "html-flip-book-react",
 	"description": "Flip Book React Component",
-	"version": "0.0.0-alpha.18",
+	"version": "0.0.0-alpha.19",
 	"type": "module",
 	"author": "DoradSoft",
 	"main": "./dist/flip-book.js",
-	"types": "./dist/flip-book.d.ts",
+	"types": "./dist/FlipBook.d.ts",
 	"exports": {
 		".": {
 			"import": "./dist/flip-book.js",
-			"types": "./dist/flip-book.d.ts"
+			"types": "./dist/FlipBook.d.ts"
 		},
 		"./toolbar": {
 			"import": "./dist/toolbar/index.js",
