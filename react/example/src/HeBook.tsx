@@ -11,7 +11,7 @@ import {
 	PrevButton,
 	Toolbar,
 } from "html-flip-book-react/toolbar";
-import { type ReactElement, useEffect, useRef, useState } from "react";
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 
 // Import text files for Genesis (Bereshit)
 const textFiles = import.meta.glob("/assets/pages_data/he/*.txt", {
@@ -70,8 +70,28 @@ const hePageSemantics: PageSemantics = {
 	},
 };
 
+/** Parse URL parameters for test configuration */
+function useTestParams() {
+	return useMemo(() => {
+		const params = new URLSearchParams(window.location.search);
+		const initialTurnedLeaves = params.get("initialTurnedLeaves");
+		const fastDeltaThreshold = params.get("fastDeltaThreshold");
+
+		return {
+			initialTurnedLeaves: initialTurnedLeaves
+				? initialTurnedLeaves
+						.split(",")
+						.map(Number)
+						.filter((n) => !Number.isNaN(n))
+				: undefined,
+			fastDeltaThreshold: fastDeltaThreshold ? Number(fastDeltaThreshold) : undefined,
+		};
+	}, []);
+}
+
 export const HeBook = () => {
 	const [hePages, setHePages] = useState<ReactElement[]>([]);
+	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
 
 	useEffect(() => {
@@ -130,10 +150,13 @@ export const HeBook = () => {
 		<div className="book-wrapper" dir="rtl">
 			<FlipBook
 				ref={flipBookRef}
-				className="flip-book-he"
+				className="he-book"
 				pages={hePages}
 				direction="rtl"
 				pageSemantics={hePageSemantics}
+				debug={true}
+				initialTurnedLeaves={testParams.initialTurnedLeaves}
+				fastDeltaThreshold={testParams.fastDeltaThreshold}
 			/>
 			<Toolbar flipBookRef={flipBookRef} direction="rtl">
 				<FullscreenButton />
