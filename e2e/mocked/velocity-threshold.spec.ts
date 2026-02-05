@@ -81,6 +81,10 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await page.mouse.up();
 			// Flush event handlers before advancing animation clock
 			await page.evaluate(() => {});
+			// Two passes: first completes any pending drag animation,
+			// second completes the flip-to-target animation scheduled after it
+			await page.clock.runFor(1000);
+			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
 			// Fast velocity should complete the flip
@@ -236,6 +240,10 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			await page.mouse.up();
 			// Flush event handlers before advancing animation clock
+			await page.evaluate(() => {});
+			// Two passes: first completes any pending drag animation,
+			// second completes the flip-to-target animation scheduled after it
+			await page.clock.runFor(1000);
 			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
