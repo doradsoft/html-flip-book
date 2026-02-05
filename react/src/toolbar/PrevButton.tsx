@@ -1,5 +1,5 @@
 import type React from "react";
-import { ChevronLeftIcon } from "../icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
@@ -23,6 +23,10 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 	// In RTL, the visual "previous" is actually next in reading order
 	const label = direction === "rtl" ? "Next page" : "Previous page";
 
+	// In RTL, "previous" (lower page index) is toward the right, so use right-pointing icon
+	const defaultIcon =
+		direction === "rtl" ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />;
+
 	return (
 		<ToolbarButton
 			onClick={handleClick}
@@ -30,7 +34,7 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 			disabled={isFirstPage}
 			className={`flipbook-toolbar-prev ${className ?? ""}`.trim()}
 		>
-			{children ?? <ChevronLeftIcon size={20} />}
+			{children ?? defaultIcon}
 		</ToolbarButton>
 	);
 };

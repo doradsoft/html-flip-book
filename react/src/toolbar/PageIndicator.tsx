@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToolbar } from "./ToolbarContext";
 
 type PageIndicatorMode = "semantic" | "index";
@@ -49,6 +49,11 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 
 	const [inputValue, setInputValue] = useState("");
 	const [isEditing, setIsEditing] = useState(false);
+	// Tracks whether a navigation just occurred via Enter key.
+	// Prevents the stale primarySemanticName from flashing in the input
+	// during the brief window before Toolbar polling updates currentPage.
+	const justNavigatedRef = useRef(false);
+	const prevCurrentPageRef = useRef(currentPage);
 
 	// Calculate the spread pages (current page and its facing page)
 	const leftPageIndex = currentPage;
@@ -116,24 +121,37 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	// The primary semantic name for editing (use left page in RTL reading order)
 	const primarySemanticName = direction === "rtl" ? rightName || leftName : leftName || rightName;
 
-	// Sync input value when page changes and not editing
+	// Sync input value when page changes and not editing.
+	// After Enter navigation, the flag prevents flashing the stale value;
+	// once Toolbar polling updates currentPage, the flag is cleared and the
+	// new primarySemanticName is applied normally.
 	useEffect(() => {
-		if (!isEditing) {
+		const pageChanged = currentPage !== prevCurrentPageRef.current;
+		prevCurrentPageRef.current = currentPage;
+
+		if (pageChanged) {
+			justNavigatedRef.current = false;
+		}
+		if (!isEditing && !justNavigatedRef.current) {
 			setInputValue(primarySemanticName);
 		}
-	}, [primarySemanticName, isEditing]);
+	}, [primarySemanticName, isEditing, currentPage]);
 
 	const handleFocus = useCallback(() => {
 		if (editable) {
 			setIsEditing(true);
 			setInputValue(primarySemanticName);
+			justNavigatedRef.current = false;
 		}
 	}, [editable, primarySemanticName]);
 
 	const handleBlur = useCallback(() => {
-		// Always revert on blur - navigation only happens on Enter
 		setIsEditing(false);
-		setInputValue(primarySemanticName);
+		// After a successful Enter navigation, keep the user's typed value visible
+		// until Toolbar polling updates currentPage with the new position.
+		if (!justNavigatedRef.current) {
+			setInputValue(primarySemanticName);
+		}
 	}, [primarySemanticName]);
 
 	const handleKeyDown = useCallback(
@@ -144,6 +162,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 					const pageIndex = pageSemantics.semanticNameToIndex(inputValue.trim());
 					if (pageIndex != null && pageIndex >= 0 && pageIndex < totalPages) {
 						flipBookRef.current?.jumpToPage(pageIndex);
+						justNavigatedRef.current = true;
 					}
 				}
 				e.currentTarget.blur();
@@ -175,12 +194,14 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	}
 
 	// Editable input
+	// After navigation, show the user's typed value until polling catches up (avoids stale flash).
+	const showInputValue = isEditing || justNavigatedRef.current;
 	const editingClass = isEditing ? "flipbook-toolbar-indicator--editing" : "";
 	return (
 		<input
 			type="text"
 			className={`flipbook-toolbar-indicator ${editingClass} ${className ?? ""}`.trim()}
-			value={isEditing ? inputValue : displayText}
+			value={showInputValue ? inputValue : displayText}
 			onFocus={handleFocus}
 			onBlur={handleBlur}
 			onKeyDown={handleKeyDown}
