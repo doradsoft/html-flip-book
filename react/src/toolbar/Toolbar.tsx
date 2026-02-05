@@ -1,5 +1,7 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
+import { CommandProvider } from "../commands/CommandContext";
+import type { Command, CommandOptions } from "../commands/types";
 import type { FlipBookHandle, PageSemantics } from "../FlipBook";
 import { ToolbarContext } from "./ToolbarContext";
 import "./Toolbar.css";
@@ -15,11 +17,18 @@ interface ToolbarProps {
 	className?: string;
 	/** Toolbar children in reading order: First, Prev, Indicator, Next, Last */
 	children: React.ReactNode;
+	/** Enable keyboard hotkeys for commands. Defaults to true */
+	enableHotkeys?: boolean;
+	/** Custom commands to register (merged with defaults) */
+	commands?: Command[];
+	/** Options for specific commands (e.g., custom hotkeys, data) */
+	commandOptions?: Record<string, CommandOptions>;
 }
 
 /**
  * Container component for FlipBook toolbar controls.
  * Provides context to child components for accessing FlipBook methods.
+ * Includes command system with configurable keyboard hotkeys.
  */
 const Toolbar: React.FC<ToolbarProps> = ({
 	flipBookRef,
@@ -27,6 +36,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	pageSemantics,
 	className = "",
 	children,
+	enableHotkeys = true,
+	commands,
+	commandOptions,
 }) => {
 	const [currentPage, setCurrentPage] = useState(0);
 	const [totalPages, setTotalPages] = useState(0);
@@ -52,7 +64,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 		return () => clearInterval(interval);
 	}, [updateState]);
 
-	return (
+	const toolbarContent = (
 		<ToolbarContext.Provider
 			value={{
 				flipBookRef,
@@ -73,6 +85,20 @@ const Toolbar: React.FC<ToolbarProps> = ({
 				{children}
 			</div>
 		</ToolbarContext.Provider>
+	);
+
+	return (
+		<CommandProvider
+			flipBookRef={flipBookRef}
+			currentPage={currentPage}
+			totalPages={totalPages}
+			direction={direction}
+			commands={commands}
+			commandOptions={commandOptions}
+			disableHotkeys={!enableHotkeys}
+		>
+			{toolbarContent}
+		</CommandProvider>
 	);
 };
 

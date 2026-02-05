@@ -1,9 +1,10 @@
 import type React from "react";
+import { ChevronRightIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
 interface NextButtonProps {
-	/** Custom content (icon or text). Defaults to "›" */
+	/** Custom content (icon or text). Defaults to ChevronRightIcon */
 	children?: React.ReactNode;
 	/** Additional CSS class name */
 	className?: string;
@@ -29,7 +30,7 @@ const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 			disabled={isLastPage}
 			className={`flipbook-toolbar-next ${className ?? ""}`.trim()}
 		>
-			{children ?? "›"}
+			{children ?? <ChevronRightIcon size={20} />}
 		</ToolbarButton>
 	);
 };

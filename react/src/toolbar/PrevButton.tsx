@@ -1,9 +1,10 @@
 import type React from "react";
+import { ChevronLeftIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
 interface PrevButtonProps {
-	/** Custom content (icon or text). Defaults to "‹" */
+	/** Custom content (icon or text). Defaults to ChevronLeftIcon */
 	children?: React.ReactNode;
 	/** Additional CSS class name */
 	className?: string;
@@ -29,7 +30,7 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 			disabled={isFirstPage}
 			className={`flipbook-toolbar-prev ${className ?? ""}`.trim()}
 		>
-			{children ?? "‹"}
+			{children ?? <ChevronLeftIcon size={20} />}
 		</ToolbarButton>
 	);
 };

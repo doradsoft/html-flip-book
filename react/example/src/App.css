@@ -55,11 +55,25 @@ header {
 
 .en-page,
 .he-page {
-	background-color: white;
+	background-color: #fffef8;
 	overflow-y: scroll;
 	overflow-x: hidden;
-	border: 1px solid #00000056;
-	padding: 2%;
+	border: 1px solid #00000020;
+	padding: 5%;
+	font-family: Georgia, "Times New Roman", serif;
+	line-height: 1.6;
+}
+
+.he-page {
+	text-align: right;
+	direction: rtl;
+}
+
+.he-page h2 {
+	color: #2c1810;
+	border-bottom: 2px solid #8b4513;
+	padding-bottom: 8px;
+	margin-bottom: 16px;
 }
 
 .en-page img {
@@ -68,4 +82,204 @@ header {
 
 .en-page * {
 	overflow: auto;
+}
+
+/* Cover page styles */
+.cover {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 10%;
+	box-sizing: border-box;
+}
+
+.front-cover {
+	background: linear-gradient(145deg, #2c1810 0%, #4a2c17 50%, #3d2415 100%);
+	color: #f4e4bc;
+}
+
+.back-cover {
+	background: linear-gradient(145deg, #3d2415 0%, #4a2c17 50%, #2c1810 100%);
+	color: #f4e4bc;
+}
+
+.he-cover {
+	background: linear-gradient(145deg, #1a3a5c 0%, #2c5282 50%, #1e4a6e 100%);
+	color: #e8f0f8;
+}
+
+.cover-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	max-width: 100%;
+}
+
+.cover h1 {
+	font-size: clamp(1.2rem, 4vw, 2rem);
+	font-weight: 700;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	margin: 0;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.cover h2 {
+	font-size: clamp(1rem, 3vw, 1.4rem);
+	font-weight: 600;
+	margin: 0;
+}
+
+.cover .subtitle {
+	font-size: clamp(0.8rem, 2vw, 1rem);
+	font-style: italic;
+	opacity: 0.9;
+	margin: 0;
+}
+
+.cover .author {
+	font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+	letter-spacing: 1px;
+	margin-top: 16px;
+	opacity: 0.8;
+}
+
+.cover .small {
+	font-size: clamp(0.6rem, 1.2vw, 0.75rem);
+	opacity: 0.7;
+	margin: 0;
+}
+
+.cover-decoration {
+	width: 60%;
+	height: 2px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		currentColor 20%,
+		currentColor 80%,
+		transparent 100%
+	);
+	opacity: 0.5;
+}
+
+.cover-decoration.top,
+.cover-decoration.bottom {
+	width: 40%;
+}
+
+/* Table of Contents styles */
+.toc-page {
+	padding: 8% 6%;
+}
+
+.toc-page h2 {
+	text-align: center;
+	margin-bottom: 24px;
+	color: #2c1810;
+	border-bottom: none;
+}
+
+.toc-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.toc-list li {
+	margin-bottom: 8px;
+}
+
+.toc-link {
+	display: flex;
+	align-items: baseline;
+	width: 100%;
+	padding: 8px 4px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-family: inherit;
+	font-size: inherit;
+	text-align: inherit;
+	color: inherit;
+	transition: background-color 0.15s ease;
+}
+
+.toc-link:hover {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.toc-title {
+	flex-shrink: 0;
+}
+
+.toc-dots {
+	flex-grow: 1;
+	border-bottom: 1px dotted #999;
+	margin: 0 8px;
+	min-width: 20px;
+}
+
+.toc-page-num {
+	flex-shrink: 0;
+	font-weight: 600;
+	color: #1a3a5c;
+}
+
+/* Chapter page styles */
+.chapter-page {
+	display: flex;
+	flex-direction: column;
+}
+
+.chapter-header {
+	margin-bottom: 16px;
+}
+
+.chapter-number {
+	display: block;
+	font-size: 0.85rem;
+	color: #666;
+	margin-bottom: 4px;
+}
+
+.chapter-header h2 {
+	margin: 0;
+}
+
+.chapter-content {
+	flex-grow: 1;
+}
+
+.page-number {
+	margin-top: auto;
+	padding-top: 16px;
+	text-align: center;
+	font-size: 0.9rem;
+	color: #666;
+	border-top: 1px solid #ddd;
+}
+
+/* Bible page styles */
+.bible-page {
+	font-family: "David Libre", "SBL Hebrew", "Ezra SIL", "Frank Ruehl CLM", Georgia, serif;
+	font-size: 1.1rem;
+	line-height: 2;
+}
+
+.bible-content {
+	text-align: justify;
+	white-space: pre-wrap;
+}
+
+.loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	font-size: 1.2rem;
+	color: #666;
 }

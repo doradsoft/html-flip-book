@@ -1,9 +1,10 @@
 import type React from "react";
+import { ChevronFirstIcon, ChevronLastIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
 interface LastPageButtonProps {
-	/** Custom content (icon or text). Defaults to "⏭" */
+	/** Custom content (icon or text). Defaults to ChevronLastIcon */
 	children?: React.ReactNode;
 	/** Additional CSS class name */
 	className?: string;
@@ -20,7 +21,8 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 	};
 
 	// In RTL, "last" page is on the left; use icon pointing left so it matches visual direction
-	const defaultIcon = direction === "rtl" ? "⏮" : "⏭";
+	const defaultIcon =
+		direction === "rtl" ? <ChevronFirstIcon size={18} /> : <ChevronLastIcon size={18} />;
 
 	return (
 		<ToolbarButton

@@ -1,5 +1,7 @@
 // HeBook.tsx
-import { FlipBook, type FlipBookHandle, type PageSemantics } from "html-flip-book-react";
+
+import { toLetters, toNumber } from "gematry";
+import { FlipBook, type FlipBookHandle, type PageSemantics, TocPage } from "html-flip-book-react";
 import {
 	FirstPageButton,
 	FullscreenButton,
@@ -9,81 +11,139 @@ import {
 	PrevButton,
 	Toolbar,
 } from "html-flip-book-react/toolbar";
-import { useMemo, useRef } from "react";
+import { type ReactElement, useEffect, useRef, useState } from "react";
 
-const hePageIds = Array.from({ length: 10 }, (_, i) => `he-page-${i}`);
-const hePages = hePageIds.map((id) => (
-	<div key={id}>
-		<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+// Import text files for Genesis (Bereshit)
+const textFiles = import.meta.glob("/assets/pages_data/he/*.txt", {
+	query: "?raw",
+	import: "default",
+});
+
+/** Front cover component */
+const FrontCover = () => (
+	<div className="cover front-cover he-cover">
+		<div className="cover-content">
+			<div className="cover-decoration top" />
+			<h1>ספר בראשית</h1>
+			<p className="subtitle">מקרא על פי המסורה</p>
+			<div className="cover-decoration bottom" />
+			<p className="author">ספריא • CC-BY-SA</p>
+		</div>
 	</div>
-));
+);
 
-const hePageSemanticsDict: Record<number, string> = {
-	4: "א",
-	5: "ב",
-	6: "ג",
+/** Back cover component */
+const BackCover = () => (
+	<div className="cover back-cover he-cover">
+		<div className="cover-content">
+			<h2>סוף</h2>
+			<p>טקסט מתוך ספריא</p>
+			<div className="cover-decoration" />
+			<p className="small">html-flip-book</p>
+		</div>
+	</div>
+);
+
+// Page titles for TOC - extracted from chapter headers in the text files
+// The actual chapter headers are embedded in the text files themselves
+const chapterTitles: Record<number, string> = {
+	0: "שער", // Cover
+	1: "תוכן העניינים", // TOC
+	// Remaining pages (2-328) are content pages - title extracted from text
 };
 
 const hePageSemantics: PageSemantics = {
 	indexToSemanticName(pageIndex: number): string {
-		return hePageSemanticsDict[pageIndex] ?? "";
+		// Front cover and TOC have no page numbers
+		if (pageIndex <= 1) return "";
+		// Content pages use Hebrew numerals (starting from 1 for page index 2)
+		return toLetters(pageIndex - 1, { addQuotes: true });
 	},
 	semanticNameToIndex(semanticPageName: string): number | null {
-		const entry = Object.entries(hePageSemanticsDict).find(
-			([, value]) => value === semanticPageName,
-		);
-		return entry ? parseInt(entry[0], 10) : null;
+		const num = toNumber(semanticPageName);
+		if (num === 0) return null;
+		// Content starts at index 2
+		return num + 1;
 	},
 	indexToTitle(pageIndex: number): string {
-		const chapter = hePageSemanticsDict[pageIndex];
-		return chapter ? `פרק ${chapter}` : "";
+		return chapterTitles[pageIndex] ?? "";
 	},
 };
 
-/** Parse URL parameters for test configuration */
-function useTestParams() {
-	return useMemo(() => {
-		const params = new URLSearchParams(window.location.search);
-		const initialTurnedLeaves = params.get("initialTurnedLeaves");
-		const fastDeltaThreshold = params.get("fastDeltaThreshold");
-
-		return {
-			initialTurnedLeaves: initialTurnedLeaves
-				? initialTurnedLeaves
-						.split(",")
-						.map(Number)
-						.filter((n) => !Number.isNaN(n))
-				: undefined,
-			fastDeltaThreshold: fastDeltaThreshold ? Number(fastDeltaThreshold) : undefined,
-		};
-	}, []);
-}
-
 export const HeBook = () => {
-	const testParams = useTestParams();
+	const [hePages, setHePages] = useState<ReactElement[]>([]);
 	const flipBookRef = useRef<FlipBookHandle>(null);
 
+	useEffect(() => {
+		const loadTextFiles = async () => {
+			// Load and sort text files
+			const files = await Promise.all(
+				Object.entries(textFiles).map(async ([path, resolver]) => {
+					const content = (await resolver()) as string;
+					// Extract file number for sorting
+					const match = path.match(/(\d+)\.txt$/);
+					const order = match ? parseInt(match[1], 10) : 999;
+					return { path, content, order };
+				}),
+			);
+
+			// Sort by file number
+			files.sort((a, b) => a.order - b.order);
+
+			const contentPages = files.map(({ path, content }) => (
+				<div key={path} className="he-page bible-page">
+					<div className="bible-content">{content}</div>
+				</div>
+			));
+
+			// Build pages: cover, TOC, content pages, back cover
+			const toc = (
+				<TocPage
+					key="toc"
+					onNavigate={(pageIndex) => flipBookRef.current?.goToPage(pageIndex)}
+					totalPages={contentPages.length + 3} // cover + toc + content + back
+					pageSemantics={hePageSemantics}
+					heading="תוכן העניינים"
+					direction="rtl"
+					filter={(entry) => entry.pageIndex > 1 && entry.title.length > 0}
+				/>
+			);
+
+			const pages = [
+				<FrontCover key="front-cover" />,
+				toc,
+				...contentPages,
+				<BackCover key="back-cover" />,
+			];
+
+			setHePages(pages);
+		};
+
+		loadTextFiles();
+	}, []);
+
+	if (hePages.length === 0) {
+		return <div className="loading">טוען...</div>;
+	}
+
 	return (
-		<>
+		<div className="book-wrapper" dir="rtl">
 			<FlipBook
 				ref={flipBookRef}
-				className="he-book"
+				className="flip-book-he"
 				pages={hePages}
-				pageSemantics={hePageSemantics}
-				debug={true}
 				direction="rtl"
-				initialTurnedLeaves={testParams.initialTurnedLeaves}
-				fastDeltaThreshold={testParams.fastDeltaThreshold}
+				pageSemantics={hePageSemantics}
 			/>
 			<Toolbar flipBookRef={flipBookRef} direction="rtl">
 				<FullscreenButton />
-				<FirstPageButton />
-				<PrevButton />
-				<PageIndicator />
-				<NextButton />
 				<LastPageButton />
+				<NextButton />
+				<PageIndicator />
+				<PrevButton />
+				<FirstPageButton />
 			</Toolbar>
-		</>
+		</div>
 	);
 };
 

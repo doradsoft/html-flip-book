@@ -73,43 +73,47 @@
 	background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Page indicator */
-.flipbook-toolbar-indicator {
-	color: #fff;
-	font-size: 14px;
-	font-weight: 500;
-	min-width: 60px;
-	text-align: center;
-	padding: 0 8px;
-}
-
-/* Semantic page indicator input - very narrow, tall, dark text on light bg (override toolbar inherit) */
-.flipbook-toolbar .flipbook-toolbar-indicator-input {
-	background: #e2e8f0;
-	border: 1px solid rgb(0 0 0 / 0.2);
-	border-radius: 4px;
-	color: #0f172a;
-	font: inherit;
-	width: 1.5ch;
-	min-width: 18px;
-	max-width: 1.5ch;
-	min-height: 72px;
-	padding: 8px 2px;
-	text-align: center;
-	box-sizing: border-box;
+/* Page indicator - span text display */
+span.flipbook-toolbar-indicator {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	color: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	text-align: center;
+	padding: 0 4px;
+	white-space: nowrap;
 }
 
-.flipbook-toolbar-indicator-input:hover {
-	border-color: rgb(255 255 255 / 0.3);
+/* Page indicator - editable input */
+input.flipbook-toolbar-indicator {
+	display: inline-block;
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 500;
+	text-align: center;
+	box-sizing: border-box;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	padding: 4px 8px;
+	min-width: 3ch;
+	color: inherit;
+	white-space: nowrap;
+	transition:
+		background-color 0.2s ease,
+		color 0.2s ease;
 }
 
-.flipbook-toolbar-indicator-input:focus {
-	outline: 2px solid #fff;
+/* Editing state - light background for visibility */
+input.flipbook-toolbar-indicator--editing {
+	background: #fff;
+	color: #1a1a1a;
+}
+
+input.flipbook-toolbar-indicator:focus {
+	outline: 2px solid currentColor;
 	outline-offset: 2px;
-	border-color: transparent;
 }
 
 .visually-hidden {

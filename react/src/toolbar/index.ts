@@ -1,5 +1,23 @@
 // Toolbar components barrel export
 
+export type { Command, CommandOptions, HotkeyBinding } from "../commands";
+// Commands
+export { DEFAULT_HOTKEYS, defaultCommands, useCommands } from "../commands";
+export type { IconProps } from "../icons";
+// Icons
+export {
+	BookshelfIcon,
+	ChevronFirstIcon,
+	ChevronLastIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	MaximizeIcon,
+	MinimizeIcon,
+	TableOfContentsIcon,
+} from "../icons";
+
+export type { ActionButtonProps } from "./ActionButton";
+export { ActionButton } from "./ActionButton";
 export type { FirstPageButtonProps } from "./FirstPageButton";
 export { FirstPageButton } from "./FirstPageButton";
 export type { FullscreenButtonProps } from "./FullscreenButton";
@@ -8,12 +26,19 @@ export type { LastPageButtonProps } from "./LastPageButton";
 export { LastPageButton } from "./LastPageButton";
 export type { NextButtonProps } from "./NextButton";
 export { NextButton } from "./NextButton";
-export type { PageIndicatorProps } from "./PageIndicator";
-export { PageIndicator } from "./PageIndicator";
+/** @deprecated Use PageIndicatorProps instead */
+export type {
+	PageIndicatorMode,
+	PageIndicatorProps,
+	PageIndicatorProps as SemanticPageIndicatorProps,
+} from "./PageIndicator";
+// Deprecated: use PageIndicator with mode="semantic" instead
+/** @deprecated Use PageIndicator with mode="semantic" instead */
+export { PageIndicator, PageIndicator as SemanticPageIndicator } from "./PageIndicator";
 export type { PrevButtonProps } from "./PrevButton";
 export { PrevButton } from "./PrevButton";
-export type { SemanticPageIndicatorProps } from "./SemanticPageIndicator";
-export { SemanticPageIndicator } from "./SemanticPageIndicator";
+export type { TocButtonProps } from "./TocButton";
+export { TocButton } from "./TocButton";
 export type { ToolbarProps } from "./Toolbar";
 export { Toolbar } from "./Toolbar";
 export type { ToolbarButtonProps } from "./ToolbarButton";

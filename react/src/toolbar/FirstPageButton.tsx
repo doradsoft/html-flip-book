@@ -1,9 +1,10 @@
 import type React from "react";
+import { ChevronFirstIcon, ChevronLastIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
 interface FirstPageButtonProps {
-	/** Custom content (icon or text). Defaults to "⏮" */
+	/** Custom content (icon or text). Defaults to ChevronFirstIcon */
 	children?: React.ReactNode;
 	/** Additional CSS class name */
 	className?: string;
@@ -20,7 +21,8 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 	};
 
 	// In RTL, "first" page is on the right; use icon pointing right so it matches visual direction
-	const defaultIcon = direction === "rtl" ? "⏭" : "⏮";
+	const defaultIcon =
+		direction === "rtl" ? <ChevronLastIcon size={18} /> : <ChevronFirstIcon size={18} />;
 
 	return (
 		<ToolbarButton

@@ -52,7 +52,7 @@ function HebrewBook() {
 
   const pages = [
     <div className="cover front" dir="rtl">הספר שלי</div>,
-    <div className="page" dir="rtl">פרק א׳: הקדמה</div>,
+    <div className="page" dir="rtl">פרק א': הקדמה</div>,
     <div className="page" dir="rtl">תוכן נוסף כאן...</div>,
     <div className="cover back" dir="rtl">סוף</div>,
   ];

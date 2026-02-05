@@ -32,6 +32,29 @@ export interface FlipBookHandle {
 }
 
 /**
+ * Configuration for book covers.
+ */
+export interface CoverConfig {
+	/**
+	 * Make covers "hard" - no page curl effect on covers.
+	 * When true, cover pages appear flat without the soft page bend.
+	 * Default: false
+	 */
+	hardCovers?: boolean;
+	/**
+	 * Disable shadow effects on cover pages.
+	 * Default: false
+	 */
+	noShadow?: boolean;
+	/**
+	 * Page indices that are considered cover pages.
+	 * Default: [0] (front cover only). Use [0, totalPages-1] for front and back covers.
+	 * If "auto", uses first and last pages as covers.
+	 */
+	coverIndices?: number[] | "auto";
+}
+
+/**
  * Props for the FlipBook React component.
  */
 export interface FlipBookProps {
@@ -55,6 +78,10 @@ export interface FlipBookProps {
 	 * Default: undefined (all leaves are always rendered)
 	 */
 	leavesBuffer?: number;
+	/**
+	 * Configuration for cover pages (front and back covers).
+	 */
+	coverConfig?: CoverConfig;
 }
 
 /**
@@ -88,6 +115,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
+			coverConfig,
 		},
 		ref,
 	) => {
@@ -138,6 +166,29 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const pagesWithKeys = Children.toArray(pages);
 		const totalPages = pagesWithKeys.length;
 
+		// Determine cover page indices
+		const coverIndicesSet = new Set(
+			coverConfig?.coverIndices === "auto"
+				? [0, totalPages - 1]
+				: (coverConfig?.coverIndices ?? [0]),
+		);
+		const isCoverPage = (index: number) => coverIndicesSet.has(index);
+
+		// Build CSS class for a page
+		const getPageClassName = (index: number): string => {
+			const classes = ["page"];
+			if (isCoverPage(index)) {
+				classes.push("page--cover");
+				if (coverConfig?.hardCovers) {
+					classes.push("page--hard");
+				}
+				if (coverConfig?.noShadow) {
+					classes.push("page--no-shadow");
+				}
+			}
+			return classes.join(" ");
+		};
+
 		// When leavesBuffer is set, only mount content for pages within the buffer (keep .page wrappers for layout).
 		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
 		const contentByIndex =
@@ -163,7 +214,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness
 						key={`page-${index}`}
-						className="page"
+						className={getPageClassName(index)}
 					>
 						{contentByIndex(index)}
 					</div>

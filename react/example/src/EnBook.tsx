@@ -1,6 +1,6 @@
 // EnBook.tsx
 
-import { FlipBook, type FlipBookHandle } from "html-flip-book-react";
+import { FlipBook, type FlipBookHandle, type PageSemantics } from "html-flip-book-react";
 import {
 	FirstPageButton,
 	FullscreenButton,
@@ -14,6 +14,52 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
+
+/** Front cover component */
+const FrontCover = () => (
+	<div className="cover front-cover">
+		<div className="cover-content">
+			<div className="cover-decoration top" />
+			<h1>SQL Tutorial</h1>
+			<p className="subtitle">A Complete Guide to Database Management</p>
+			<div className="cover-decoration bottom" />
+			<p className="author">Interactive FlipBook</p>
+		</div>
+	</div>
+);
+
+/** Back cover component */
+const BackCover = () => (
+	<div className="cover back-cover">
+		<div className="cover-content">
+			<h2>More in This Series</h2>
+			<ul className="series-list">
+				<li>JavaScript Fundamentals</li>
+				<li>React Development</li>
+				<li>Node.js Backend</li>
+			</ul>
+			<div className="cover-decoration" />
+			<p className="small">Visit our website for more tutorials</p>
+		</div>
+	</div>
+);
+
+const enPageSemantics: PageSemantics = {
+	// Semantic names are displayable page numbers - covers don't have page numbers
+	indexToSemanticName(pageIndex: number): string {
+		if (pageIndex === 0) return ""; // Front cover - no page number
+		return String(pageIndex);
+	},
+	semanticNameToIndex(semanticPageName: string): number | null {
+		const num = parseInt(semanticPageName, 10);
+		return Number.isNaN(num) ? null : num;
+	},
+	// Titles are used for table of contents - only meaningful pages get titles
+	indexToTitle(pageIndex: number): string {
+		if (pageIndex === 0) return "Front Cover";
+		return "";
+	},
+};
 
 interface MarkdownModule {
 	default: string;
@@ -61,14 +107,18 @@ export const EnBook = () => {
 					};
 				}),
 			);
-			const pages = files
-				// To avoid having an empty page at the end
-				.concat([{ path: "", content: "" }])
-				.map(({ path, content }) => (
-					<div key={path || "empty-page"} className="en-page">
-						<Markdown>{content}</Markdown>
-					</div>
-				));
+			const contentPages = files.map(({ path, content }) => (
+				<div key={path} className="en-page">
+					<Markdown>{content}</Markdown>
+				</div>
+			));
+
+			// Add front cover, content pages, and back cover
+			const pages = [
+				<FrontCover key="front-cover" />,
+				...contentPages,
+				<BackCover key="back-cover" />,
+			];
 
 			setEnPages(pages);
 		};
@@ -82,6 +132,7 @@ export const EnBook = () => {
 				ref={flipBookRef}
 				className="en-book"
 				pages={enPages}
+				pageSemantics={enPageSemantics}
 				debug={true}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}

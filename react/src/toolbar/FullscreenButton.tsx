@@ -1,14 +1,19 @@
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
+import { MaximizeIcon, MinimizeIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 
 interface FullscreenButtonProps {
 	/** Target element to make fullscreen. If not provided, uses document.documentElement */
 	targetRef?: React.RefObject<HTMLElement | null>;
-	/** Custom content for enter fullscreen. Defaults to "⛶" */
+	/** Custom content for enter fullscreen. Defaults to MaximizeIcon */
 	enterIcon?: React.ReactNode;
-	/** Custom content for exit fullscreen. Defaults to "⛶" */
+	/** Custom content for exit fullscreen. Defaults to MinimizeIcon */
 	exitIcon?: React.ReactNode;
+	/** ARIA label for entering fullscreen. Defaults to "Enter fullscreen" */
+	ariaLabelEnter?: string;
+	/** ARIA label for exiting fullscreen. Defaults to "Exit fullscreen" */
+	ariaLabelExit?: string;
 	/** Additional CSS class name */
 	className?: string;
 }
@@ -20,6 +25,8 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({
 	targetRef,
 	enterIcon,
 	exitIcon,
+	ariaLabelEnter = "Enter fullscreen",
+	ariaLabelExit = "Exit fullscreen",
 	className,
 }) => {
 	const [isFullscreen, setIsFullscreen] = useState(false);
@@ -49,8 +56,10 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({
 		}
 	};
 
-	const label = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
-	const icon = isFullscreen ? (exitIcon ?? "⛶") : (enterIcon ?? "⛶");
+	const label = isFullscreen ? ariaLabelExit : ariaLabelEnter;
+	const icon = isFullscreen
+		? (exitIcon ?? <MinimizeIcon size={18} />)
+		: (enterIcon ?? <MaximizeIcon size={18} />);
 
 	return (
 		<ToolbarButton
