@@ -357,9 +357,10 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 4, onPageChanged });
 			flipBook.render(".flipbook-container");
 
+			// jumpToPage(2): lastTurnedLeaf = floor((2-1)/2) = 0, visible = [1, 2], currentPageIndex = 1
 			flipBook.jumpToPage(2);
 
-			expect(onPageChanged).toHaveBeenCalledWith(2);
+			expect(onPageChanged).toHaveBeenCalledWith(1);
 		});
 
 		it("should not throw if onPageChanged is not provided", () => {
@@ -1420,9 +1421,10 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 10 });
 			flipBook.render(".flipbook-container");
 
+			// jumpToPage(6): lastTurnedLeaf = floor((6-1)/2) = 2, visible = [5, 6]
 			flipBook.jumpToPage(6);
 
-			expect(flipBook.currentPageIndex).toBe(6);
+			expect(flipBook.currentPageIndex).toBe(5);
 		});
 
 		it("updates current-page classes", () => {
@@ -1430,10 +1432,11 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 10 });
 			flipBook.render(".flipbook-container");
 
+			// jumpToPage(4): lastTurnedLeaf = floor((4-1)/2) = 1, visible = [3, 4]
 			flipBook.jumpToPage(4);
 
+			expect(pages[3].classList.contains("current-page")).toBe(true);
 			expect(pages[4].classList.contains("current-page")).toBe(true);
-			expect(pages[5].classList.contains("current-page")).toBe(true);
 			expect(pages[0].classList.contains("current-page")).toBe(false);
 		});
 
@@ -1443,9 +1446,10 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 10, onPageChanged });
 			flipBook.render(".flipbook-container");
 
+			// jumpToPage(6): visible = [5, 6], currentPageIndex = 5
 			flipBook.jumpToPage(6);
 
-			expect(onPageChanged).toHaveBeenCalledWith(6);
+			expect(onPageChanged).toHaveBeenCalledWith(5);
 		});
 
 		it("logs warning for invalid page index", () => {
@@ -1490,6 +1494,88 @@ describe("FlipBook", () => {
 			expect(flipBook.currentPageIndex).not.toBe(4);
 			// Should NOT have page 4 visible without page 5
 			expect(pages[4].classList.contains("current-page")).toBe(false);
+		});
+
+		it("jumpToPage with odd page index shows correct spread (off-by-one regression)", () => {
+			// Mirrors the Hebrew perek book layout: 56 pages total
+			// Page 0 = front cover, pages 1-54 = perek content/blank pairs, page 55 = back cover
+			const pages = createPages(56);
+			const flipBook = new FlipBook({ pagesCount: 56 });
+			flipBook.render(".flipbook-container");
+
+			// Jump to page 47 (= perek 24 content, which is an odd page)
+			// The visible spread after turning leaf 23 is [47, 48]:
+			//   - page 47 (back of turned leaf 23) = perek 24 content
+			//   - page 48 (front of leaf 24) = perek 24 blank
+			flipBook.jumpToPage(47);
+
+			// currentPageIndex should be 47 (first page of the visible spread)
+			expect(flipBook.currentPageIndex).toBe(47);
+			// Both pages of the spread should be visible
+			expect(pages[47].classList.contains("current-page")).toBe(true);
+			expect(pages[48].classList.contains("current-page")).toBe(true);
+			// The adjacent pages should NOT be visible
+			expect(pages[45].classList.contains("current-page")).toBe(false);
+			expect(pages[46].classList.contains("current-page")).toBe(false);
+			expect(pages[49].classList.contains("current-page")).toBe(false);
+		});
+
+		it("jumpToPage with even page index shows the spread containing that page", () => {
+			const pages = createPages(56);
+			const flipBook = new FlipBook({ pagesCount: 56 });
+			flipBook.render(".flipbook-container");
+
+			// Jump to page 46 (= perek 23 blank, even page)
+			// lastTurnedLeaf = floor((46-1)/2) = 22, visible = [45, 46]
+			flipBook.jumpToPage(46);
+
+			// Page 46 is the second page of the spread [45, 46]
+			expect(flipBook.currentPageIndex).toBe(45);
+			expect(pages[45].classList.contains("current-page")).toBe(true);
+			expect(pages[46].classList.contains("current-page")).toBe(true);
+			// Pages from adjacent spreads should not be visible
+			expect(pages[44].classList.contains("current-page")).toBe(false);
+			expect(pages[47].classList.contains("current-page")).toBe(false);
+		});
+
+		it.each([
+			// jumpToPage(P): lastTurnedLeaf = floor((P-1)/2), visible = [2k+1, 2k+2] where k=lastTurnedLeaf
+			{ targetPage: 1, expectedFirst: 1, description: "page 1 (perek 1)" },
+			{
+				targetPage: 2,
+				expectedFirst: 1,
+				description: "page 2 (perek 1 blank, same spread as page 1)",
+			},
+			{ targetPage: 3, expectedFirst: 3, description: "page 3 (perek 2)" },
+			{
+				targetPage: 4,
+				expectedFirst: 3,
+				description: "page 4 (perek 2 blank, same spread as page 3)",
+			},
+			{ targetPage: 45, expectedFirst: 45, description: "page 45 (perek 23)" },
+			{
+				targetPage: 46,
+				expectedFirst: 45,
+				description: "page 46 (perek 23 blank, same spread as page 45)",
+			},
+			{ targetPage: 47, expectedFirst: 47, description: "page 47 (perek 24)" },
+			{
+				targetPage: 48,
+				expectedFirst: 47,
+				description: "page 48 (perek 24 blank, same spread as page 47)",
+			},
+			{ targetPage: 53, expectedFirst: 53, description: "page 53 (perek 27)" },
+		])("jumpToPage($targetPage) for $description → currentPageIndex = $expectedFirst", ({
+			targetPage,
+			expectedFirst,
+		}) => {
+			createPages(56);
+			const flipBook = new FlipBook({ pagesCount: 56 });
+			flipBook.render(".flipbook-container");
+
+			flipBook.jumpToPage(targetPage);
+
+			expect(flipBook.currentPageIndex).toBe(expectedFirst);
 		});
 	});
 

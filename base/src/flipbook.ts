@@ -762,17 +762,31 @@ class FlipBook {
 			return;
 		}
 
-		const targetLeafIndex = Math.floor(pageIndex / 2);
 		const isLastPage = pageIndex === this.pagesCount - 1;
 		const isOddPage = pageIndex % 2 === 1;
 		// If targeting the last page and it's odd (back of leaf), close the book reversed
 		const closeBookReversed = isLastPage && isOddPage;
 
-		// Set all leaves before target as turned, all after as not turned
+		// Determine which leaf should be the last one turned.
+		// A leaf's pages are visible as follows:
+		//   - At position 0 (not turned): its even page (front) is visible
+		//   - At position 1 (turned): its odd page (back) is visible
+		// The visible spread after turning leaf k is [2k+1, 2k+2]:
+		//   back of leaf k (odd) + front of leaf k+1 (even).
+		// For page 0, no leaves need to be turned (initial spread [0, 1]).
+		let lastTurnedLeafIndex: number;
+		if (pageIndex <= 0) {
+			lastTurnedLeafIndex = -1; // No leaves turned
+		} else if (closeBookReversed) {
+			lastTurnedLeafIndex = this.leaves.length - 1; // All leaves turned
+		} else {
+			lastTurnedLeafIndex = Math.floor((pageIndex - 1) / 2);
+		}
+
+		// Set all leaves up to lastTurnedLeafIndex as turned, all after as not turned
 		for (let i = 0; i < this.leaves.length; i++) {
 			const leaf = this.leaves[i];
-			// Turn leaves before target, or the target leaf itself if closing book reversed
-			const shouldBeTurned = i < targetLeafIndex || (closeBookReversed && i === targetLeafIndex);
+			const shouldBeTurned = i <= lastTurnedLeafIndex;
 
 			if (shouldBeTurned && !leaf.isTurned) {
 				// Turn this leaf instantly
@@ -789,8 +803,11 @@ class FlipBook {
 		if (closeBookReversed) {
 			// Closed reversed: only show the last page
 			this.prevVisiblePageIndices = [pageIndex];
+		} else if (lastTurnedLeafIndex < 0) {
+			// No leaves turned: initial spread
+			this.prevVisiblePageIndices = 1 < this.pagesCount ? [0, 1] : [0];
 		} else {
-			const firstVisiblePageIndex = targetLeafIndex * 2;
+			const firstVisiblePageIndex = lastTurnedLeafIndex * 2 + 1;
 			this.prevVisiblePageIndices =
 				firstVisiblePageIndex + 1 < this.pagesCount
 					? [firstVisiblePageIndex, firstVisiblePageIndex + 1]

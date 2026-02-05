@@ -49,9 +49,9 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 
 	const [inputValue, setInputValue] = useState("");
 	const [isEditing, setIsEditing] = useState(false);
-	// Tracks whether a navigation just occurred via Enter key.
-	// Prevents the stale primarySemanticName from flashing in the input
-	// during the brief window before Toolbar polling updates currentPage.
+	// Ref-only flag: prevents handleBlur from reverting inputValue to a stale
+	// displayText during the brief gap before Toolbar polling updates currentPage.
+	// Cleared synchronously once the page actually changes.
 	const justNavigatedRef = useRef(false);
 	const prevCurrentPageRef = useRef(currentPage);
 
@@ -121,10 +121,14 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	// The primary semantic name for editing (use left page in RTL reading order)
 	const primarySemanticName = direction === "rtl" ? rightName || leftName : leftName || rightName;
 
+	const displayText = buildDisplayText();
+
 	// Sync input value when page changes and not editing.
-	// After Enter navigation, the flag prevents flashing the stale value;
+	// After Enter navigation, justNavigatedRef prevents flashing the stale value;
 	// once Toolbar polling updates currentPage, the flag is cleared and the
-	// new primarySemanticName is applied normally.
+	// new displayText is applied. Because displayText includes the " / total"
+	// suffix, it is always different from the user's typed value, guaranteeing
+	// a state change that triggers a re-render.
 	useEffect(() => {
 		const pageChanged = currentPage !== prevCurrentPageRef.current;
 		prevCurrentPageRef.current = currentPage;
@@ -133,26 +137,31 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 			justNavigatedRef.current = false;
 		}
 		if (!isEditing && !justNavigatedRef.current) {
-			setInputValue(primarySemanticName);
+			setInputValue(displayText);
 		}
-	}, [primarySemanticName, isEditing, currentPage]);
+	}, [displayText, isEditing, currentPage]);
 
-	const handleFocus = useCallback(() => {
-		if (editable) {
-			setIsEditing(true);
-			setInputValue(primarySemanticName);
-			justNavigatedRef.current = false;
-		}
-	}, [editable, primarySemanticName]);
+	const handleFocus = useCallback(
+		(e: React.FocusEvent<HTMLInputElement>) => {
+			if (editable) {
+				setIsEditing(true);
+				setInputValue(primarySemanticName);
+				justNavigatedRef.current = false;
+				// Select all text so the user can immediately type a replacement
+				requestAnimationFrame(() => e.target.select());
+			}
+		},
+		[editable, primarySemanticName],
+	);
 
 	const handleBlur = useCallback(() => {
 		setIsEditing(false);
 		// After a successful Enter navigation, keep the user's typed value visible
 		// until Toolbar polling updates currentPage with the new position.
 		if (!justNavigatedRef.current) {
-			setInputValue(primarySemanticName);
+			setInputValue(displayText);
 		}
-	}, [primarySemanticName]);
+	}, [displayText]);
 
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -178,8 +187,6 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 		setInputValue(e.target.value);
 	}, []);
 
-	const displayText = buildDisplayText();
-
 	// Non-editable display (span)
 	if (!editable) {
 		return (
@@ -193,15 +200,17 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 		);
 	}
 
-	// Editable input
-	// After navigation, show the user's typed value until polling catches up (avoids stale flash).
-	const showInputValue = isEditing || justNavigatedRef.current;
+	// Editable input — always shows inputValue.
+	// When not editing, useEffect keeps inputValue in sync with displayText.
+	// During editing, inputValue holds the user's typed text.
+	// After Enter navigation, inputValue keeps the typed value until polling
+	// updates currentPage, at which point useEffect sets it to the new displayText.
 	const editingClass = isEditing ? "flipbook-toolbar-indicator--editing" : "";
 	return (
 		<input
 			type="text"
 			className={`flipbook-toolbar-indicator ${editingClass} ${className ?? ""}`.trim()}
-			value={showInputValue ? inputValue : displayText}
+			value={inputValue}
 			onFocus={handleFocus}
 			onBlur={handleBlur}
 			onKeyDown={handleKeyDown}
