@@ -69,15 +69,18 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
 
-			// Fast movement - 2 steps with minimal clock time
-			const steps = 2;
+			// Fast movement - 3 steps with small clock advances
+			// Total 30ms > HammerJS COMPUTE_INTERVAL (25ms) to ensure velocity is computed
+			const steps = 3;
 			for (let i = 1; i <= steps; i++) {
 				const progress = i / steps;
 				await page.mouse.move(startX + (endX - startX) * progress, y);
-				await page.clock.runFor(5); // Only 5ms per step = 10ms total = very fast
+				await page.clock.runFor(10);
 			}
 
 			await page.mouse.up();
+			// Flush event handlers before advancing animation clock
+			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
 			// Fast velocity should complete the flip
@@ -115,6 +118,8 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			}
 
 			await page.mouse.up();
+			// Flush event handlers before advancing animation clock
+			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
 			// With lower threshold, should complete
@@ -220,15 +225,18 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
 
-			// Fast movement - advance clock between steps so velocity is computable
-			const steps = 2;
+			// Fast movement - 3 steps with clock advances
+			// Total 30ms > HammerJS COMPUTE_INTERVAL (25ms) to ensure velocity is computed
+			const steps = 3;
 			for (let i = 1; i <= steps; i++) {
 				const progress = i / steps;
 				await page.mouse.move(startX + (endX - startX) * progress, y);
-				await page.clock.runFor(5); // 5ms per step = 10ms total = very fast
+				await page.clock.runFor(10);
 			}
 
 			await page.mouse.up();
+			// Flush event handlers before advancing animation clock
+			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
 			// Fast velocity should complete the flip
@@ -259,14 +267,17 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await page.mouse.down();
 
 			// Fast movement - advance clock between steps so velocity is computable
-			const steps = 10;
+			// Total 50ms > HammerJS COMPUTE_INTERVAL (25ms) to ensure velocity is computed
+			const steps = 5;
 			for (let i = 1; i <= steps; i++) {
 				const progress = i / steps;
 				await page.mouse.move(startX + (endX - startX) * progress, y);
-				await page.clock.runFor(5); // 5ms per step = 50ms total = fast for low threshold
+				await page.clock.runFor(10);
 			}
 
 			await page.mouse.up();
+			// Flush event handlers before advancing animation clock
+			await page.evaluate(() => {});
 			await page.clock.runFor(1000);
 
 			// With low threshold, should complete
