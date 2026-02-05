@@ -26,6 +26,7 @@ export const defaultCommands: Command[] = [
 		description: "Flip to the next page",
 		execute: ({ flipBookRef }) => {
 			flipBookRef.current?.flipNext();
+			return undefined;
 		},
 		canExecute: ({ currentPage, totalPages }) => currentPage < totalPages - 1,
 	},
@@ -35,6 +36,7 @@ export const defaultCommands: Command[] = [
 		description: "Flip to the previous page",
 		execute: ({ flipBookRef }) => {
 			flipBookRef.current?.flipPrev();
+			return undefined;
 		},
 		canExecute: ({ currentPage }) => currentPage > 0,
 	},
@@ -44,6 +46,7 @@ export const defaultCommands: Command[] = [
 		description: "Jump to the first page",
 		execute: ({ flipBookRef }) => {
 			flipBookRef.current?.jumpToPage(0);
+			return undefined;
 		},
 		canExecute: ({ currentPage }) => currentPage > 0,
 	},
@@ -53,6 +56,7 @@ export const defaultCommands: Command[] = [
 		description: "Jump to the last page",
 		execute: ({ flipBookRef, totalPages }) => {
 			flipBookRef.current?.jumpToPage(totalPages - 1);
+			return undefined;
 		},
 		canExecute: ({ currentPage, totalPages }) => currentPage < totalPages - 1,
 	},
@@ -63,6 +67,7 @@ export const defaultCommands: Command[] = [
 		execute: ({ flipBookRef, data }) => {
 			const tocIndex = (data?.tocPageIndex as number) ?? 4;
 			flipBookRef.current?.jumpToPage(tocIndex);
+			return undefined;
 		},
 		canExecute: ({ currentPage, data }) => {
 			const tocIndex = (data?.tocPageIndex as number) ?? 4;
@@ -83,6 +88,7 @@ export const defaultCommands: Command[] = [
 				const target = targetRef?.current ?? document.documentElement;
 				target.requestFullscreen().catch(console.warn);
 			}
+			return undefined;
 		},
 	},
 ];
