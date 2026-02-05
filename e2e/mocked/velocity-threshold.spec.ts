@@ -105,9 +105,16 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
-			await page.mouse.move(endX, y, { steps: 5 });
-			await page.mouse.up();
 
+			// Fast movement - advance clock between steps so velocity is computable
+			const steps = 5;
+			for (let i = 1; i <= steps; i++) {
+				const progress = i / steps;
+				await page.mouse.move(startX + (endX - startX) * progress, y);
+				await page.clock.runFor(5); // 5ms per step = 25ms total = fast
+			}
+
+			await page.mouse.up();
 			await page.clock.runFor(1000);
 
 			// With lower threshold, should complete
@@ -212,9 +219,16 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
-			await page.mouse.move(endX, y, { steps: 2 });
-			await page.mouse.up();
 
+			// Fast movement - advance clock between steps so velocity is computable
+			const steps = 2;
+			for (let i = 1; i <= steps; i++) {
+				const progress = i / steps;
+				await page.mouse.move(startX + (endX - startX) * progress, y);
+				await page.clock.runFor(5); // 5ms per step = 10ms total = very fast
+			}
+
+			await page.mouse.up();
 			await page.clock.runFor(1000);
 
 			// Fast velocity should complete the flip
@@ -243,9 +257,16 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			await page.mouse.move(startX, y);
 			await page.mouse.down();
-			await page.mouse.move(endX, y, { steps: 10 });
-			await page.mouse.up();
 
+			// Fast movement - advance clock between steps so velocity is computable
+			const steps = 10;
+			for (let i = 1; i <= steps; i++) {
+				const progress = i / steps;
+				await page.mouse.move(startX + (endX - startX) * progress, y);
+				await page.clock.runFor(5); // 5ms per step = 50ms total = fast for low threshold
+			}
+
+			await page.mouse.up();
 			await page.clock.runFor(1000);
 
 			// With low threshold, should complete
