@@ -5,12 +5,30 @@ import { FlipBookPage } from "../fixtures/flip-book-page";
  * Velocity threshold tests
  * Verifies the FAST_DELTA (default 500px/s) behavior for determining
  * whether a swipe should complete despite not crossing the 0.5 threshold
+ *
+ * IMPORTANT: page.clock.install() alone does NOT freeze time - it keeps
+ * advancing in real-time. We call page.clock.pauseAt() after page load
+ * so that ONLY explicit clock.runFor() calls advance time. This makes
+ * HammerJS velocity computation fully deterministic regardless of CPU speed.
  */
 
 test.describe("Velocity Threshold - FAST_DELTA", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.clock.install();
 	});
+
+	/**
+	 * Pause the faked clock so only explicit clock.runFor() calls advance time.
+	 * Must be called after page load (goto) completes.
+	 * This makes HammerJS velocity computation fully deterministic
+	 * regardless of CPU speed or test parallelism.
+	 */
+	async function pauseClock(page: import("@playwright/test").Page) {
+		// Get the browser's current faked time and add a small buffer to account
+		// for real-time advancement between the evaluate call and pauseAt call
+		const now = await page.evaluate(() => Date.now());
+		await page.clock.pauseAt(now + 200);
+	}
 
 	test.describe("LTR Book", () => {
 		test("slow swipe before middle returns to start", async ({ page }) => {
@@ -19,6 +37,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 500,
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = flipBookPage.getPage(0);
 			await expect(firstPage).toHaveClass(/current-page/);
@@ -54,6 +73,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 500,
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = flipBookPage.getPage(0);
 			await expect(firstPage).toHaveClass(/current-page/);
@@ -79,13 +99,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			}
 
 			await page.mouse.up();
-			// Flush event handlers before advancing animation clock
-			await page.evaluate(() => {});
-			// Two passes: first completes any pending drag animation,
-			// second completes the flip-to-target animation scheduled after it
-			await page.clock.runFor(1000);
-			await page.evaluate(() => {});
-			await page.clock.runFor(1000);
+			await page.clock.runFor(2000);
 
 			// Fast velocity should complete the flip
 			await expect(firstPage).not.toHaveClass(/current-page/);
@@ -98,6 +112,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 200, // Lower threshold
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = flipBookPage.getPage(0);
 			await expect(firstPage).toHaveClass(/current-page/);
@@ -114,17 +129,16 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await page.mouse.down();
 
 			// Fast movement - advance clock between steps so velocity is computable
+			// Total must be > HammerJS COMPUTE_INTERVAL (25ms) for velocity recomputation
 			const steps = 5;
 			for (let i = 1; i <= steps; i++) {
 				const progress = i / steps;
 				await page.mouse.move(startX + (endX - startX) * progress, y);
-				await page.clock.runFor(5); // 5ms per step = 25ms total = fast
+				await page.clock.runFor(6); // 6ms per step = 30ms total > 25ms COMPUTE_INTERVAL
 			}
 
 			await page.mouse.up();
-			// Flush event handlers before advancing animation clock
-			await page.evaluate(() => {});
-			await page.clock.runFor(1000);
+			await page.clock.runFor(2000);
 
 			// With lower threshold, should complete
 			await expect(firstPage).not.toHaveClass(/current-page/);
@@ -137,6 +151,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				initialTurnedLeaves: [0], // First leaf already turned
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			// Page 2 should be current after first leaf is turned
 			const secondLeafFront = flipBookPage.getPage(2);
@@ -176,6 +191,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 500,
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			// In RTL, the flipbook class is .he-book
 			const firstPage = page.locator(".he-book.flipbook .page").first();
@@ -213,6 +229,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 500,
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = page.locator(".he-book.flipbook .page").first();
 			await expect(firstPage).toHaveClass(/current-page/);
@@ -239,13 +256,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			}
 
 			await page.mouse.up();
-			// Flush event handlers before advancing animation clock
-			await page.evaluate(() => {});
-			// Two passes: first completes any pending drag animation,
-			// second completes the flip-to-target animation scheduled after it
-			await page.clock.runFor(1000);
-			await page.evaluate(() => {});
-			await page.clock.runFor(1000);
+			await page.clock.runFor(2000);
 
 			// Fast velocity should complete the flip
 			await expect(firstPage).not.toHaveClass(/current-page/);
@@ -259,6 +270,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 100, // Very low threshold
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = flipBookPage.getPage(0);
 			await expect(firstPage).toHaveClass(/current-page/);
@@ -284,9 +296,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			}
 
 			await page.mouse.up();
-			// Flush event handlers before advancing animation clock
-			await page.evaluate(() => {});
-			await page.clock.runFor(1000);
+			await page.clock.runFor(2000);
 
 			// With low threshold, should complete
 			await expect(firstPage).not.toHaveClass(/current-page/);
@@ -298,6 +308,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				fastDeltaThreshold: 2000, // Very high threshold
 			});
 			await flipBookPage.goto();
+			await pauseClock(page);
 
 			const firstPage = flipBookPage.getPage(0);
 			await expect(firstPage).toHaveClass(/current-page/);
