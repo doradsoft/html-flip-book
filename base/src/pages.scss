@@ -2,6 +2,10 @@
   position: absolute;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  // Every page is opaque by default (like paper). Without this, blank pages
+  // (e.g. cover interiors) would be transparent and the other side of the leaf
+  // would bleed through mirrored via the 3D transform.
+  background: #fff;
   --inner-shadow-shadow: 0;
   --inner-shadow-highlight: 0;
   --inner-shadow-lift: 0px;
