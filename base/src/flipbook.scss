@@ -35,7 +35,13 @@
 
 .page--cover-interior-inset {
   // .page > * already sets: height: 100%; width: 100%; box-sizing: border-box;
-  padding: var(--cover-inset, 5%);
+  // 3-sided frame: top, bottom, and fore-edge. Spine side has no inset.
+  // --cover-inset-left / --cover-inset-right are set per-page by React
+  // to 0 on the spine side.
+  padding-top: var(--cover-inset, 5%);
+  padding-bottom: var(--cover-inset, 5%);
+  padding-left: var(--cover-inset-left, var(--cover-inset, 5%));
+  padding-right: var(--cover-inset-right, var(--cover-inset, 5%));
   background: #fffef8;
   background-clip: content-box;
 }

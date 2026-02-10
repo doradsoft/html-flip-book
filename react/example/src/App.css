@@ -268,26 +268,6 @@ header {
    Sized to coverAspectRatio by the engine; pages are smaller (leafAspectRatio).
    The gap between the frame and page edges simulates the book board overhang. */
 
-.en-cover-frame {
-	background: linear-gradient(170deg, #3d2c1a 0%, #4a3520 100%);
-}
-
-.he-cover-frame {
-	background: linear-gradient(170deg, #1a3a5c 0%, #2a4a6c 100%);
-}
-
-/* --- Interior cover classes (used by coverConfig.interiorCoverClassName) ---
-   Sets the page background to the cover color. The white endpaper inset
-   is rendered automatically by FlipBook infrastructure (.page--cover-interior-inset). */
-
-.en-cover-interior {
-	background: linear-gradient(170deg, #3d2c1a 0%, #4a3520 100%);
-}
-
-.he-cover-interior {
-	background: linear-gradient(170deg, #1a3a5c 0%, #2a4a6c 100%);
-}
-
 .cover-content {
 	display: flex;
 	flex-direction: column;

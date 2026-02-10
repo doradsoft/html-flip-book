@@ -31,8 +31,9 @@ const FrontCover = () => (
 	</div>
 );
 
-/* Front & back cover interiors are now handled by infrastructure via coverConfig.interiorCoverClassName.
-   No dedicated components needed — the pages remain blank white. */
+/* Front & back cover interiors are simple blank pages.
+   The cover boards are larger than text-block leaves, so they naturally peek
+   out behind leaf-sized pages — no synthetic frame element is needed. */
 
 /** Table of contents page */
 const TocPageEn = () => (
@@ -170,8 +171,6 @@ export const EnBook = () => {
 				debug={true}
 				coverConfig={{
 					coverIndices: "auto",
-					coverFrameClassName: "en-cover-frame",
-					interiorCoverClassName: "en-cover-interior",
 				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}

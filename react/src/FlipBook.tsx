@@ -57,12 +57,6 @@ export interface CoverConfig {
 	 */
 	coverIndices?: number[] | "auto";
 	/**
-	 * CSS class for the static cover frame visible behind all pages.
-	 * Represents the physical book boards that peek out around the text block.
-	 * The frame is sized to coverAspectRatio and centered; pages are smaller (leafAspectRatio).
-	 */
-	coverFrameClassName?: string;
-	/**
 	 * CSS class applied to interior sides of cover leaves (the endpaper).
 	 * Sets the page background to the cover color; the white endpaper inset
 	 * is created automatically by the infrastructure.
@@ -268,21 +262,19 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			const interiorRole = interiorCoverMap.get(index);
 			if (interiorRole) {
 				classes.push("page--cover-interior");
-				// When a static cover frame is present, it provides the visible background
-				// through the transparent padding of the inset — no need for a page-level bg class.
-				if (!coverConfig?.coverFrameClassName) {
-					const cls =
-						interiorRole === "front"
-							? (coverConfig?.frontInteriorCoverClassName ?? coverConfig?.interiorCoverClassName)
-							: (coverConfig?.backInteriorCoverClassName ?? coverConfig?.interiorCoverClassName);
-					if (cls) classes.push(cls);
-				}
+				const cls =
+					interiorRole === "front"
+						? (coverConfig?.frontInteriorCoverClassName ?? coverConfig?.interiorCoverClassName)
+						: (coverConfig?.backInteriorCoverClassName ?? coverConfig?.interiorCoverClassName);
+				if (cls) classes.push(cls);
 			}
 			return classes.join(" ");
 		};
 
 		// When leavesBuffer is set, only mount content for pages within the buffer (keep .page wrappers for layout).
 		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
+		// Cover pages are always mounted — they are cover-sized and sit behind leaf-sized pages,
+		// acting as the physical book boards. Unmounting them would remove the realistic frame effect.
 		const contentByIndex =
 			leavesBuffer != null && totalPages > 0
 				? (() => {
@@ -296,19 +288,33 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						const inRange = new Set(
 							Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i),
 						);
+						// Always include cover leaf pages so the larger cover boards remain mounted.
+						for (const idx of coverIndicesSet) {
+							inRange.add(idx);
+							// Also include the other side of the cover leaf
+							const partner = idx % 2 === 0 ? idx + 1 : idx - 1;
+							if (partner >= 0 && partner < totalPages) {
+								inRange.add(partner);
+							}
+						}
 						return (index: number) => (inRange.has(index) ? pagesWithKeys[index] : null);
 					})()
 				: (index: number) => pagesWithKeys[index];
 
-		/** Wrap interior cover pages with the endpaper inset frame */
+		/** Wrap interior cover pages with the endpaper inset frame (3-sided: no inset on spine). */
 		const renderPageContent = (index: number) => {
 			const content = contentByIndex(index);
 			if (interiorCoverMap.has(index)) {
+				// Determine spine side: even pages (engine convention: pageIndex%2===1) are on the
+				// left in LTR / right in RTL. Their spine is on the opposite side.
+				const isEvenPage = index % 2 === 1; // engine: (pageIndex+1)%2===1 → odd; so %2===1 → even
+				const spineOnRight = isEvenPage !== (direction === "rtl");
+				const insetStyle = {
+					"--cover-inset": coverInset,
+					...(spineOnRight ? { "--cover-inset-right": "0px" } : { "--cover-inset-left": "0px" }),
+				} as Record<string, string>;
 				return (
-					<div
-						className="page--cover-interior-inset"
-						style={{ "--cover-inset": coverInset } as React.CSSProperties}
-					>
+					<div className="page--cover-interior-inset" style={insetStyle}>
 						{content}
 					</div>
 				);
@@ -318,11 +324,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 
 		return (
 			<div className={className}>
-				{/* Static cover frame — represents the physical book boards visible behind all pages.
-				    Sized and positioned by the vanilla engine during render(). */}
-				{coverConfig?.coverFrameClassName && (
-					<div className={`flipbook-cover-frame ${coverConfig.coverFrameClassName}`} />
-				)}
 				{pagesWithKeys.map((_, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness

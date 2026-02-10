@@ -140,20 +140,6 @@ class FlipBook {
 		);
 		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
 
-		// Position the optional static cover frame element behind all pages.
-		// The frame represents the physical book boards that peek out around the text block.
-		const coverFrame = bookElement.querySelector(".flipbook-cover-frame") as HTMLElement | null;
-		if (coverFrame) {
-			coverFrame.style.position = "absolute";
-			coverFrame.style.width = `${2 * coverSize.width}px`;
-			coverFrame.style.height = `${coverSize.height}px`;
-			coverFrame.style.left = `${(bookElement.clientWidth - 2 * coverSize.width) / 2}px`;
-			coverFrame.style.top = `${(bookElement.clientHeight - coverSize.height) / 2}px`;
-			coverFrame.style.zIndex = "0";
-			coverFrame.style.pointerEvents = "none";
-			coverFrame.style.borderRadius = "3px";
-		}
-
 		// Determine which leaves are cover leaves (both sides use coverSize).
 		const coverLeafIndices = new Set<number>();
 		if (this.coverPageIndices) {
@@ -319,15 +305,31 @@ class FlipBook {
 		const bufferStart = Math.max(0, currentLeafIndex - this.leavesBuffer);
 		const bufferEnd = Math.min(leavesCount - 1, currentLeafIndex + this.leavesBuffer);
 
+		// Cover leaves must always stay visible — they are cover-sized and sit behind
+		// all leaf-sized pages, acting as the physical book boards. Hiding them would
+		// remove the realistic "frame" effect.
+		const coverLeafIndices = new Set<number>();
+		if (this.coverPageIndices) {
+			const indices =
+				this.coverPageIndices === "auto" ? [0, this.pagesCount - 1] : this.coverPageIndices;
+			for (const pageIdx of indices) {
+				coverLeafIndices.add(Math.floor(pageIdx / 2));
+			}
+		}
+
 		// Update visibility of all leaves
 		for (let i = 0; i < leavesCount; i++) {
 			const leaf = this.leaves[i];
 			const isWithinBuffer = i >= bufferStart && i <= bufferEnd;
+			const isCoverLeaf = coverLeafIndices.has(i);
+
+			// Cover leaves are always visible; other leaves follow the buffer range.
+			const visible = isCoverLeaf || isWithinBuffer;
 
 			// Update both pages of the leaf
 			for (const page of leaf.pages) {
 				if (page) {
-					page.style.display = isWithinBuffer ? "" : "none";
+					page.style.display = visible ? "" : "none";
 				}
 			}
 		}
