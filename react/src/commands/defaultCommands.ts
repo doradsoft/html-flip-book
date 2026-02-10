@@ -63,10 +63,10 @@ export const defaultCommands: Command[] = [
 	{
 		id: "goToToc",
 		name: "Table of Contents",
-		description: "Jump to the table of contents",
+		description: "Go to the table of contents (with flip)",
 		execute: ({ flipBookRef, data }) => {
 			const tocIndex = (data?.tocPageIndex as number) ?? 4;
-			flipBookRef.current?.jumpToPage(tocIndex);
+			flipBookRef.current?.goToPage(tocIndex);
 			return undefined;
 		},
 		canExecute: ({ currentPage, data }) => {

@@ -17,6 +17,7 @@ const createMockFlipBookRef = (overrides: Partial<FlipBookHandle> = {}) => ({
 		jumpToPage: vi.fn(),
 		getCurrentPageIndex: vi.fn().mockReturnValue(0),
 		getTotalPages: vi.fn().mockReturnValue(60),
+		getOf: vi.fn().mockReturnValue(60),
 		isFirstPage: vi.fn().mockReturnValue(true),
 		isLastPage: vi.fn().mockReturnValue(false),
 		...overrides,

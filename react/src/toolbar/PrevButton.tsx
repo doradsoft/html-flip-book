@@ -1,5 +1,5 @@
 import type React from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "../icons";
+import { ChevronLeftIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
@@ -20,12 +20,11 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 		flipBookRef.current?.flipPrev();
 	};
 
-	// In RTL, the visual "previous" is actually next in reading order
+	// In RTL, the action goes to previous spread (right in book); label reflects action
 	const label = direction === "rtl" ? "Next page" : "Previous page";
 
-	// In RTL, "previous" (lower page index) is toward the right, so use right-pointing icon
-	const defaultIcon =
-		direction === "rtl" ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />;
+	// Same arrow direction as LTR: left chevron. RTL layout reversal gives opposite action.
+	const defaultIcon = <ChevronLeftIcon size={20} />;
 
 	return (
 		<ToolbarButton

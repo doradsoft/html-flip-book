@@ -74,7 +74,7 @@ function updateChangelog(version: string): void {
 }
 
 function syncPackageVersions(version: string): void {
-	const packages = ["base/package.json", "react/package.json"];
+	const packages = ["base/package.json", "react/package.json", "react/example/package.json"];
 
 	for (const pkg of packages) {
 		const pkgPath = join(rootDir, pkg);

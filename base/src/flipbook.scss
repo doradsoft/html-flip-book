@@ -9,6 +9,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
+  min-height: 48px;
   background-color: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 10px;
@@ -16,5 +17,6 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  align-items: center;
   z-index: 9999;
 }

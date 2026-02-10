@@ -1,4 +1,5 @@
 import type React from "react";
+import { t } from "../i18n";
 import { TableOfContentsIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
@@ -8,7 +9,7 @@ interface TocButtonProps {
 	tocPageIndex?: number;
 	/** Custom content (icon or text). Defaults to TableOfContentsIcon */
 	children?: React.ReactNode;
-	/** Custom ARIA label. Defaults to "Table of contents" */
+	/** Custom ARIA label. Defaults to localized "Table of contents" */
 	ariaLabel?: string;
 	/** Additional CSS class name */
 	className?: string;
@@ -20,13 +21,14 @@ interface TocButtonProps {
 const TocButton: React.FC<TocButtonProps> = ({
 	tocPageIndex = 4,
 	children,
-	ariaLabel = "Table of contents",
+	ariaLabel: ariaLabelProp,
 	className,
 }) => {
-	const { flipBookRef, currentPage } = useToolbar();
+	const { flipBookRef, currentPage, locale } = useToolbar();
+	const ariaLabel = ariaLabelProp ?? t("toolbar.toc", locale);
 
 	const handleClick = () => {
-		flipBookRef.current?.jumpToPage(tocPageIndex);
+		flipBookRef.current?.goToPage(tocPageIndex);
 	};
 
 	const isOnToc = currentPage === tocPageIndex;

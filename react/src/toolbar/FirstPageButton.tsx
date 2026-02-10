@@ -1,5 +1,5 @@
 import type React from "react";
-import { ChevronFirstIcon, ChevronLastIcon } from "../icons";
+import { ChevronFirstIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
@@ -14,15 +14,14 @@ interface FirstPageButtonProps {
  * Button to navigate to the first page.
  */
 const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isFirstPage, direction } = useToolbar();
+	const { flipBookRef, isFirstPage } = useToolbar();
 
 	const handleClick = () => {
 		flipBookRef.current?.jumpToPage(0);
 	};
 
-	// In RTL, "first" page is on the right; use icon pointing right so it matches visual direction
-	const defaultIcon =
-		direction === "rtl" ? <ChevronLastIcon size={18} /> : <ChevronFirstIcon size={18} />;
+	// Same icon as LTR; RTL layout reversal places it on the correct side
+	const defaultIcon = <ChevronFirstIcon size={18} />;
 
 	return (
 		<ToolbarButton

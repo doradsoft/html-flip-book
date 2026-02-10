@@ -2,16 +2,19 @@
 
 import { FlipBook, type FlipBookHandle, type PageSemantics } from "html-flip-book-react";
 import {
+	DownloadDropdown,
 	FirstPageButton,
 	FullscreenButton,
 	LastPageButton,
 	NextButton,
 	PageIndicator,
 	PrevButton,
+	TocButton,
 	Toolbar,
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
+import { exportEntireBookPdf, exportPageRangePdf } from "./pdfExport";
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
 
@@ -24,6 +27,34 @@ const FrontCover = () => (
 			<p className="subtitle">A Complete Guide to Database Management</p>
 			<div className="cover-decoration bottom" />
 			<p className="author">Interactive FlipBook</p>
+		</div>
+	</div>
+);
+
+/** Front cover interior (inside of front cover when opened) */
+const FrontCoverInterior = () => (
+	<div className="cover cover-interior front-cover-interior">
+		<div className="cover-content">
+			<p className="interior-label">SQL Tutorial</p>
+			<p className="small">A Complete Guide to Database Management</p>
+		</div>
+	</div>
+);
+
+/** Table of contents page */
+const TocPageEn = () => (
+	<div className="toc-page">
+		<h2>Table of Contents</h2>
+		<p>Navigate using the toolbar or flip through the book.</p>
+	</div>
+);
+
+/** Back cover interior (inside of back cover when opened from the end) */
+const BackCoverInterior = () => (
+	<div className="cover cover-interior back-cover-interior">
+		<div className="cover-content">
+			<p className="interior-label">More in This Series</p>
+			<p className="small">JavaScript Fundamentals, React Development, Node.js Backend</p>
 		</div>
 	</div>
 );
@@ -44,22 +75,26 @@ const BackCover = () => (
 	</div>
 );
 
-const enPageSemantics: PageSemantics = {
-	// Semantic names are displayable page numbers - covers don't have page numbers
-	indexToSemanticName(pageIndex: number): string {
-		if (pageIndex === 0) return ""; // Front cover - no page number
-		return String(pageIndex);
-	},
-	semanticNameToIndex(semanticPageName: string): number | null {
-		const num = parseInt(semanticPageName, 10);
-		return Number.isNaN(num) ? null : num;
-	},
-	// Titles are used for table of contents - only meaningful pages get titles
-	indexToTitle(pageIndex: number): string {
-		if (pageIndex === 0) return "Front Cover";
-		return "";
-	},
-};
+function createEnPageSemantics(totalPages: number): PageSemantics {
+	return {
+		indexToSemanticName(pageIndex: number): string {
+			if (pageIndex <= 1) return ""; // Front cover + front cover interior
+			if (pageIndex >= totalPages - 2) return ""; // Back cover interior + back cover
+			return String(pageIndex);
+		},
+		semanticNameToIndex(semanticPageName: string): number | null {
+			const num = parseInt(semanticPageName, 10);
+			return Number.isNaN(num) ? null : num;
+		},
+		indexToTitle(pageIndex: number): string {
+			if (pageIndex === 0) return "Front Cover";
+			if (pageIndex === 1) return "Front Cover Interior";
+			if (pageIndex === totalPages - 2) return "Back Cover Interior";
+			if (pageIndex === totalPages - 1) return "Back Cover";
+			return "";
+		},
+	};
+}
 
 interface MarkdownModule {
 	default: string;
@@ -92,6 +127,8 @@ function useTestParams() {
 
 export const EnBook = () => {
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
+	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
+	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
 
@@ -113,20 +150,35 @@ export const EnBook = () => {
 				</div>
 			));
 
-			// Add front cover, content pages, and back cover
+			// Per-page content for PDF export: front cover, front interior, TOC, content, back interior, back cover
+			const contents: (string | null)[] = [
+				"Front Cover — SQL Tutorial\nA Complete Guide to Database Management",
+				"Front Cover Interior\nSQL Tutorial — A Complete Guide to Database Management",
+				"Table of Contents\nNavigate using the toolbar or flip through the book.",
+				...files.map((f) => f.content),
+				"Back Cover Interior\nMore in This Series",
+				"Back Cover — More in This Series\nJavaScript Fundamentals, React Development, Node.js Backend",
+			];
+
+			// Add front cover, front interior, TOC, content pages, back interior, back cover
 			const pages = [
 				<FrontCover key="front-cover" />,
+				<FrontCoverInterior key="front-cover-interior" />,
+				<TocPageEn key="toc" />,
 				...contentPages,
+				<BackCoverInterior key="back-cover-interior" />,
 				<BackCover key="back-cover" />,
 			];
 
+			setEnPageContents(contents);
+			setEnPageSemantics(createEnPageSemantics(pages.length));
 			setEnPages(pages);
 		};
 
 		loadMarkdownFiles();
 	}, []);
 
-	return enPages.length ? (
+	return enPages.length && enPageSemantics ? (
 		<>
 			<FlipBook
 				ref={flipBookRef}
@@ -137,13 +189,40 @@ export const EnBook = () => {
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 			/>
-			<Toolbar flipBookRef={flipBookRef} direction="ltr">
-				<FullscreenButton />
-				<FirstPageButton />
-				<PrevButton />
-				<PageIndicator />
-				<NextButton />
-				<LastPageButton />
+			<Toolbar flipBookRef={flipBookRef} direction="ltr" pageSemantics={enPageSemantics}>
+				<div className="flipbook-toolbar-start">
+					<FullscreenButton />
+					<TocButton tocPageIndex={2} />
+				</div>
+				<div className="flipbook-toolbar-nav-cluster">
+					<FirstPageButton />
+					<PrevButton />
+					<PageIndicator />
+					<NextButton />
+					<LastPageButton />
+				</div>
+				<div className="flipbook-toolbar-end">
+					<DownloadDropdown
+						onDownloadSefer={async () => {
+							const data = exportEntireBookPdf("SQL Tutorial", enPages.length, {
+								pageContents: enPageContents,
+							});
+							return { ext: "pdf", data };
+						}}
+						onDownloadPageRange={async (pages, semanticPages) =>
+							semanticPages.length
+								? {
+										ext: "pdf",
+										data: exportPageRangePdf("SQL Tutorial", pages, semanticPages, {
+											pageContents: enPageContents,
+										}),
+									}
+								: null
+						}
+						entireBookFilename="sql-tutorial"
+						rangeFilename="sql-tutorial-pages"
+					/>
+				</div>
 			</Toolbar>
 		</>
 	) : null;

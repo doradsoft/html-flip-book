@@ -308,7 +308,7 @@ class FlipBook {
 		debugBar.className = "flipbook-debug-bar";
 		this.bookElement?.appendChild(debugBar);
 		setInterval(() => {
-			// Populate debug bar with relevant information
+			// Populate debug bar with relevant information (throttled to reduce flicker)
 			const activeFlipsInfo = Array.from(this.activeFlips.entries())
 				.map(([idx, state]) => `${idx}:${state.leaf.flipPosition.toFixed(2)}`)
 				.join(", ");
@@ -317,7 +317,7 @@ class FlipBook {
           <div>Active Flips: ${this.activeFlips.size} [${activeFlipsInfo}]</div>
           <div>Pending Flip dir: ${this.pendingFlipDirection}</div>
         `;
-		}, 10);
+		}, 200);
 	}
 
 	/**

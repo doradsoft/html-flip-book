@@ -3,6 +3,13 @@
 export type { Command, CommandOptions, HotkeyBinding } from "../commands";
 // Commands
 export { DEFAULT_HOTKEYS, defaultCommands, useCommands } from "../commands";
+export type {
+	DownloadResult,
+	PageRangesDownloadContext,
+	PageRangesDownloadHandler,
+	SeferDownloadHandler,
+	SemanticPageInfo,
+} from "../download/types";
 export type { IconProps } from "../icons";
 // Icons
 export {
@@ -11,13 +18,15 @@ export {
 	ChevronLastIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
+	DownloadIcon,
 	MaximizeIcon,
 	MinimizeIcon,
 	TableOfContentsIcon,
 } from "../icons";
-
 export type { ActionButtonProps } from "./ActionButton";
 export { ActionButton } from "./ActionButton";
+export type { DownloadDropdownProps } from "./DownloadDropdown";
+export { DownloadDropdown } from "./DownloadDropdown";
 export type { FirstPageButtonProps } from "./FirstPageButton";
 export { FirstPageButton } from "./FirstPageButton";
 export type { FullscreenButtonProps } from "./FullscreenButton";

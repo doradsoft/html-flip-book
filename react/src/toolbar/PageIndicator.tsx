@@ -41,7 +41,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	ariaLabel = "Go to page",
 	maxLength = 10,
 }) => {
-	const { flipBookRef, pageSemantics, direction, currentPage, totalPages } = useToolbar();
+	const { flipBookRef, pageSemantics, direction, currentPage, totalPages, of } = useToolbar();
 
 	// Determine effective mode
 	const mode: PageIndicatorMode = modeProp ?? (pageSemantics ? "semantic" : "index");
@@ -73,26 +73,13 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	const leftName = getPageName(leftPageIndex);
 	const rightName = rightPageIndex != null ? getPageName(rightPageIndex) : "";
 
-	// Get total display (last page name or total count)
-	const getTotalDisplay = useCallback((): string => {
-		if (mode === "semantic" && pageSemantics) {
-			// Find the last page with a semantic name
-			for (let i = totalPages - 1; i >= 0; i--) {
-				const name = pageSemantics.indexToSemanticName(i);
-				if (name) return name;
-			}
-			return String(totalPages);
-		}
-		return String(totalPages);
-	}, [mode, pageSemantics, totalPages]);
+	// "Of" comes from the book (via context); default is total pages count
+	const getTotalDisplay = useCallback((): string => String(of), [of]);
 
-	// Build display text for the range
+	// Build display text for the range (always left physical page then right, e.g. י"א - י"ב)
 	const buildDisplayText = useCallback((): string => {
-		// Determine which names to show based on direction
-		// RTL: right page shown first (physically on right side)
-		// LTR: left page shown first (physically on left side)
-		const firstName = direction === "rtl" ? rightName : leftName;
-		const secondName = direction === "rtl" ? leftName : rightName;
+		const firstName = leftName;
+		const secondName = rightName;
 
 		let rangeText: string;
 		if (!firstName && !secondName) {
@@ -116,7 +103,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 			return `${rangeText} / ${getTotalDisplay()}`;
 		}
 		return rangeText;
-	}, [direction, leftName, rightName, placeholder, showTotal, getTotalDisplay]);
+	}, [leftName, rightName, placeholder, showTotal, getTotalDisplay]);
 
 	// The primary semantic name for editing (use left page in RTL reading order)
 	const primarySemanticName = direction === "rtl" ? rightName || leftName : leftName || rightName;

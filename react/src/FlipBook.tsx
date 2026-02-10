@@ -25,6 +25,8 @@ export interface FlipBookHandle {
 	getCurrentPageIndex: () => number;
 	/** Get the total number of pages */
 	getTotalPages: () => number;
+	/** Get the "of" value for the indicator (e.g. total label). Defaults to total pages when not set. */
+	getOf: () => string | number;
 	/** Check if currently at the first page */
 	isFirstPage: () => boolean;
 	/** Check if currently at the last page */
@@ -82,6 +84,11 @@ export interface FlipBookProps {
 	 * Configuration for cover pages (front and back covers).
 	 */
 	coverConfig?: CoverConfig;
+	/**
+	 * Override for the "of" part of the page indicator (e.g. "נ" for Hebrew books).
+	 * Defaults to total pages count when not set.
+	 */
+	of?: string | number;
 }
 
 /**
@@ -116,12 +123,15 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			fastDeltaThreshold,
 			leavesBuffer,
 			coverConfig,
+			of,
 		},
 		ref,
 	) => {
 		const [currentPageIndex, setCurrentPageIndex] = useState(0);
 		const setPageIndexRef = useRef(setCurrentPageIndex);
 		setPageIndexRef.current = setCurrentPageIndex;
+		const ofRef = useRef(of);
+		ofRef.current = of;
 
 		const flipBook = useRef(
 			new FlipBookBase({
@@ -145,6 +155,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
 				getCurrentPageIndex: () => flipBook.current.currentPageIndex,
 				getTotalPages: () => flipBook.current.totalPages,
+				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.current.totalPages),
 				isFirstPage: () => flipBook.current.isFirstPage,
 				isLastPage: () => flipBook.current.isLastPage,
 			}),

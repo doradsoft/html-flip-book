@@ -46,6 +46,16 @@ header {
 	flex-direction: column;
 	align-items: center;
 	gap: 16px;
+	min-width: 0; /* allow flex item to shrink below content size */
+}
+
+/* FlipBook measures its container via clientWidth/clientHeight; give it explicit size */
+.en-book,
+.he-book {
+	width: 100%;
+	min-height: 420px;
+	position: relative;
+	box-sizing: border-box;
 }
 
 .he-book-container {
@@ -67,6 +77,16 @@ header {
 .he-page {
 	text-align: right;
 	direction: rtl;
+}
+
+/* Psukim: justify; perek header (first line) bold */
+.he-page .bible-content {
+	text-align: justify;
+	white-space: pre-line;
+}
+
+.he-page .bible-content::first-line {
+	font-weight: bold;
 }
 
 .he-page h2 {
@@ -169,6 +189,33 @@ header {
 .cover-decoration.top,
 .cover-decoration.bottom {
 	width: 40%;
+}
+
+/* Cover interior (inside of front/back cover when opened) */
+.cover-interior {
+	background: #f8f6f0;
+	color: #2c1810;
+}
+
+.cover-interior.front-cover-interior {
+	background: linear-gradient(145deg, #3d2c1a 0%, #4a3520 100%);
+	color: #f4e4bc;
+}
+
+.cover-interior.back-cover-interior {
+	background: linear-gradient(145deg, #4a3520 0%, #3d2c1a 100%);
+	color: #f4e4bc;
+}
+
+.he-cover.cover-interior {
+	background: linear-gradient(145deg, #2a4a6c 0%, #1e3a5a 100%);
+	color: #e8f0f8;
+}
+
+.cover .interior-label {
+	font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+	font-weight: 600;
+	margin: 0;
 }
 
 /* Table of Contents styles */
