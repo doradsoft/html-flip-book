@@ -57,7 +57,7 @@ function createHePageSemantics(totalPages: number): PageSemantics {
 	return {
 		indexToSemanticName(pageIndex: number): string {
 			if (pageIndex <= 2) return ""; // כריכה, כריכה פנים, שער
-			if (pageIndex >= totalPages - 2) return ""; // back interior, back cover
+			if (pageIndex >= totalPages - 3) return ""; // last blank, back interior, back cover
 			return toLetters(pageIndex - 2, { addQuotes: true }); // content pages after cover, interior, toc
 		},
 		semanticNameToIndex(semanticPageName: string): number | null {
@@ -126,17 +126,18 @@ export const HeBook = () => {
 				</div>
 			));
 
-			// Per-page content for PDF export: cover, front interior, toc, content, back interior, back cover
+			// Per-page content for PDF export: cover, front interior, toc, content, blank, back interior, back cover
 			const contents: (string | null)[] = [
 				"כריכה — ספר בראשית\nמקרא על פי המסורה",
 				"", // front interior (no text)
 				"שער — תוכן העניינים",
 				...files.map((f) => normalizePsukim(f.content)),
+				"", // last blank page
 				"", // back interior (no titles)
 				"", // back cover (no writing)
 			];
 
-			const totalPages = contentPages.length + 5; // cover + front interior + toc + content + back interior + back cover
+			const totalPages = contentPages.length + 6; // cover + front interior + toc + content + blank + back interior + back cover
 			const semantics = createHePageSemantics(totalPages);
 			setHePageSemantics(semantics);
 			setHePageContents(contents);
@@ -159,6 +160,7 @@ export const HeBook = () => {
 				<div key="front-cover-interior" />,
 				toc,
 				...contentPages,
+				<div key="last-blank" />,
 				<div key="back-cover-interior" />,
 				<BackCover key="back-cover" />,
 			];
