@@ -14,11 +14,24 @@ export default defineConfig(({ mode }) => {
 		assetsInclude: ["**/*.md"],
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
-			alias: {
-				"html-flip-book-react/toolbar": path.resolve(__dirname, "../src/toolbar/index.ts"),
-				"html-flip-book-react": path.resolve(__dirname, "../src/FlipBook.tsx"),
-				"html-flip-book-vanilla": path.resolve(__dirname, "../../base/src/flipbook.ts"),
-			},
+			alias: [
+				{
+					find: "html-flip-book-vanilla/intl",
+					replacement: path.resolve(__dirname, "../../base/src/intl/index.ts"),
+				},
+				{
+					find: "html-flip-book-react/toolbar",
+					replacement: path.resolve(__dirname, "../src/toolbar/index.ts"),
+				},
+				{
+					find: "html-flip-book-react",
+					replacement: path.resolve(__dirname, "../src/FlipBook.tsx"),
+				},
+				{
+					find: "html-flip-book-vanilla",
+					replacement: path.resolve(__dirname, "../../base/src/flipbook.ts"),
+				},
+			],
 		},
 		build: {
 			sourcemap: !isProd,

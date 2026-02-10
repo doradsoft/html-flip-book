@@ -1,4 +1,5 @@
 import type React from "react";
+import { t } from "../i18n";
 import { ChevronLeftIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
@@ -11,25 +12,24 @@ interface PrevButtonProps {
 }
 
 /**
- * Button to navigate to the previous page.
+ * Button: previous page. Same behavior in LTR and RTL.
+ * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isFirstPage, direction } = useToolbar();
+	const { flipBookRef, isFirstPage, locale } = useToolbar();
 
 	const handleClick = () => {
 		flipBookRef.current?.flipPrev();
 	};
 
-	// In RTL, the action goes to previous spread (right in book); label reflects action
-	const label = direction === "rtl" ? "Next page" : "Previous page";
-
-	// Same arrow direction as LTR: left chevron. RTL layout reversal gives opposite action.
+	const ariaLabel = t("command.jumpToPrevPage", locale);
 	const defaultIcon = <ChevronLeftIcon size={20} />;
 
 	return (
 		<ToolbarButton
 			onClick={handleClick}
-			ariaLabel={label}
+			ariaLabel={ariaLabel}
+			title={ariaLabel}
 			disabled={isFirstPage}
 			className={`flipbook-toolbar-prev ${className ?? ""}`.trim()}
 		>

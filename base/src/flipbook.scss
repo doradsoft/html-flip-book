@@ -20,3 +20,22 @@
   align-items: center;
   z-index: 9999;
 }
+
+.flipbook-debug-bar--hidden {
+  display: none !important;
+}
+
+// Interior cover page: the .page gets a colored background (via interiorCoverClassName).
+// The direct child (.page--cover-interior-inset) uses padding + background-clip to create
+// a white endpaper center with the cover color visible in the padding gap (the "frame").
+// IMPORTANT: do NOT override position — the engine sets position: absolute on .page.
+.page--cover-interior {
+  overflow: hidden;
+}
+
+.page--cover-interior-inset {
+  // .page > * already sets: height: 100%; width: 100%; box-sizing: border-box;
+  padding: var(--cover-inset, 5%);
+  background: #fffef8;
+  background-clip: content-box;
+}

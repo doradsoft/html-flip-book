@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"outDir": "./dist",
 		"rootDir": "./src",
+		"moduleResolution": "bundler",
 		"declaration": true,
 		"declarationMap": true
 	},

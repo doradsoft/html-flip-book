@@ -82,6 +82,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 		const mockRef = createMockFlipBookRef({
 			getCurrentPageIndex: vi.fn().mockReturnValue(startPageIndex),
 			getTotalPages: vi.fn().mockReturnValue(TOTAL_PAGES),
+			getOf: vi.fn().mockReturnValue(PEREK_COUNT),
 			isFirstPage: vi.fn().mockReturnValue(startPageIndex === 0),
 			isLastPage: vi.fn().mockReturnValue(startPageIndex >= TOTAL_PAGES - 1),
 		});

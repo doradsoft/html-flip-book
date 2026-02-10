@@ -139,7 +139,7 @@ describe("TocButton", () => {
 		);
 
 		fireEvent.click(screen.getByRole("button", { name: /table of contents/i }));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(4);
+		expect(mockRef.current.goToPage).toHaveBeenCalledWith(4);
 	});
 
 	it("should use custom tocPageIndex when provided", () => {
@@ -153,7 +153,7 @@ describe("TocButton", () => {
 		);
 
 		fireEvent.click(screen.getByRole("button", { name: /table of contents/i }));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(2);
+		expect(mockRef.current.goToPage).toHaveBeenCalledWith(2);
 	});
 
 	it("should use custom ariaLabel when provided", () => {

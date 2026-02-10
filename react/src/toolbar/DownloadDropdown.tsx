@@ -178,7 +178,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 				type="button"
 				className="flipbook-toolbar-button flipbook-toolbar-download-trigger"
 				onClick={() => setOpen((o) => !o)}
-				aria-label={ariaLabel ?? t("toolbar.download", locale)}
+				aria-label={ariaLabel ?? t("toolbarItem.download", locale)}
 				aria-expanded={open}
 				aria-haspopup="true"
 				disabled={loading !== null}
@@ -200,7 +200,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 							onClick={handleEntireBook}
 							disabled={loading !== null}
 						>
-							{loading === "sefer" ? "…" : t("toolbar.downloadEntireBook", locale)}
+							{loading === "sefer" ? "…" : t("command.downloadEntireBook", locale)}
 						</button>
 					)}
 					{hasRange && (
@@ -212,12 +212,12 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 								onClick={handleOpenRange}
 								disabled={loading !== null}
 							>
-								{t("toolbar.downloadPageRange", locale)}
+								{t("toolbarItem.downloadPageRange", locale)}
 							</button>
 							{rangeOpen && (
 								<div className="flipbook-toolbar-download-range">
 									<label className="flipbook-toolbar-download-range-label">
-										{t("download.from", locale)}
+										{t("toolbarItem.download.from", locale)}
 										<select
 											value={fromIndex}
 											onChange={(e) => setFromIndex(Number(e.target.value))}
@@ -231,7 +231,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 										</select>
 									</label>
 									<label className="flipbook-toolbar-download-range-label">
-										{t("download.to", locale)}
+										{t("toolbarItem.download.to", locale)}
 										<select
 											value={toIndex}
 											onChange={(e) => setToIndex(Number(e.target.value))}
@@ -250,7 +250,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 										onClick={handleRangeDownload}
 										disabled={loading !== null}
 									>
-										{loading === "range" ? "…" : t("download.download", locale)}
+										{loading === "range" ? "…" : t("toolbarItem.download.download", locale)}
 									</button>
 								</div>
 							)}

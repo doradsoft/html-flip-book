@@ -42,10 +42,27 @@ interface CommandsContextValue {
 const CommandsContext = createContext<CommandsContextValue | null>(null);
 
 /**
- * Check if a hotkey binding matches a keyboard event.
+ * For RTL (he-IL): arrow keys perform the opposite (ArrowLeft -> next, ArrowRight -> prev).
+ * Returns the key to use when matching against command bindings.
  */
-function hotkeyMatches(binding: HotkeyBinding, event: KeyboardEvent): boolean {
-	if (event.key !== binding.key) return false;
+function getEffectiveKey(key: string, direction: "ltr" | "rtl"): string {
+	if (direction !== "rtl") return key;
+	if (key === "ArrowLeft") return "ArrowRight";
+	if (key === "ArrowRight") return "ArrowLeft";
+	return key;
+}
+
+/**
+ * Check if a hotkey binding matches a keyboard event.
+ * When direction is rtl, ArrowLeft/Right are matched as their opposite for flip prev/next.
+ */
+function hotkeyMatches(
+	binding: HotkeyBinding,
+	event: KeyboardEvent,
+	direction: "ltr" | "rtl",
+): boolean {
+	const effectiveKey = getEffectiveKey(event.key, direction);
+	if (effectiveKey !== binding.key) return false;
 
 	const modifiers = binding.modifiers ?? {};
 	if (!!modifiers.ctrl !== event.ctrlKey) return false;
@@ -160,13 +177,13 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 				return;
 			}
 
-			// Check each command's hotkeys
+			// Check each command's hotkeys (ArrowLeft/Right swapped for RTL)
 			for (const [commandId, entry] of Object.entries(registry)) {
 				if (entry.options.disableHotkeys) continue;
 
 				const hotkeys = entry.options.hotkeys ?? DEFAULT_HOTKEYS[commandId] ?? [];
 				for (const binding of hotkeys) {
-					if (hotkeyMatches(binding, event)) {
+					if (hotkeyMatches(binding, event, direction)) {
 						event.preventDefault();
 						executeCommand(commandId);
 						return;
@@ -174,7 +191,7 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 				}
 			}
 		},
-		[registry, executeCommand],
+		[registry, executeCommand, direction],
 	);
 
 	// Register keyboard listener

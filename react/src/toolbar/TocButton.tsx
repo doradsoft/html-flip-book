@@ -24,8 +24,9 @@ const TocButton: React.FC<TocButtonProps> = ({
 	ariaLabel: ariaLabelProp,
 	className,
 }) => {
-	const { flipBookRef, currentPage, locale } = useToolbar();
-	const ariaLabel = ariaLabelProp ?? t("toolbar.toc", locale);
+	const { flipBookRef, currentPage, locale, direction } = useToolbar();
+	const ariaLabel = ariaLabelProp ?? t("command.jumpToToc", locale);
+	const isLtr = direction === "ltr";
 
 	const handleClick = () => {
 		flipBookRef.current?.goToPage(tocPageIndex);
@@ -40,7 +41,12 @@ const TocButton: React.FC<TocButtonProps> = ({
 			disabled={isOnToc}
 			className={`flipbook-toolbar-toc ${className ?? ""}`.trim()}
 		>
-			{children ?? <TableOfContentsIcon size={18} />}
+			{children ?? (
+				<TableOfContentsIcon
+					size={18}
+					className={isLtr ? "flipbook-toc-icon--flip-h" : undefined}
+				/>
+			)}
 		</ToolbarButton>
 	);
 };

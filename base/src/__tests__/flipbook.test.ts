@@ -239,7 +239,8 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 4, direction: "rtl" });
 			flipBook.render(".flipbook-container", true);
 
-			vi.advanceTimersByTime(20);
+			// fillDebugBar uses setInterval(..., 200); advance so first tick runs
+			vi.advanceTimersByTime(200);
 
 			const debugBar = container.querySelector(".flipbook-debug-bar");
 			expect(debugBar?.innerHTML).toContain("RTL");

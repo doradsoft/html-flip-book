@@ -11,12 +11,14 @@
 	user-select: none;
 }
 
-/* RTL layout - reverse flex direction so first/last and prev/next swap sides */
-.flipbook-toolbar--rtl {
-	flex-direction: row-reverse;
-}
+/*
+ * RTL layout: The toolbar sets dir="rtl" on its root element.
+ * With dir="rtl", flex-direction: row already lays items right-to-left,
+ * which is the correct mirror of LTR. No row-reverse needed.
+ * Only the icon flip is added — same items, same behavior, just mirrored visually.
+ */
 
-/* Left section: fullscreen, TOC, download (spread at start) */
+/* Left section: fullscreen, TOC (spread at start) */
 .flipbook-toolbar-start {
 	display: flex;
 	align-items: center;
@@ -33,9 +35,9 @@
 	flex-shrink: 0;
 }
 
-/* RTL nav cluster: reverse internal order so First, Prev, Page, Next, Last display correctly */
-.flipbook-toolbar-nav-cluster.flipbook-toolbar--rtl {
-	flex-direction: row-reverse;
+/* RTL: flip every toolbar icon horizontally */
+.flipbook-toolbar--rtl .flipbook-toolbar-button > * {
+	transform: scaleX(-1);
 }
 
 /* Right section: first, last (spread at end) */
@@ -104,6 +106,11 @@
 
 .flipbook-toolbar-fullscreen--active {
 	background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* TOC icon for LTR (en): flip horizontally */
+.flipbook-toc-icon--flip-h {
+	transform: scaleX(-1);
 }
 
 /* Page indicator - span text display */

@@ -36,44 +36,30 @@ const FrontCover = () => (
 	</div>
 );
 
-/** Front cover interior (כריכה פנים — inside of front cover when opened) */
-const FrontCoverInterior = () => (
-	<div className="cover cover-interior front-cover-interior he-cover">
-		<div className="cover-content">
-			<p className="interior-label">ספר בראשית</p>
-			<p className="small">מקרא על פי המסורה</p>
-		</div>
-	</div>
-);
+/* Front & back cover interiors are now handled by infrastructure via coverConfig.interiorCoverClassName.
+   No dedicated components needed — the pages remain blank white. */
 
-/** Back cover component (no "סוף" on interior; exterior is blank/design only) */
+/** Back cover: no writing. */
 const BackCover = () => (
 	<div className="cover back-cover he-cover">
-		<div className="cover-content">
-			<p>טקסט מתוך ספריא</p>
-			<div className="cover-decoration" />
-			<p className="small">html-flip-book</p>
-		</div>
+		<div className="cover-content" />
 	</div>
 );
 
-// Page titles for TOC. כריכה = front cover; כריכה פנים = front interior; שער = page after (e.g. TOC)
-const getChapterTitles = (totalPages: number): Record<number, string> => ({
+// Page titles for TOC. No back cover titles, no front interior title for he. שער = page after (e.g. TOC)
+const getChapterTitles = (_totalPages: number): Record<number, string> => ({
 	0: "כריכה", // Front cover
-	1: "כריכה פנים", // Front cover interior
 	2: "שער", // Page after cover (e.g. TOC)
-	[totalPages - 1]: "כריכה אחורית", // Back cover
 });
 
 function createHePageSemantics(totalPages: number): PageSemantics {
 	return {
 		indexToSemanticName(pageIndex: number): string {
 			if (pageIndex <= 2) return ""; // כריכה, כריכה פנים, שער
-			if (pageIndex === totalPages - 1) return "כריכה אחורית";
+			if (pageIndex >= totalPages - 2) return ""; // back interior, back cover
 			return toLetters(pageIndex - 2, { addQuotes: true }); // content pages after cover, interior, toc
 		},
 		semanticNameToIndex(semanticPageName: string): number | null {
-			if (semanticPageName === "כריכה אחורית") return totalPages - 1;
 			const num = toNumber(semanticPageName);
 			if (num === 0) return null;
 			return num + 2; // content starts at index 3
@@ -139,21 +125,22 @@ export const HeBook = () => {
 				</div>
 			));
 
-			// Per-page content for PDF export: כריכה, כריכה פנים, שער, content, כריכה אחורית
+			// Per-page content for PDF export: cover, front interior, toc, content, back interior, back cover
 			const contents: (string | null)[] = [
 				"כריכה — ספר בראשית\nמקרא על פי המסורה",
-				"כריכה פנים — ספר בראשית\nמקרא על פי המסורה",
+				"", // front interior (no text)
 				"שער — תוכן העניינים",
 				...files.map((f) => normalizePsukim(f.content)),
-				"כריכה אחורית\nטקסט מתוך ספריא",
+				"", // back interior (no titles)
+				"", // back cover (no writing)
 			];
 
-			const totalPages = contentPages.length + 4; // cover + front interior + toc + content + back
+			const totalPages = contentPages.length + 5; // cover + front interior + toc + content + back interior + back cover
 			const semantics = createHePageSemantics(totalPages);
 			setHePageSemantics(semantics);
 			setHePageContents(contents);
 
-			// Build pages: cover, front interior, TOC, content pages, back cover
+			// Build pages: cover, front interior, TOC, content, back interior, back cover
 			const toc = (
 				<TocPage
 					key="toc"
@@ -168,9 +155,10 @@ export const HeBook = () => {
 
 			const pages = [
 				<FrontCover key="front-cover" />,
-				<FrontCoverInterior key="front-cover-interior" />,
+				<div key="front-cover-interior" />,
 				toc,
 				...contentPages,
+				<div key="back-cover-interior" />,
 				<BackCover key="back-cover" />,
 			];
 
@@ -195,6 +183,11 @@ export const HeBook = () => {
 				of="נ"
 				debug={true}
 				leavesBuffer={7}
+				coverConfig={{
+					coverIndices: "auto",
+					coverFrameClassName: "he-cover-frame",
+					interiorCoverClassName: "he-cover-interior",
+				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 			/>
@@ -203,13 +196,12 @@ export const HeBook = () => {
 					<FullscreenButton />
 					<TocButton tocPageIndex={2} ariaLabel="תוכן העניינים" />
 				</div>
-				{/* RTL: swap 2 vs 2 — show Last, Next | Indicator | Prev, First (no row-reverse) */}
 				<div className="flipbook-toolbar-nav-cluster">
-					<LastPageButton />
-					<NextButton />
-					<PageIndicator />
-					<PrevButton />
 					<FirstPageButton />
+					<PrevButton />
+					<PageIndicator />
+					<NextButton />
+					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
 					<DownloadDropdown

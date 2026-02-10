@@ -3,16 +3,16 @@ import { useCallback, useEffect, useState } from "react";
 import { CommandProvider } from "../commands/CommandContext";
 import type { Command, CommandOptions } from "../commands/types";
 import type { FlipBookHandle, PageSemantics } from "../FlipBook";
-import type { Locale } from "../i18n";
+import { defaultLocale, directionFromLocale, type Locale } from "../i18n";
 import { ToolbarContext } from "./ToolbarContext";
 import "./Toolbar.css";
 
 interface ToolbarProps {
 	/** Ref to the FlipBook component for programmatic control */
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
-	/** Text direction for button layout. Defaults to "ltr" */
+	/** Text direction. Defaults from intl locale (en-US → ltr). */
 	direction?: "ltr" | "rtl";
-	/** Locale for UI strings. Defaults to "he-IL" when direction is rtl, else "en". */
+	/** Locale for UI strings. Defaults to en-US. */
 	locale?: Locale;
 	/** Optional page semantics for semantic indicator (e.g. perek/chapter) */
 	pageSemantics?: PageSemantics;
@@ -35,7 +35,7 @@ interface ToolbarProps {
  */
 const Toolbar: React.FC<ToolbarProps> = ({
 	flipBookRef,
-	direction = "ltr",
+	direction: directionProp,
 	locale: localeProp,
 	pageSemantics,
 	className = "",
@@ -44,7 +44,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	commands,
 	commandOptions,
 }) => {
-	const locale = localeProp ?? (direction === "rtl" ? "he-IL" : "en");
+	const direction = directionProp ?? directionFromLocale(localeProp ?? defaultLocale);
+	const locale = localeProp ?? (direction === "rtl" ? "he-IL" : "en-US");
 	const [currentPage, setCurrentPage] = useState(0);
 	const [totalPages, setTotalPages] = useState(0);
 	const [of, setOf] = useState<string | number>(0);

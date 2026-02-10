@@ -31,6 +31,8 @@ export interface FlipBookHandle {
 	isFirstPage: () => boolean;
 	/** Check if currently at the last page */
 	isLastPage: () => boolean;
+	/** Toggle debug toolbar visibility (when debug mode is enabled). Bound to Ctrl+Alt+D by default. */
+	toggleDebugBar?: () => void;
 }
 
 /**
@@ -54,6 +56,31 @@ export interface CoverConfig {
 	 * If "auto", uses first and last pages as covers.
 	 */
 	coverIndices?: number[] | "auto";
+	/**
+	 * CSS class for the static cover frame visible behind all pages.
+	 * Represents the physical book boards that peek out around the text block.
+	 * The frame is sized to coverAspectRatio and centered; pages are smaller (leafAspectRatio).
+	 */
+	coverFrameClassName?: string;
+	/**
+	 * CSS class applied to interior sides of cover leaves (the endpaper).
+	 * Sets the page background to the cover color; the white endpaper inset
+	 * is created automatically by the infrastructure.
+	 */
+	interiorCoverClassName?: string;
+	/**
+	 * Override interiorCoverClassName for the front cover interior specifically.
+	 */
+	frontInteriorCoverClassName?: string;
+	/**
+	 * Override interiorCoverClassName for the back cover interior specifically.
+	 */
+	backInteriorCoverClassName?: string;
+	/**
+	 * Inset size for the interior endpaper frame.
+	 * Any valid CSS length (e.g. "5%", "12px"). Default: "5%".
+	 */
+	coverInset?: string;
 }
 
 /**
@@ -89,6 +116,17 @@ export interface FlipBookProps {
 	 * Defaults to total pages count when not set.
 	 */
 	of?: string | number;
+	/**
+	 * Aspect ratio for inner pages (text block leaves).
+	 * Default: { width: 2, height: 3 }
+	 */
+	leafAspectRatio?: { width: number; height: number };
+	/**
+	 * Aspect ratio for cover boards (slightly larger than leaf).
+	 * The delta between cover and leaf aspect ratios determines the visible frame.
+	 * Default: { width: 2.15, height: 3.15 }
+	 */
+	coverAspectRatio?: { width: number; height: number };
 }
 
 /**
@@ -124,6 +162,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			leavesBuffer,
 			coverConfig,
 			of,
+			leafAspectRatio,
+			coverAspectRatio,
 		},
 		ref,
 	) => {
@@ -141,6 +181,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				initialTurnedLeaves: initialTurnedLeaves,
 				fastDeltaThreshold: fastDeltaThreshold,
 				leavesBuffer: leavesBuffer,
+				leafAspectRatio: leafAspectRatio,
+				coverAspectRatio: coverAspectRatio,
+				coverPageIndices: coverConfig?.coverIndices,
 				onPageChanged: (index: number) => setPageIndexRef.current?.(index),
 			}),
 		);
@@ -158,8 +201,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.current.totalPages),
 				isFirstPage: () => flipBook.current.isFirstPage,
 				isLastPage: () => flipBook.current.isLastPage,
+				toggleDebugBar: () => {
+					const root = document.querySelector(`.${className}`);
+					const bar = root?.querySelector(".flipbook-debug-bar");
+					if (bar) bar.classList.toggle("flipbook-debug-bar--hidden");
+				},
 			}),
-			[],
+			[className],
 		);
 
 		useEffect(() => {
@@ -185,6 +233,26 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		);
 		const isCoverPage = (index: number) => coverIndicesSet.has(index);
 
+		// Compute interior cover page indices (the other side of each cover leaf).
+		// Leaf pairs: [0,1], [2,3], ... — interior is the paired page on the same leaf.
+		const interiorCoverMap = new Map<number, "front" | "back">();
+		if (
+			coverConfig?.interiorCoverClassName ||
+			coverConfig?.frontInteriorCoverClassName ||
+			coverConfig?.backInteriorCoverClassName
+		) {
+			for (const coverIdx of coverIndicesSet) {
+				const interiorIdx = coverIdx % 2 === 0 ? coverIdx + 1 : coverIdx - 1;
+				if (interiorIdx >= 0 && interiorIdx < totalPages && !coverIndicesSet.has(interiorIdx)) {
+					// First cover index = front, others = back
+					const role = coverIdx === Math.min(...coverIndicesSet) ? "front" : "back";
+					interiorCoverMap.set(interiorIdx, role);
+				}
+			}
+		}
+
+		const coverInset = coverConfig?.coverInset ?? "5%";
+
 		// Build CSS class for a page
 		const getPageClassName = (index: number): string => {
 			const classes = ["page"];
@@ -195,6 +263,19 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				}
 				if (coverConfig?.noShadow) {
 					classes.push("page--no-shadow");
+				}
+			}
+			const interiorRole = interiorCoverMap.get(index);
+			if (interiorRole) {
+				classes.push("page--cover-interior");
+				// When a static cover frame is present, it provides the visible background
+				// through the transparent padding of the inset — no need for a page-level bg class.
+				if (!coverConfig?.coverFrameClassName) {
+					const cls =
+						interiorRole === "front"
+							? (coverConfig?.frontInteriorCoverClassName ?? coverConfig?.interiorCoverClassName)
+							: (coverConfig?.backInteriorCoverClassName ?? coverConfig?.interiorCoverClassName);
+					if (cls) classes.push(cls);
 				}
 			}
 			return classes.join(" ");
@@ -219,15 +300,36 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					})()
 				: (index: number) => pagesWithKeys[index];
 
+		/** Wrap interior cover pages with the endpaper inset frame */
+		const renderPageContent = (index: number) => {
+			const content = contentByIndex(index);
+			if (interiorCoverMap.has(index)) {
+				return (
+					<div
+						className="page--cover-interior-inset"
+						style={{ "--cover-inset": coverInset } as React.CSSProperties}
+					>
+						{content}
+					</div>
+				);
+			}
+			return content;
+		};
+
 		return (
 			<div className={className}>
+				{/* Static cover frame — represents the physical book boards visible behind all pages.
+				    Sized and positioned by the vanilla engine during render(). */}
+				{coverConfig?.coverFrameClassName && (
+					<div className={`flipbook-cover-frame ${coverConfig.coverFrameClassName}`} />
+				)}
 				{pagesWithKeys.map((_, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness
 						key={`page-${index}`}
 						className={getPageClassName(index)}
 					>
-						{contentByIndex(index)}
+						{renderPageContent(index)}
 					</div>
 				))}
 			</div>

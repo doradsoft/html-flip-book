@@ -104,7 +104,9 @@ header {
 	overflow: auto;
 }
 
-/* Cover page styles */
+/* ============================================================
+   Cover page styles — realistic hardcover book appearance
+   ============================================================ */
 .cover {
 	display: flex;
 	flex-direction: column;
@@ -113,21 +115,177 @@ header {
 	text-align: center;
 	padding: 10%;
 	box-sizing: border-box;
+	position: relative;
+	overflow: hidden;
 }
 
-.front-cover {
-	background: linear-gradient(145deg, #2c1810 0%, #4a2c17 50%, #3d2415 100%);
-	color: #f4e4bc;
-}
+/* --- Exterior covers: cloth-like wave / fabric texture --- */
 
+.front-cover,
 .back-cover {
-	background: linear-gradient(145deg, #3d2415 0%, #4a2c17 50%, #2c1810 100%);
 	color: #f4e4bc;
 }
 
+/* En exterior — warm brown leather with fine fabric weave */
+.front-cover:not(.he-cover) {
+	background:
+		repeating-linear-gradient(
+			160deg,
+			transparent,
+			transparent 8px,
+			rgba(255, 255, 255, 0.018) 8px,
+			rgba(255, 255, 255, 0.018) 9px
+		),
+		repeating-linear-gradient(
+			70deg,
+			transparent,
+			transparent 11px,
+			rgba(0, 0, 0, 0.012) 11px,
+			rgba(0, 0, 0, 0.012) 12px
+		),
+		linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0) 0%,
+			rgba(255, 255, 255, 0.04) 25%,
+			rgba(255, 255, 255, 0) 40%,
+			rgba(255, 255, 255, 0.03) 60%,
+			rgba(255, 255, 255, 0) 75%,
+			rgba(255, 255, 255, 0.02) 100%
+		),
+		linear-gradient(170deg, #2c1810 0%, #4a2c17 40%, #3d2415 100%);
+}
+
+.back-cover:not(.he-cover) {
+	background:
+		repeating-linear-gradient(
+			160deg,
+			transparent,
+			transparent 8px,
+			rgba(255, 255, 255, 0.018) 8px,
+			rgba(255, 255, 255, 0.018) 9px
+		),
+		repeating-linear-gradient(
+			70deg,
+			transparent,
+			transparent 11px,
+			rgba(0, 0, 0, 0.012) 11px,
+			rgba(0, 0, 0, 0.012) 12px
+		),
+		linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0) 0%,
+			rgba(255, 255, 255, 0.04) 25%,
+			rgba(255, 255, 255, 0) 40%,
+			rgba(255, 255, 255, 0.03) 60%,
+			rgba(255, 255, 255, 0) 75%,
+			rgba(255, 255, 255, 0.02) 100%
+		),
+		linear-gradient(170deg, #3d2415 0%, #4a2c17 40%, #2c1810 100%);
+}
+
+/* He exterior — deep blue cloth with fabric weave */
 .he-cover {
-	background: linear-gradient(145deg, #1a3a5c 0%, #2c5282 50%, #1e4a6e 100%);
 	color: #e8f0f8;
+	background:
+		repeating-linear-gradient(
+			155deg,
+			transparent,
+			transparent 7px,
+			rgba(255, 255, 255, 0.022) 7px,
+			rgba(255, 255, 255, 0.022) 8px
+		),
+		repeating-linear-gradient(
+			65deg,
+			transparent,
+			transparent 10px,
+			rgba(0, 0, 0, 0.015) 10px,
+			rgba(0, 0, 0, 0.015) 11px
+		),
+		linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0) 0%,
+			rgba(255, 255, 255, 0.05) 20%,
+			rgba(255, 255, 255, 0) 35%,
+			rgba(255, 255, 255, 0.04) 55%,
+			rgba(255, 255, 255, 0) 70%,
+			rgba(255, 255, 255, 0.03) 100%
+		),
+		linear-gradient(170deg, #1a3a5c 0%, #2c5282 40%, #1e4a6e 100%);
+}
+
+/* Spine-edge highlight for exterior covers (subtle lighter strip on the binding side) */
+.front-cover::before,
+.back-cover::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	width: 4%;
+	height: 100%;
+	background: linear-gradient(
+		90deg,
+		rgba(255, 255, 255, 0.08) 0%,
+		rgba(255, 255, 255, 0.02) 60%,
+		transparent 100%
+	);
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* Spine on left for front cover (LTR) */
+.front-cover:not(.he-cover)::before {
+	left: 0;
+}
+
+/* Spine on right for back cover (LTR) */
+.back-cover:not(.he-cover)::before {
+	right: 0;
+	background: linear-gradient(
+		270deg,
+		rgba(255, 255, 255, 0.08) 0%,
+		rgba(255, 255, 255, 0.02) 60%,
+		transparent 100%
+	);
+}
+
+/* He covers: spine on right for front, left for back */
+.he-cover.front-cover::before {
+	left: auto;
+	right: 0;
+	background: linear-gradient(
+		270deg,
+		rgba(255, 255, 255, 0.08) 0%,
+		rgba(255, 255, 255, 0.02) 60%,
+		transparent 100%
+	);
+}
+
+.he-cover.back-cover::before {
+	left: 0;
+	right: auto;
+}
+
+/* --- Static cover frame (visible behind all pages) ---
+   Sized to coverAspectRatio by the engine; pages are smaller (leafAspectRatio).
+   The gap between the frame and page edges simulates the book board overhang. */
+
+.en-cover-frame {
+	background: linear-gradient(170deg, #3d2c1a 0%, #4a3520 100%);
+}
+
+.he-cover-frame {
+	background: linear-gradient(170deg, #1a3a5c 0%, #2a4a6c 100%);
+}
+
+/* --- Interior cover classes (used by coverConfig.interiorCoverClassName) ---
+   Sets the page background to the cover color. The white endpaper inset
+   is rendered automatically by FlipBook infrastructure (.page--cover-interior-inset). */
+
+.en-cover-interior {
+	background: linear-gradient(170deg, #3d2c1a 0%, #4a3520 100%);
+}
+
+.he-cover-interior {
+	background: linear-gradient(170deg, #1a3a5c 0%, #2a4a6c 100%);
 }
 
 .cover-content {
@@ -189,27 +347,6 @@ header {
 .cover-decoration.top,
 .cover-decoration.bottom {
 	width: 40%;
-}
-
-/* Cover interior (inside of front/back cover when opened) */
-.cover-interior {
-	background: #f8f6f0;
-	color: #2c1810;
-}
-
-.cover-interior.front-cover-interior {
-	background: linear-gradient(145deg, #3d2c1a 0%, #4a3520 100%);
-	color: #f4e4bc;
-}
-
-.cover-interior.back-cover-interior {
-	background: linear-gradient(145deg, #4a3520 0%, #3d2c1a 100%);
-	color: #f4e4bc;
-}
-
-.he-cover.cover-interior {
-	background: linear-gradient(145deg, #2a4a6c 0%, #1e3a5a 100%);
-	color: #e8f0f8;
 }
 
 .cover .interior-label {

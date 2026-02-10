@@ -3,6 +3,7 @@ import type { Command, HotkeyBinding } from "./types";
 /**
  * Default hotkey bindings for built-in commands.
  */
+/** LTR: left=back(prev), ctrl+left=front(first), right=next, ctrl+right=back(last). RTL: opposite via getEffectiveKey. */
 export const DEFAULT_HOTKEYS: Record<string, HotkeyBinding[]> = {
 	flipNext: [
 		{ key: "ArrowRight" },
@@ -10,10 +11,11 @@ export const DEFAULT_HOTKEYS: Record<string, HotkeyBinding[]> = {
 		{ key: " " }, // Space
 	],
 	flipPrev: [{ key: "ArrowLeft" }, { key: "PageUp" }],
-	goToFirst: [{ key: "Home" }],
-	goToLast: [{ key: "End" }],
+	goToFirst: [{ key: "Home" }, { key: "ArrowLeft", modifiers: { ctrl: true } }],
+	goToLast: [{ key: "End" }, { key: "ArrowRight", modifiers: { ctrl: true } }],
 	goToToc: [{ key: "t" }],
 	toggleFullscreen: [{ key: "f" }],
+	toggleDebug: [{ key: "d", modifiers: { ctrl: true, alt: true } }],
 };
 
 /**
@@ -48,7 +50,9 @@ export const defaultCommands: Command[] = [
 			flipBookRef.current?.jumpToPage(0);
 			return undefined;
 		},
-		canExecute: ({ currentPage }) => currentPage > 0,
+		canExecute: ({ currentPage }) => {
+			return currentPage !== 0;
+		},
 	},
 	{
 		id: "goToLast",
@@ -58,7 +62,9 @@ export const defaultCommands: Command[] = [
 			flipBookRef.current?.jumpToPage(totalPages - 1);
 			return undefined;
 		},
-		canExecute: ({ currentPage, totalPages }) => currentPage < totalPages - 1,
+		canExecute: ({ currentPage, totalPages }) => {
+			return currentPage !== totalPages - 1;
+		},
 	},
 	{
 		id: "goToToc",
@@ -88,6 +94,15 @@ export const defaultCommands: Command[] = [
 				const target = targetRef?.current ?? document.documentElement;
 				target.requestFullscreen().catch(console.warn);
 			}
+			return undefined;
+		},
+	},
+	{
+		id: "toggleDebug",
+		name: "Toggle Debug Toolbar",
+		description: "Show or hide the debug toolbar (Ctrl+Alt+D)",
+		execute: ({ flipBookRef }) => {
+			flipBookRef?.current?.toggleDebugBar?.();
 			return undefined;
 		},
 	},

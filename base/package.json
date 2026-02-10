@@ -1,6 +1,6 @@
 {
 	"name": "html-flip-book-vanilla",
-	"version": "0.0.0-alpha.24",
+	"version": "0.0.0-alpha.25",
 	"description": "Flipbook component for HTML (vanilla JavaScript)",
 	"author": "DoradSoft",
 	"type": "module",
@@ -25,6 +25,10 @@
 			"import": "./dist/flipbook.js",
 			"types": "./dist/flipbook.d.ts"
 		},
+		"./intl": {
+			"import": "./dist/intl.js",
+			"types": "./dist/intl/index.d.ts"
+		},
 		"./style.css": "./dist/style.css"
 	},
 	"files": [
@@ -33,7 +37,7 @@
 	"dependencies": {
 		"hammerjs": "^2.0.8",
 		"throttle-debounce": "^5.0.2",
-		"type-fest": "^5.4.1"
+		"type-fest": "^5.4.4"
 	},
 	"devDependencies": {
 		"@types/hammerjs": "^2.0.46",

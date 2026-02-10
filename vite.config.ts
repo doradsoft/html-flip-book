@@ -10,9 +10,11 @@ export default defineConfig(() => {
 		base: {
 			build: {
 				lib: {
-					entry: resolve(__dirname, "base/src/flipbook.ts"),
+					entry: {
+						flipbook: resolve(__dirname, "base/src/flipbook.ts"),
+						intl: resolve(__dirname, "base/src/intl/index.ts"),
+					},
 					formats: ["es"] as LibraryFormats[],
-					fileName: "flipbook",
 				},
 				outDir: "base/dist",
 				sourcemap: true,

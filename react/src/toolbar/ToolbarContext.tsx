@@ -6,7 +6,7 @@ import type { Locale } from "../i18n";
 interface ToolbarContextValue {
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
 	direction: "ltr" | "rtl";
-	/** Locale for UI strings (toolbar, download menu). Defaults to "he-IL" when direction is rtl, else "en". */
+	/** Locale for UI strings (toolbar, download menu). Defaults to en-US. */
 	locale: Locale;
 	pageSemantics?: PageSemantics;
 	currentPage: number;

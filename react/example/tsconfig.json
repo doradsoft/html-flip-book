@@ -8,9 +8,10 @@
 		"paths": {
 			"html-flip-book-react/toolbar": ["../src/toolbar/index.ts"],
 			"html-flip-book-react": ["../src/FlipBook.tsx"],
+			"html-flip-book-vanilla/intl": ["../../base/src/intl/index.ts"],
 			"html-flip-book-vanilla": ["../../base/src/flipbook.ts"]
 		},
-		"moduleResolution": "Node",
+		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
 		"allowJs": false,
 		"outDir": "./dist",

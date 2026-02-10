@@ -62,6 +62,7 @@ class FlipBook {
 	private readonly onPageChanged?: (pageIndex: number) => void;
 	private readonly pageSemantics: PageSemantics | undefined;
 	private readonly leavesBuffer?: number;
+	private readonly coverPageIndices?: number[] | "auto";
 	private leaves: Leaf[] = [];
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
@@ -111,6 +112,7 @@ class FlipBook {
 		this.pageSemantics = options.pageSemantics;
 		this.onPageChanged = options.onPageChanged;
 		this.leavesBuffer = options.leavesBuffer;
+		this.coverPageIndices = options.coverPageIndices;
 	}
 
 	render(selector: string, debug = false) {
@@ -137,20 +139,48 @@ class FlipBook {
 			(coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height,
 		);
 		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
+
+		// Position the optional static cover frame element behind all pages.
+		// The frame represents the physical book boards that peek out around the text block.
+		const coverFrame = bookElement.querySelector(".flipbook-cover-frame") as HTMLElement | null;
+		if (coverFrame) {
+			coverFrame.style.position = "absolute";
+			coverFrame.style.width = `${2 * coverSize.width}px`;
+			coverFrame.style.height = `${coverSize.height}px`;
+			coverFrame.style.left = `${(bookElement.clientWidth - 2 * coverSize.width) / 2}px`;
+			coverFrame.style.top = `${(bookElement.clientHeight - coverSize.height) / 2}px`;
+			coverFrame.style.zIndex = "0";
+			coverFrame.style.pointerEvents = "none";
+			coverFrame.style.borderRadius = "3px";
+		}
+
+		// Determine which leaves are cover leaves (both sides use coverSize).
+		const coverLeafIndices = new Set<number>();
+		if (this.coverPageIndices) {
+			const indices =
+				this.coverPageIndices === "auto" ? [0, this.pagesCount - 1] : this.coverPageIndices;
+			for (const pageIdx of indices) {
+				coverLeafIndices.add(Math.floor(pageIdx / 2));
+			}
+		}
+
 		this.pageElements.forEach((pageElement, pageIndex) => {
-			pageElement.style.width = `${leafSize.width}px`;
-			pageElement.style.height = `${leafSize.height}px`;
+			const leafIndex = Math.floor(pageIndex / 2);
+			const isCoverLeaf = coverLeafIndices.has(leafIndex);
+			const pageSize = isCoverLeaf ? coverSize : leafSize;
+
+			pageElement.style.width = `${pageSize.width}px`;
+			pageElement.style.height = `${pageSize.height}px`;
 
 			pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
 			pageElement.dataset.pageIndex = pageIndex.toString();
 			pageElement.style[this.isLTR ? "left" : "right"] =
-				`${(bookElement.clientWidth - 2 * leafSize.width) / 2}px`;
-			pageElement.style.top = `${(bookElement.clientHeight - leafSize.height) / 2}px`;
+				`${(bookElement.clientWidth - 2 * pageSize.width) / 2}px`;
+			pageElement.style.top = `${(bookElement.clientHeight - pageSize.height) / 2}px`;
 			pageElement.dataset.pageSemanticName =
 				this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
 			pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? "";
 
-			const leafIndex = Math.floor(pageIndex / 2);
 			const isOddPage = (pageIndex + 1) % 2 === 1;
 			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
 
@@ -305,7 +335,7 @@ class FlipBook {
 
 	private fillDebugBar() {
 		const debugBar = document.createElement("div");
-		debugBar.className = "flipbook-debug-bar";
+		debugBar.className = "flipbook-debug-bar flipbook-debug-bar--hidden";
 		this.bookElement?.appendChild(debugBar);
 		setInterval(() => {
 			// Populate debug bar with relevant information (throttled to reduce flicker)

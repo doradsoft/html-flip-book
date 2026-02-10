@@ -40,4 +40,11 @@ export interface FlipBookOptions {
 	 * Default: undefined (all leaves are always rendered)
 	 */
 	leavesBuffer?: number;
+	/**
+	 * Page indices that are cover pages (sized to coverAspectRatio instead of leafAspectRatio).
+	 * Both sides of a cover leaf use coverSize.
+	 * If "auto", uses first and last pages: [0, pagesCount-1].
+	 * Default: undefined (all pages use leafSize).
+	 */
+	coverPageIndices?: number[] | "auto";
 }

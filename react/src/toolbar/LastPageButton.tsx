@@ -1,4 +1,5 @@
 import type React from "react";
+import { t } from "../i18n";
 import { ChevronLastIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
@@ -11,22 +12,24 @@ interface LastPageButtonProps {
 }
 
 /**
- * Button to navigate to the last page.
+ * Button to navigate to the last page. Same behavior in LTR and RTL.
+ * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isLastPage, totalPages } = useToolbar();
+	const { flipBookRef, isLastPage, totalPages, locale } = useToolbar();
 
 	const handleClick = () => {
 		flipBookRef.current?.jumpToPage(totalPages - 1);
 	};
 
-	// Same icon as LTR; RTL layout reversal places it on the correct side
 	const defaultIcon = <ChevronLastIcon size={18} />;
+	const ariaLabel = t("command.jumpToLastPage", locale);
 
 	return (
 		<ToolbarButton
 			onClick={handleClick}
-			ariaLabel="Last page"
+			ariaLabel={ariaLabel}
+			title={ariaLabel}
 			disabled={isLastPage}
 			className={`flipbook-toolbar-last ${className ?? ""}`.trim()}
 		>

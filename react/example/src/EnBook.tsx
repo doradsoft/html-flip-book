@@ -31,31 +31,14 @@ const FrontCover = () => (
 	</div>
 );
 
-/** Front cover interior (inside of front cover when opened) */
-const FrontCoverInterior = () => (
-	<div className="cover cover-interior front-cover-interior">
-		<div className="cover-content">
-			<p className="interior-label">SQL Tutorial</p>
-			<p className="small">A Complete Guide to Database Management</p>
-		</div>
-	</div>
-);
+/* Front & back cover interiors are now handled by infrastructure via coverConfig.interiorCoverClassName.
+   No dedicated components needed — the pages remain blank white. */
 
 /** Table of contents page */
 const TocPageEn = () => (
 	<div className="toc-page">
 		<h2>Table of Contents</h2>
 		<p>Navigate using the toolbar or flip through the book.</p>
-	</div>
-);
-
-/** Back cover interior (inside of back cover when opened from the end) */
-const BackCoverInterior = () => (
-	<div className="cover cover-interior back-cover-interior">
-		<div className="cover-content">
-			<p className="interior-label">More in This Series</p>
-			<p className="small">JavaScript Fundamentals, React Development, Node.js Backend</p>
-		</div>
 	</div>
 );
 
@@ -87,9 +70,8 @@ function createEnPageSemantics(totalPages: number): PageSemantics {
 			return Number.isNaN(num) ? null : num;
 		},
 		indexToTitle(pageIndex: number): string {
+			// No interior titles for front/back cover in en
 			if (pageIndex === 0) return "Front Cover";
-			if (pageIndex === 1) return "Front Cover Interior";
-			if (pageIndex === totalPages - 2) return "Back Cover Interior";
 			if (pageIndex === totalPages - 1) return "Back Cover";
 			return "";
 		},
@@ -163,10 +145,10 @@ export const EnBook = () => {
 			// Add front cover, front interior, TOC, content pages, back interior, back cover
 			const pages = [
 				<FrontCover key="front-cover" />,
-				<FrontCoverInterior key="front-cover-interior" />,
+				<div key="front-cover-interior" />,
 				<TocPageEn key="toc" />,
 				...contentPages,
-				<BackCoverInterior key="back-cover-interior" />,
+				<div key="back-cover-interior" />,
 				<BackCover key="back-cover" />,
 			];
 
@@ -186,6 +168,11 @@ export const EnBook = () => {
 				pages={enPages}
 				pageSemantics={enPageSemantics}
 				debug={true}
+				coverConfig={{
+					coverIndices: "auto",
+					coverFrameClassName: "en-cover-frame",
+					interiorCoverClassName: "en-cover-interior",
+				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 			/>

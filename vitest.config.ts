@@ -6,9 +6,16 @@ export default defineConfig({
 	plugins: [react()],
 	resolve: {
 		conditions: ["development", "browser", "module", "default"],
-		alias: {
-			"html-flip-book-vanilla": path.resolve(__dirname, "base/src/flipbook.ts"),
-		},
+		alias: [
+			{
+				find: "html-flip-book-vanilla/intl",
+				replacement: path.resolve(__dirname, "base/src/intl/index.ts"),
+			},
+			{
+				find: "html-flip-book-vanilla",
+				replacement: path.resolve(__dirname, "base/src/flipbook.ts"),
+			},
+		],
 	},
 	test: {
 		globals: true,

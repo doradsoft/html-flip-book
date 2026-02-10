@@ -159,6 +159,30 @@ describe("CommandProvider", () => {
 		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(9);
 	});
 
+	it("should execute goToFirst in RTL (same as LTR — always page 0)", () => {
+		const mockRef = createMockFlipBookRef();
+		render(
+			<CommandProvider flipBookRef={mockRef} currentPage={5} totalPages={10} direction="rtl">
+				<TestCommandConsumer commandId="goToFirst" />
+			</CommandProvider>,
+		);
+
+		fireEvent.click(screen.getByTestId("exec-btn"));
+		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(0);
+	});
+
+	it("should execute goToLast in RTL (same as LTR — always last page index)", () => {
+		const mockRef = createMockFlipBookRef();
+		render(
+			<CommandProvider flipBookRef={mockRef} currentPage={5} totalPages={10} direction="rtl">
+				<TestCommandConsumer commandId="goToLast" />
+			</CommandProvider>,
+		);
+
+		fireEvent.click(screen.getByTestId("exec-btn"));
+		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(9);
+	});
+
 	it("should execute goToToc command with default index 4", () => {
 		const mockRef = createMockFlipBookRef();
 		render(
@@ -168,7 +192,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(4);
+		expect(mockRef.current.goToPage).toHaveBeenCalledWith(4);
 	});
 
 	it("should support custom commands", () => {
