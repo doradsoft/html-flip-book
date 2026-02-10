@@ -140,20 +140,22 @@ class FlipBook {
 		);
 		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
 
-		// Determine which leaves are cover leaves (both sides use coverSize).
-		const coverLeafIndices = new Set<number>();
+		// Determine which specific pages are cover exteriors (use coverSize).
+		// Interior sides of cover leaves use leafSize — physically, the endpaper is
+		// glued to the inside of the board and matches the text-block page size.
+		const coverPageIndicesSet = new Set<number>();
 		if (this.coverPageIndices) {
 			const indices =
 				this.coverPageIndices === "auto" ? [0, this.pagesCount - 1] : this.coverPageIndices;
 			for (const pageIdx of indices) {
-				coverLeafIndices.add(Math.floor(pageIdx / 2));
+				coverPageIndicesSet.add(pageIdx);
 			}
 		}
 
 		this.pageElements.forEach((pageElement, pageIndex) => {
 			const leafIndex = Math.floor(pageIndex / 2);
-			const isCoverLeaf = coverLeafIndices.has(leafIndex);
-			const pageSize = isCoverLeaf ? coverSize : leafSize;
+			const isCoverPage = coverPageIndicesSet.has(pageIndex);
+			const pageSize = isCoverPage ? coverSize : leafSize;
 
 			pageElement.style.width = `${pageSize.width}px`;
 			pageElement.style.height = `${pageSize.height}px`;
