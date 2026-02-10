@@ -90,6 +90,7 @@ test.describe("First Page Flip - RTL", () => {
 
 	test("forward flip past middle completes", async ({ page }) => {
 		const flipbook = page.locator(".he-book.flipbook");
+		await flipbook.scrollIntoViewIfNeeded();
 		await expect(flipbook).toBeVisible();
 
 		const firstPage = flipbook.locator(".page").first();
@@ -112,6 +113,7 @@ test.describe("First Page Flip - RTL", () => {
 
 	test("forward flip before middle returns", async ({ page }) => {
 		const flipbook = page.locator(".he-book.flipbook");
+		await flipbook.scrollIntoViewIfNeeded();
 		await expect(flipbook).toBeVisible();
 
 		const firstPage = flipbook.locator(".page").first();

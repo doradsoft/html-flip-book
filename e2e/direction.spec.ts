@@ -97,6 +97,9 @@ test.describe("FlipBook Direction (LTR)", () => {
 test.describe("FlipBook Direction (RTL)", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto("/");
+		// On mobile viewports, the HE book is below the fold — scroll it into view
+		// so mouse events hit the correct element.
+		await page.locator(".he-book.flipbook").scrollIntoViewIfNeeded();
 	});
 
 	test("current-page should start at first page in RTL", async ({ page }) => {
@@ -223,23 +226,28 @@ test.describe("LTR vs RTL Comparison", () => {
 		const rtlFlipbook = page.locator(".he-book.flipbook");
 
 		const ltrBox = await ltrFlipbook.boundingBox();
-		const rtlBox = await rtlFlipbook.boundingBox();
-
-		if (!ltrBox || !rtlBox) throw new Error("Flipbooks not found");
+		if (!ltrBox) throw new Error("LTR flipbook not found");
 
 		const ltrY = ltrBox.y + ltrBox.height / 2;
-		const rtlY = rtlBox.y + rtlBox.height / 2;
 
-		// LTR forward flip (right to left)
+		// LTR forward flip (right to left) — EN book is at the top, already visible
+		await ltrFlipbook.scrollIntoViewIfNeeded();
 		await page.mouse.move(ltrBox.x + ltrBox.width * 0.9, ltrY);
 		await page.mouse.down();
 		await page.mouse.move(ltrBox.x + ltrBox.width * 0.1, ltrY, { steps: 10 });
 		await page.mouse.up();
 
-		// RTL forward flip (left to right)
-		await page.mouse.move(rtlBox.x + rtlBox.width * 0.1, rtlY);
+		// RTL forward flip (left to right) — HE book may be below the fold on mobile
+		await rtlFlipbook.scrollIntoViewIfNeeded();
+		// Re-grab bounding box after scroll since viewport position changed
+		const rtlBoxAfterScroll = await rtlFlipbook.boundingBox();
+		if (!rtlBoxAfterScroll) throw new Error("RTL flipbook not found after scroll");
+		const rtlYAfterScroll = rtlBoxAfterScroll.y + rtlBoxAfterScroll.height / 2;
+		await page.mouse.move(rtlBoxAfterScroll.x + rtlBoxAfterScroll.width * 0.1, rtlYAfterScroll);
 		await page.mouse.down();
-		await page.mouse.move(rtlBox.x + rtlBox.width * 0.9, rtlY, { steps: 10 });
+		await page.mouse.move(rtlBoxAfterScroll.x + rtlBoxAfterScroll.width * 0.9, rtlYAfterScroll, {
+			steps: 10,
+		});
 		await page.mouse.up();
 
 		await page.waitForTimeout(1000);
