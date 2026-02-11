@@ -100,6 +100,7 @@ header {
 .he-book-container {
 	direction: rtl;
 	text-align: right;
+	font-family: Tahoma, Arial, sans-serif;
 }
 
 .en-page,
