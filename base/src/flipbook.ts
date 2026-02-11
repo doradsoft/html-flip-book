@@ -85,6 +85,8 @@ class FlipBook {
 	private pendingFlipStartingPos = 0;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
+	/** Set after a drag ends; the next click event is suppressed so child buttons/links don't fire. */
+	private _suppressNextClick = false;
 	private hoveredLeaf: Leaf | undefined;
 	touchStartingPos = { x: 0, y: 0 };
 	/** True when the current touch started inside a [data-flipbook-no-flip] element (e.g. carousel). */
@@ -368,6 +370,14 @@ class FlipBook {
 			this.handleMouseMove as unknown as EventListener,
 		);
 		this.bookElement.addEventListener("mouseleave", this.handleMouseLeave as EventListener);
+		// Suppress click events that fire immediately after a drag gesture.
+		// This prevents child interactive elements (buttons, links) from
+		// activating when the user was actually performing a page flip.
+		this.bookElement.addEventListener(
+			"click",
+			this.handleClickAfterDrag as EventListener,
+			true, // capture phase — intercept before the click reaches any child
+		);
 		// Apply initial leaves buffer visibility
 		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
@@ -589,6 +599,9 @@ class FlipBook {
 	}
 
 	private onDragEnd(event: HammerInput) {
+		// Suppress the click that the browser fires after pointerup following a drag.
+		this._suppressNextClick = true;
+
 		const flipState = this.currentManualFlip;
 		if (!flipState) {
 			this.pendingFlipDirection = FlipDirection.None;
@@ -717,6 +730,20 @@ class FlipBook {
 
 	private handleMouseLeave = () => {
 		this.clearHoverShadow();
+	};
+
+	/**
+	 * Capture-phase click handler that suppresses clicks fired by the browser
+	 * immediately after a drag gesture ends. Without this, releasing the pointer
+	 * on an interactive element (button, link) inside a page would trigger both
+	 * the flip animation AND the element's click handler.
+	 */
+	private handleClickAfterDrag = (e: Event) => {
+		if (this._suppressNextClick) {
+			this._suppressNextClick = false;
+			e.stopPropagation();
+			e.preventDefault();
+		}
 	};
 
 	private clearHoverShadow() {
@@ -997,6 +1024,11 @@ class FlipBook {
 				this.handleMouseMove as unknown as EventListener,
 			);
 			this.bookElement.removeEventListener("mouseleave", this.handleMouseLeave as EventListener);
+			this.bookElement.removeEventListener(
+				"click",
+				this.handleClickAfterDrag as EventListener,
+				true,
+			);
 		}
 	}
 }

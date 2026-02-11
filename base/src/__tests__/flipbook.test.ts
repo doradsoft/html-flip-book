@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FlipDirection } from "../flip-direction";
 import { FlipBook } from "../flipbook";
-import { getFlipBookInternals, setFlipBookInternals } from "./test-utils";
+import { createDragEvent, getFlipBookInternals, setFlipBookInternals } from "./test-utils";
 
 // Mock HammerJS - must be hoisted
 vi.mock("hammerjs", () => {
@@ -1872,6 +1872,85 @@ describe("FlipBook", () => {
 			const shadowValue = leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow");
 			// Either empty (never set because guard early-returned) or "0.000" is acceptable
 			expect(shadowValue === "" || shadowValue === "0.000").toBe(true);
+		});
+	});
+
+	describe("click suppression after drag", () => {
+		it("should suppress click events on child elements after a drag gesture", () => {
+			const pages = createPages(6);
+			// Add a button inside page 2 (simulates a TOC entry or any interactive element)
+			const button = document.createElement("button");
+			button.textContent = "Chapter 1";
+			pages[2].appendChild(button);
+
+			const buttonClickSpy = vi.fn();
+			button.addEventListener("click", buttonClickSpy);
+
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// Simulate a full drag gesture: panstart → panmove → panend
+			internals.onDragStart(createDragEvent("start", { x: 500 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 350 }));
+			internals.onDragEnd(createDragEvent("end", { velocityX: -0.5 }));
+
+			// After panend, the browser would fire a click on the button
+			button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+			// The click should have been suppressed
+			expect(buttonClickSpy).not.toHaveBeenCalled();
+
+			flipBook.destroy();
+		});
+
+		it("should allow click events when no drag occurred", () => {
+			const pages = createPages(6);
+			const button = document.createElement("button");
+			button.textContent = "Chapter 1";
+			pages[2].appendChild(button);
+
+			const buttonClickSpy = vi.fn();
+			button.addEventListener("click", buttonClickSpy);
+
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			// No drag — just a normal click on the button
+			button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+			expect(buttonClickSpy).toHaveBeenCalledTimes(1);
+
+			flipBook.destroy();
+		});
+
+		it("should only suppress one click after drag, allowing subsequent clicks", () => {
+			const pages = createPages(6);
+			const button = document.createElement("button");
+			button.textContent = "Chapter 1";
+			pages[2].appendChild(button);
+
+			const buttonClickSpy = vi.fn();
+			button.addEventListener("click", buttonClickSpy);
+
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// Drag gesture
+			internals.onDragStart(createDragEvent("start", { x: 500 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 350 }));
+			internals.onDragEnd(createDragEvent("end", { velocityX: -0.5 }));
+
+			// First click — should be suppressed
+			button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+			expect(buttonClickSpy).not.toHaveBeenCalled();
+
+			// Second click (no drag) — should go through
+			button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+			expect(buttonClickSpy).toHaveBeenCalledTimes(1);
+
+			flipBook.destroy();
 		});
 	});
 });
