@@ -23,6 +23,10 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { exportEntireBookPdf } from "./pdfExport";
 import { mergePdfs } from "./pdfMerge";
+import {
+	TEST_PARAM_FAST_DELTA_THRESHOLD,
+	TEST_PARAM_INITIAL_TURNED_LEAVES,
+} from "./test-url-params";
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
 
@@ -125,12 +129,12 @@ function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModu
 	}
 }
 
-/** Parse URL parameters for test configuration */
+/** Parse URL parameters for test configuration (shared param names with e2e fixtures) */
 function useTestParams() {
 	return useMemo(() => {
 		const params = new URLSearchParams(window.location.search);
-		const initialTurnedLeaves = params.get("initialTurnedLeaves");
-		const fastDeltaThreshold = params.get("fastDeltaThreshold");
+		const initialTurnedLeaves = params.get(TEST_PARAM_INITIAL_TURNED_LEAVES);
+		const fastDeltaThreshold = params.get(TEST_PARAM_FAST_DELTA_THRESHOLD);
 
 		return {
 			initialTurnedLeaves: initialTurnedLeaves

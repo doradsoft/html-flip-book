@@ -5,6 +5,7 @@ test.describe("Download dropdown", () => {
 
 	test("should open download menu when clicking download button (LTR)", async ({ page }) => {
 		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 		await page.waitForSelector(".en-book-container [role='toolbar']", {
 			state: "visible",
 			timeout: 15_000,
@@ -20,7 +21,9 @@ test.describe("Download dropdown", () => {
 
 		const menu = page.locator(".flipbook-toolbar-download-menu[role='menu']").first();
 		await expect(menu).toBeVisible();
-		await expect(menu.getByRole("menuitem", { name: /download entire book/i })).toBeVisible();
+		await expect(menu.getByRole("menuitem", { name: /download entire book/i })).toBeVisible({
+			timeout: 10_000,
+		});
 	});
 
 	test("should open download menu when clicking download button (RTL)", async ({
@@ -28,6 +31,7 @@ test.describe("Download dropdown", () => {
 	}, testInfo) => {
 		test.skip(testInfo.project.name === "mobile", "RTL book is off-viewport on mobile");
 		await page.goto("/?example=rtl-comprehensive");
+		await page.waitForSelector(".he-book.flipbook .page", { state: "visible", timeout: 15_000 });
 		await page.waitForSelector(".he-book-container [role='toolbar']", {
 			state: "visible",
 			timeout: 15_000,
@@ -43,12 +47,15 @@ test.describe("Download dropdown", () => {
 
 		const menu = page.locator(".flipbook-toolbar-download-menu[role='menu']").first();
 		await expect(menu).toBeVisible();
-		await expect(menu.getByRole("menuitem", { name: /הורד את כל הספר/ })).toBeVisible();
+		await expect(menu.getByRole("menuitem", { name: /הורד את כל הספר/ })).toBeVisible({
+			timeout: 10_000,
+		});
 	});
 
 	test("should open download menu via Ctrl+S (download command)", async ({ page }, testInfo) => {
 		test.skip(testInfo.project.name === "mobile", "Ctrl+S is a desktop keyboard shortcut");
 		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 		await page.waitForSelector(".en-book-container [role='toolbar']", {
 			state: "visible",
 			timeout: 15_000,
