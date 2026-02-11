@@ -21,9 +21,8 @@ test.describe("Download dropdown", () => {
 
 		const menu = page.locator(".flipbook-toolbar-download-menu[role='menu']").first();
 		await expect(menu).toBeVisible();
-		await expect(menu.getByRole("menuitem", { name: /download entire book/i })).toBeVisible({
-			timeout: 10_000,
-		});
+		// "Download entire book" is the radio label text, not the menuitem (which is "Download")
+		await expect(menu.getByText(/download entire book/i)).toBeVisible({ timeout: 10_000 });
 	});
 
 	test("should open download menu when clicking download button (RTL)", async ({
@@ -47,9 +46,8 @@ test.describe("Download dropdown", () => {
 
 		const menu = page.locator(".flipbook-toolbar-download-menu[role='menu']").first();
 		await expect(menu).toBeVisible();
-		await expect(menu.getByRole("menuitem", { name: /הורד את כל הספר/ })).toBeVisible({
-			timeout: 10_000,
-		});
+		// "הורד את כל הספר" is the radio label text in the menu
+		await expect(menu.getByText(/הורד את כל הספר/)).toBeVisible({ timeout: 10_000 });
 	});
 
 	test("should open download menu via Ctrl+S (download command)", async ({ page }, testInfo) => {
