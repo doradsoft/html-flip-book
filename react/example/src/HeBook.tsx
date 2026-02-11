@@ -120,7 +120,18 @@ function useTestParams() {
 	}, []);
 }
 
-export const HeBook = () => {
+export interface HeBookConfig {
+	leavesBuffer?: number;
+	debug?: boolean;
+	/** When true, show page shadow (e.g. Comprehensive example). */
+	showPageShadow?: boolean;
+	/** When false, omit history mapper (default true when config absent). */
+	enableHistory?: boolean;
+	/** When false, omit download config and toolbar download (default true when config absent). */
+	enableDownload?: boolean;
+}
+
+export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 	const [hePages, setHePages] = useState<ReactElement[]>([]);
 	const [hePageSemantics, setHePageSemantics] = useState<PageSemantics | null>(null);
 	const [hePageContents, setHePageContents] = useState<(string | null)[]>([]);
@@ -287,13 +298,14 @@ export const HeBook = () => {
 			<FlipBook
 				ref={flipBookRef}
 				className="he-book"
+				pageShadow={config?.showPageShadow ?? true}
 				pages={hePages}
 				direction="rtl"
 				pageSemantics={hePageSemantics}
 				of="נ"
 				tocPageIndex={2}
-				debug={true}
-				leavesBuffer={7}
+				debug={config?.debug ?? true}
+				leavesBuffer={config?.leavesBuffer ?? 7}
 				coverConfig={{
 					coverIndices: "auto",
 				}}
@@ -301,6 +313,8 @@ export const HeBook = () => {
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={heHistoryMapper}
 				downloadConfig={heDownloadConfig}
+				enableHistory={config?.enableHistory}
+				enableDownload={config?.enableDownload}
 			/>
 			<Toolbar
 				flipBookRef={flipBookRef}
@@ -320,7 +334,7 @@ export const HeBook = () => {
 					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
-					<DownloadDropdown />
+					{config?.enableDownload !== false && <DownloadDropdown />}
 				</div>
 			</Toolbar>
 		</div>

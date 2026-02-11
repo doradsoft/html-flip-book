@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("FlipBook Navigation", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 	});
 
 	test("should render flipbook with pages", async ({ page }) => {

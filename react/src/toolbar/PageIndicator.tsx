@@ -135,7 +135,8 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 				setInputValue(primarySemanticName);
 				justNavigatedRef.current = false;
 				// Select all text so the user can immediately type a replacement
-				requestAnimationFrame(() => e.target.select());
+				const select = () => e.target.select();
+				typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame(select) : select();
 			}
 		},
 		[editable, primarySemanticName],

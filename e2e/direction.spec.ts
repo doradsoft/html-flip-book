@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("FlipBook Direction (LTR)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 	});
 
 	test("odd pages should translate toward center in LTR", async ({ page }) => {
@@ -96,10 +96,7 @@ test.describe("FlipBook Direction (LTR)", () => {
 
 test.describe("FlipBook Direction (RTL)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
-		// On mobile viewports, the HE book is below the fold — scroll it into view
-		// so mouse events hit the correct element.
-		await page.locator(".he-book.flipbook").scrollIntoViewIfNeeded();
+		await page.goto("/?example=rtl-comprehensive");
 	});
 
 	test("current-page should start at first page in RTL", async ({ page }) => {
@@ -220,43 +217,48 @@ test.describe("FlipBook Direction (RTL)", () => {
 
 test.describe("LTR vs RTL Comparison", () => {
 	test("flip directions are mirrored between LTR and RTL", async ({ page }) => {
-		await page.goto("/");
+		// Test LTR forward flip (right to left)
+		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 
 		const ltrFlipbook = page.locator(".en-book.flipbook");
-		const rtlFlipbook = page.locator(".he-book.flipbook");
+		await expect(ltrFlipbook).toBeVisible();
 
 		const ltrBox = await ltrFlipbook.boundingBox();
 		if (!ltrBox) throw new Error("LTR flipbook not found");
 
 		const ltrY = ltrBox.y + ltrBox.height / 2;
 
-		// LTR forward flip (right to left) — EN book is at the top, already visible
-		await ltrFlipbook.scrollIntoViewIfNeeded();
 		await page.mouse.move(ltrBox.x + ltrBox.width * 0.9, ltrY);
 		await page.mouse.down();
 		await page.mouse.move(ltrBox.x + ltrBox.width * 0.1, ltrY, { steps: 10 });
 		await page.mouse.up();
 
-		// RTL forward flip (left to right) — HE book may be below the fold on mobile
-		await rtlFlipbook.scrollIntoViewIfNeeded();
-		// Re-grab bounding box after scroll since viewport position changed
-		const rtlBoxAfterScroll = await rtlFlipbook.boundingBox();
-		if (!rtlBoxAfterScroll) throw new Error("RTL flipbook not found after scroll");
-		const rtlYAfterScroll = rtlBoxAfterScroll.y + rtlBoxAfterScroll.height / 2;
-		await page.mouse.move(rtlBoxAfterScroll.x + rtlBoxAfterScroll.width * 0.1, rtlYAfterScroll);
+		await page.waitForTimeout(1000);
+
+		const ltrFirstPage = ltrFlipbook.locator(".page").first();
+		await expect(ltrFirstPage).not.toHaveClass(/current-page/);
+
+		// Test RTL forward flip (left to right)
+		await page.goto("/?example=rtl-comprehensive");
+		await page.waitForSelector(".he-book.flipbook .page", { state: "visible", timeout: 15_000 });
+
+		const rtlFlipbook = page.locator(".he-book.flipbook");
+		await expect(rtlFlipbook).toBeVisible();
+
+		const rtlBox = await rtlFlipbook.boundingBox();
+		if (!rtlBox) throw new Error("RTL flipbook not found");
+
+		const rtlY = rtlBox.y + rtlBox.height / 2;
+
+		await page.mouse.move(rtlBox.x + rtlBox.width * 0.1, rtlY);
 		await page.mouse.down();
-		await page.mouse.move(rtlBoxAfterScroll.x + rtlBoxAfterScroll.width * 0.9, rtlYAfterScroll, {
-			steps: 10,
-		});
+		await page.mouse.move(rtlBox.x + rtlBox.width * 0.9, rtlY, { steps: 10 });
 		await page.mouse.up();
 
 		await page.waitForTimeout(1000);
 
-		// Both first pages should no longer be current
-		const ltrFirstPage = ltrFlipbook.locator(".page").first();
 		const rtlFirstPage = rtlFlipbook.locator(".page").first();
-
-		await expect(ltrFirstPage).not.toHaveClass(/current-page/);
 		await expect(rtlFirstPage).not.toHaveClass(/current-page/);
 	});
 });

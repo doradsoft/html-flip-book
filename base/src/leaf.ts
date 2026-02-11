@@ -2,6 +2,13 @@ import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
 
+/** Schedule a frame callback; fallback for test envs where requestAnimationFrame is missing. Called at invoke time so test mocks apply. */
+function scheduleFrame(cb: (timestamp: number) => void): number {
+	return typeof requestAnimationFrame !== "undefined"
+		? requestAnimationFrame(cb)
+		: (setTimeout(() => cb(performance.now()), 0) as unknown as number);
+}
+
 /** Multiplier for shadow intensity (slightly stronger than base) */
 const SHADOW_STRENGTH_MULTIPLIER = 1.1;
 /** Multiplier for highlight intensity (slightly weaker than base) */
@@ -95,7 +102,7 @@ export class Leaf {
 				const elapsed = timestamp - start;
 
 				if (elapsed < 0) {
-					requestAnimationFrame(step);
+					scheduleFrame(step);
 					return;
 				}
 
@@ -115,7 +122,7 @@ export class Leaf {
 				// );
 
 				if (progress < 1) {
-					requestAnimationFrame(step);
+					scheduleFrame(step);
 				} else {
 					this.currentAnimation = null;
 					this.targetFlipPosition = null;
@@ -123,7 +130,7 @@ export class Leaf {
 				}
 			};
 
-			requestAnimationFrame(step);
+			scheduleFrame(step);
 		});
 
 		return this.currentAnimation;

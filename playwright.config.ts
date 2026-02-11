@@ -9,6 +9,7 @@ export default defineConfig({
 	forbidOnly: isCI,
 	retries: 2, // Retries for flaky tests with mocked time/velocity detection
 	workers: isCI ? "100%" : "50%",
+	timeout: 60_000, // Allow slow page load under parallel workers
 	reporter: [
 		["list"],
 		["html", { outputFolder: ".playwright-report", open: "never" }],

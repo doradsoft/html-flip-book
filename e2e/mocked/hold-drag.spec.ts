@@ -151,7 +151,7 @@ test.describe("Hold & Drag - Critical Cases", () => {
 	});
 
 	test("z-index changes at 0.5 flip position", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 		await page.waitForSelector(".en-book.flipbook .page");
 
 		const flipbook = page.locator(".en-book.flipbook");
@@ -183,7 +183,7 @@ test.describe("Hold & Drag - Critical Cases", () => {
 	});
 
 	test("adjacent leaves maintain correct z-order during flip", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 		await page.waitForSelector(".en-book.flipbook .page");
 
 		const flipbook = page.locator(".en-book.flipbook");

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("FlipBook Mouse Interactions", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 	});
 
 	test("should flip page with mouse drag", async ({ page }) => {

@@ -54,6 +54,12 @@
   transform: translateZ(calc(var(--inner-shadow-lift) * 0.6));
 }
 
+/* Disable shadow when prop pageShadow={false} (e.g. flicker workaround, issue #167). */
+.flipbook--no-page-shadow .page::before,
+.flipbook--no-page-shadow .page::after {
+  opacity: 0 !important;
+}
+
 .page > * {
   // enforcing page direct children to not cause it to be overflowed
   max-width: 100%;

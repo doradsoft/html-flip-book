@@ -188,7 +188,7 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 // Focused integration tests for browser-specific behaviors
 test.describe("Browser Compatibility", () => {
 	test("animation completes without errors", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 		await page.waitForSelector(".en-book.flipbook .page");
 
 		const flipbook = page.locator(".en-book.flipbook");
@@ -226,7 +226,7 @@ test.describe("Browser Compatibility", () => {
 	test("touch events work on mobile viewport", async ({ page }) => {
 		// Set mobile viewport
 		await page.setViewportSize({ width: 390, height: 844 });
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 		await page.waitForSelector(".en-book.flipbook .page");
 
 		const flipbook = page.locator(".en-book.flipbook");

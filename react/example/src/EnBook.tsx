@@ -23,6 +23,10 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { exportEntireBookPdf } from "./pdfExport";
 import { mergePdfs } from "./pdfMerge";
+import {
+	TEST_PARAM_FAST_DELTA_THRESHOLD,
+	TEST_PARAM_INITIAL_TURNED_LEAVES,
+} from "./test-url-params";
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
 
@@ -125,12 +129,12 @@ function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModu
 	}
 }
 
-/** Parse URL parameters for test configuration */
+/** Parse URL parameters for test configuration (shared param names with e2e fixtures) */
 function useTestParams() {
 	return useMemo(() => {
 		const params = new URLSearchParams(window.location.search);
-		const initialTurnedLeaves = params.get("initialTurnedLeaves");
-		const fastDeltaThreshold = params.get("fastDeltaThreshold");
+		const initialTurnedLeaves = params.get(TEST_PARAM_INITIAL_TURNED_LEAVES);
+		const fastDeltaThreshold = params.get(TEST_PARAM_FAST_DELTA_THRESHOLD);
 
 		return {
 			initialTurnedLeaves: initialTurnedLeaves
@@ -144,7 +148,18 @@ function useTestParams() {
 	}, []);
 }
 
-export const EnBook = () => {
+export interface EnBookConfig {
+	leavesBuffer?: number;
+	debug?: boolean;
+	/** When true, show page shadow (e.g. Comprehensive example). */
+	showPageShadow?: boolean;
+	/** When false, omit history mapper (default true when config absent). */
+	enableHistory?: boolean;
+	/** When false, omit download config and toolbar download (default true when config absent). */
+	enableDownload?: boolean;
+}
+
+export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
 	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
 	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
@@ -289,10 +304,12 @@ export const EnBook = () => {
 			<FlipBook
 				ref={flipBookRef}
 				className="en-book"
+				pageShadow={config?.showPageShadow ?? true}
 				pages={enPages}
 				pageSemantics={enPageSemantics}
 				tocPageIndex={2}
-				debug={true}
+				debug={config?.debug ?? true}
+				leavesBuffer={config?.leavesBuffer}
 				coverConfig={{
 					coverIndices: "auto",
 				}}
@@ -300,6 +317,8 @@ export const EnBook = () => {
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={enHistoryMapper}
 				downloadConfig={enDownloadConfig}
+				enableHistory={config?.enableHistory}
+				enableDownload={config?.enableDownload}
 			/>
 			<Toolbar
 				flipBookRef={flipBookRef}
@@ -319,7 +338,7 @@ export const EnBook = () => {
 					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
-					<DownloadDropdown />
+					{config?.enableDownload !== false && <DownloadDropdown />}
 				</div>
 			</Toolbar>
 		</div>
