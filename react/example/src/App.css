@@ -109,13 +109,17 @@ header {
 	overflow-x: hidden;
 	border: 1px solid #00000020;
 	padding: 5%;
-	font-family: Georgia, "Times New Roman", serif;
 	line-height: 1.6;
+}
+
+.en-page {
+	font-family: Georgia, "Times New Roman", serif;
 }
 
 .he-page {
 	text-align: right;
 	direction: rtl;
+	font-family: Tahoma, Arial, sans-serif;
 }
 
 /* Psukim: justify; perek header (first line) bold */
@@ -224,6 +228,7 @@ header {
 
 /* He exterior — deep blue cloth with fabric weave */
 .he-cover {
+	font-family: Tahoma, Arial, sans-serif;
 	color: #e8f0f8;
 	background:
 		repeating-linear-gradient(
@@ -514,7 +519,7 @@ header {
 
 /* Bible page styles */
 .bible-page {
-	font-family: "David Libre", "SBL Hebrew", "Ezra SIL", "Frank Ruehl CLM", Georgia, serif;
+	font-family: Tahoma, Arial, sans-serif;
 	font-size: 1.1rem;
 	line-height: 2;
 }
