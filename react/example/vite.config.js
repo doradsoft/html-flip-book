@@ -48,10 +48,6 @@ export default defineConfig(({ mode }) => {
 		build: {
 			sourcemap: !isProd,
 			emptyOutDir: true,
-			rollupOptions: {
-				external: ["react", "react-dom"],
-				makeAbsoluteExternalsRelative: true,
-			},
 			terserOptions: {
 				module: true,
 				output: {

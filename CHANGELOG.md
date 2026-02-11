@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- None
+- Live demo (GitHub Pages) rendering blank due to split-brain React instances from mixing Vite externals with esm.sh import map
 
 ### Changed
 
