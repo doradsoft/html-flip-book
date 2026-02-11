@@ -61,6 +61,8 @@
 		"husky": "^9.1.7",
 		"make-coverage-badge": "^1.2.0",
 		"monocart-reporter": "^2.10.0",
+		"pdf-lib": "^1.17.1",
+		"pdf-merger-js": "^5.1.2",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
 		"sass": "^1.97.3",
