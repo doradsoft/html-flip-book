@@ -149,6 +149,10 @@ export interface EnBookConfig {
 	debug?: boolean;
 	/** When true, show page shadow (e.g. Comprehensive example). */
 	showPageShadow?: boolean;
+	/** When false, omit history mapper (default true when config absent). */
+	enableHistory?: boolean;
+	/** When false, omit download config and toolbar download (default true when config absent). */
+	enableDownload?: boolean;
 }
 
 export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
@@ -309,6 +313,8 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={enHistoryMapper}
 				downloadConfig={enDownloadConfig}
+				enableHistory={config?.enableHistory}
+				enableDownload={config?.enableDownload}
 			/>
 			<Toolbar
 				flipBookRef={flipBookRef}
@@ -328,7 +334,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
-					<DownloadDropdown />
+					{config?.enableDownload !== false && <DownloadDropdown />}
 				</div>
 			</Toolbar>
 		</div>

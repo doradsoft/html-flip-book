@@ -73,9 +73,16 @@ export interface FlipBookOptions {
 	onPageFlipped?: (params: PageFlipParams) => void;
 	/**
 	 * When set, the flip-book syncs with browser history: pushState on flip, restore page on popstate (back/forward).
-	 * Default: undefined (no history integration).
+	 * There is no built-in default; the consumer must provide this. When undefined, no history integration.
+	 * @see https://github.com/doradsoft/html-flip-book/issues/168 — future default support.
 	 */
 	historyMapper?: HistoryMapper;
+	/**
+	 * When false, history integration is disabled (historyMapper ignored). When true or omitted, the
+	 * provided historyMapper is used; there is no default implementation.
+	 * @see https://github.com/doradsoft/html-flip-book/issues/168
+	 */
+	enableHistory?: boolean;
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
 	fastDeltaThreshold?: number;
 	/** Indices of leaves that should start in the turned (flipped) state. Default: [] */
@@ -102,9 +109,17 @@ export interface FlipBookOptions {
 	tocPageIndex?: number;
 	/**
 	 * Download configuration: entire book and page-range handlers plus filename hints.
-	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref.
+	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref. There is no built-in default;
+	 * the consumer must provide this.
+	 * @see https://github.com/doradsoft/html-flip-book/issues/168 — future default support.
 	 */
 	downloadConfig?: DownloadConfig;
+	/**
+	 * When false, download is disabled (downloadConfig ignored, getDownloadConfig returns undefined).
+	 * When true or omitted, the provided downloadConfig is used; there is no default implementation.
+	 * @see https://github.com/doradsoft/html-flip-book/issues/168
+	 */
+	enableDownload?: boolean;
 	/**
 	 * When false, disables the inner page shadow/highlight (e.g. to avoid flicker with multiple books).
 	 * Default: true.

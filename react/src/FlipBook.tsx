@@ -164,6 +164,16 @@ export interface FlipBookProps {
 	 * Default: true.
 	 */
 	pageShadow?: boolean;
+	/**
+	 * When false, history integration is disabled. When true or omitted, the provided historyMapper
+	 * is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 */
+	enableHistory?: boolean;
+	/**
+	 * When false, download is disabled (getDownloadConfig returns undefined). When true or omitted,
+	 * the provided downloadConfig is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 */
+	enableDownload?: boolean;
 }
 
 /**
@@ -198,6 +208,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			fastDeltaThreshold,
 			leavesBuffer,
 			pageShadow = true,
+			enableHistory,
+			enableDownload,
 			coverConfig,
 			of,
 			leafAspectRatio,
@@ -233,6 +245,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				tocPageIndex: tocPageIndex ?? 4,
 				downloadConfig,
 				pageShadow,
+				enableHistory,
+				enableDownload,
 			}),
 		);
 

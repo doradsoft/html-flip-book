@@ -125,6 +125,10 @@ export interface HeBookConfig {
 	debug?: boolean;
 	/** When true, show page shadow (e.g. Comprehensive example). */
 	showPageShadow?: boolean;
+	/** When false, omit history mapper (default true when config absent). */
+	enableHistory?: boolean;
+	/** When false, omit download config and toolbar download (default true when config absent). */
+	enableDownload?: boolean;
 }
 
 export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
@@ -309,6 +313,8 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={heHistoryMapper}
 				downloadConfig={heDownloadConfig}
+				enableHistory={config?.enableHistory}
+				enableDownload={config?.enableDownload}
 			/>
 			<Toolbar
 				flipBookRef={flipBookRef}
@@ -328,7 +334,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
-					<DownloadDropdown />
+					{config?.enableDownload !== false && <DownloadDropdown />}
 				</div>
 			</Toolbar>
 		</div>

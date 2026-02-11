@@ -38,15 +38,24 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 
 function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 	switch (id) {
-		case "ltr-buffer":
-			return { leavesBuffer: 3, debug: true };
-		case "ltr-comprehensive":
-			return { leavesBuffer: 3, debug: true, showPageShadow: false };
 		case "ltr-shadow":
+			return { debug: false, enableHistory: false, enableDownload: false };
+		case "ltr-buffer":
+			return { leavesBuffer: 3, debug: false, enableHistory: false, enableDownload: false };
 		case "ltr-history":
+			return { enableHistory: true, enableDownload: false, debug: false };
 		case "ltr-debug":
+			return { debug: true, enableHistory: false, enableDownload: false };
 		case "ltr-download":
-			return { debug: true };
+			return { enableDownload: true, enableHistory: false, debug: false };
+		case "ltr-comprehensive":
+			return {
+				leavesBuffer: 3,
+				debug: true,
+				enableHistory: true,
+				enableDownload: true,
+				showPageShadow: false,
+			};
 		default:
 			return undefined;
 	}
@@ -54,15 +63,24 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 
 function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 	switch (id) {
-		case "rtl-buffer":
-			return { leavesBuffer: 7, debug: true };
-		case "rtl-comprehensive":
-			return { leavesBuffer: 7, debug: true, showPageShadow: false };
 		case "rtl-shadow":
+			return { leavesBuffer: 7, debug: false, enableHistory: false, enableDownload: false };
+		case "rtl-buffer":
+			return { leavesBuffer: 7, debug: false, enableHistory: false, enableDownload: false };
 		case "rtl-history":
+			return { leavesBuffer: 7, enableHistory: true, enableDownload: false, debug: false };
 		case "rtl-debug":
+			return { leavesBuffer: 7, debug: true, enableHistory: false, enableDownload: false };
 		case "rtl-download":
-			return { leavesBuffer: 7, debug: true };
+			return { leavesBuffer: 7, enableDownload: true, enableHistory: false, debug: false };
+		case "rtl-comprehensive":
+			return {
+				leavesBuffer: 7,
+				debug: true,
+				enableHistory: true,
+				enableDownload: true,
+				showPageShadow: false,
+			};
 		default:
 			return undefined;
 	}

@@ -194,10 +194,10 @@ class FlipBook {
 		this.onPageChanged = options.onPageChanged;
 		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
-		this.historyMapper = options.historyMapper;
+		this.historyMapper = options.enableHistory !== false ? options.historyMapper : undefined;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
-		this.downloadConfig = options.downloadConfig;
+		this.downloadConfig = options.enableDownload !== false ? options.downloadConfig : undefined;
 		this.pageShadow = options.pageShadow ?? true;
 		setTocPageIndex(options.tocPageIndex ?? 4);
 	}
