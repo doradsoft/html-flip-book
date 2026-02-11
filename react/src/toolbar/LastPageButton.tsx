@@ -19,7 +19,7 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 	const { flipBookRef, isLastPage, totalPages, locale } = useToolbar();
 
 	const handleClick = () => {
-		flipBookRef.current?.jumpToPage(totalPages - 1);
+		flipBookRef.current?.commands.jumpToPage(totalPages - 1);
 	};
 
 	const defaultIcon = <ChevronLastIcon size={18} />;

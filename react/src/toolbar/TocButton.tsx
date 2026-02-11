@@ -1,12 +1,12 @@
+import { getTocPageIndex } from "html-flip-book-vanilla/store";
 import type React from "react";
+import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
 import { TableOfContentsIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
 import { useToolbar } from "./ToolbarContext";
 
 interface TocButtonProps {
-	/** Page index where TOC is located. Defaults to 4 (after front/back covers and soft covers). */
-	tocPageIndex?: number;
 	/** Custom content (icon or text). Defaults to TableOfContentsIcon */
 	children?: React.ReactNode;
 	/** Custom ARIA label. Defaults to localized "Table of contents" */
@@ -16,37 +16,29 @@ interface TocButtonProps {
 }
 
 /**
- * Button to navigate to the Table of Contents page.
+ * Button to navigate to the Table of Contents page (instant jump, same as goToToc command).
+ * TOC page index comes from store (populated by book config); command and UI both use the store.
  */
-const TocButton: React.FC<TocButtonProps> = ({
-	tocPageIndex = 4,
-	children,
-	ariaLabel: ariaLabelProp,
-	className,
-}) => {
-	const { flipBookRef, currentPage, locale, direction } = useToolbar();
+const TocButton: React.FC<TocButtonProps> = ({ children, ariaLabel: ariaLabelProp, className }) => {
+	const { currentPage, locale } = useToolbar();
+	const { executeCommand, canExecute } = useCommands();
 	const ariaLabel = ariaLabelProp ?? t("command.jumpToToc", locale);
-	const isLtr = direction === "ltr";
 
 	const handleClick = () => {
-		flipBookRef.current?.goToPage(tocPageIndex);
+		executeCommand("goToToc");
 	};
 
-	const isOnToc = currentPage === tocPageIndex;
+	const isOnToc = currentPage === getTocPageIndex();
+	const disabled = isOnToc || !canExecute("goToToc");
 
 	return (
 		<ToolbarButton
 			onClick={handleClick}
 			ariaLabel={ariaLabel}
-			disabled={isOnToc}
+			disabled={disabled}
 			className={`flipbook-toolbar-toc ${className ?? ""}`.trim()}
 		>
-			{children ?? (
-				<TableOfContentsIcon
-					size={18}
-					className={isLtr ? "flipbook-toc-icon--flip-h" : undefined}
-				/>
-			)}
+			{children ?? <TableOfContentsIcon size={18} />}
 		</ToolbarButton>
 	);
 };

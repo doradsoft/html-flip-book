@@ -2,9 +2,10 @@ import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { MaximizeIcon, MinimizeIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
+import { useToolbar } from "./ToolbarContext";
 
 interface FullscreenButtonProps {
-	/** Target element to make fullscreen. If not provided, uses document.documentElement */
+	/** Target element to make fullscreen. If not provided, uses Toolbar's fullscreenTargetRef or document.documentElement */
 	targetRef?: React.RefObject<HTMLElement | null>;
 	/** Custom content for enter fullscreen. Defaults to MaximizeIcon */
 	enterIcon?: React.ReactNode;
@@ -22,7 +23,7 @@ interface FullscreenButtonProps {
  * Button to toggle fullscreen mode.
  */
 const FullscreenButton: React.FC<FullscreenButtonProps> = ({
-	targetRef,
+	targetRef: targetRefProp,
 	enterIcon,
 	exitIcon,
 	ariaLabelEnter = "Enter fullscreen",
@@ -30,6 +31,8 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({
 	className,
 }) => {
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const toolbar = useToolbar();
+	const targetRef = targetRefProp ?? toolbar.fullscreenTargetRef;
 
 	// Check fullscreen state
 	const updateFullscreenState = useCallback(() => {

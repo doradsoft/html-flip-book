@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-- None
+- **Alpha only (not semver-breaking):** Fullscreen command now uses `data.getFullscreenTarget()` instead of `data.fullscreenTargetRef` (React ref). Use `commandOptions.toggleFullscreen.data = { getFullscreenTarget: () => ref.current ?? null }` if you need a specific target.
 
 ### Engineering
 
@@ -74,6 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - React component wrapper
 - Touch and mouse drag support
 - RTL/LTR direction support
-- Page navigation API (flipNext, flipPrev, goToPage, jumpToPage)
+- Page navigation API (flipNext, flipPrev, flipToPage, jumpToPage)
 - Concurrent flip animations support
 - Leaves buffer for performance optimization

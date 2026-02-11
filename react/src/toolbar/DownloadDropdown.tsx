@@ -1,6 +1,6 @@
 import type React from "react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { PageRangesDownloadContext, SemanticPageInfo } from "../download/types";
+import type { SemanticPageInfo } from "../download/types";
 import { isRtl, t } from "../i18n";
 import { DownloadIcon } from "../icons";
 import { useToolbar } from "./ToolbarContext";
@@ -43,37 +43,34 @@ function getSelectablePages(
 }
 
 export interface DownloadDropdownProps {
-	/** Called when user chooses "Download entire book". Return result or null. */
-	onDownloadSefer?: () => Promise<{ ext: string; data: string } | null>;
-	/** Called when user chooses "Download page range" with selected pages. Return result or null. */
-	onDownloadPageRange?: (
-		pages: number[],
-		semanticPages: SemanticPageInfo[],
-		context?: PageRangesDownloadContext,
-	) => Promise<{ ext: string; data: string } | null>;
-	/** Optional context passed to onDownloadPageRange (e.g. seferName) */
-	downloadContext?: PageRangesDownloadContext;
 	/** Label for "Download" button. Default: "Download" */
 	ariaLabel?: string;
-	/** Suggested filename base for entire book download */
-	entireBookFilename?: string;
-	/** Suggested filename base for range download */
-	rangeFilename?: string;
 	className?: string;
 }
 
 const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
-	onDownloadSefer,
-	onDownloadPageRange,
-	downloadContext,
 	ariaLabel = "Download",
-	entireBookFilename = "book",
-	rangeFilename = "pages",
 	className,
 }) => {
-	const { totalPages, pageSemantics, locale } = useToolbar();
+	const {
+		totalPages,
+		pageSemantics,
+		locale,
+		openDownloadMenuRef,
+		downloadExecutorRef,
+		flipBookRef,
+	} = useToolbar();
+	const downloadConfig = flipBookRef.current?.getters?.getDownloadConfig?.() ?? undefined;
 	const [open, setOpen] = useState(false);
-	const [rangeOpen, setRangeOpen] = useState(false);
+
+	useEffect(() => {
+		openDownloadMenuRef.current = () => setOpen(true);
+		return () => {
+			openDownloadMenuRef.current = null;
+		};
+	}, [openDownloadMenuRef]);
+	type DownloadMode = "entire" | "range";
+	const [downloadMode, setDownloadMode] = useState<DownloadMode>("entire");
 	const [fromIndex, setFromIndex] = useState(0);
 	const [toIndex, setToIndex] = useState(0);
 	const [loading, setLoading] = useState<"sefer" | "range" | null>(null);
@@ -83,13 +80,21 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 
 	const selectablePages = getSelectablePages(totalPages, pageSemantics);
 
-	const hasSefer = Boolean(onDownloadSefer);
-	const hasRange = Boolean(onDownloadPageRange);
+	const hasSefer = Boolean(downloadConfig?.onDownloadSefer);
+	const hasRange = Boolean(downloadConfig?.onDownloadPageRange);
 	const showDropdown = hasSefer || hasRange;
+
+	// When opening, default mode to "entire" if available, else "range"; init range to full book
+	useEffect(() => {
+		if (open) {
+			setDownloadMode(hasSefer ? "entire" : "range");
+			setFromIndex(0);
+			setToIndex(Math.max(0, totalPages - 1));
+		}
+	}, [open, hasSefer, totalPages]);
 
 	const closeDropdown = useCallback(() => {
 		setOpen(false);
-		setRangeOpen(false);
 	}, []);
 
 	// Keep dropdown menu inside viewport: open upward when near bottom
@@ -123,52 +128,58 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	}, [open, closeDropdown]);
 
 	const handleEntireBook = useCallback(async () => {
-		if (!onDownloadSefer) return;
+		const config = flipBookRef.current?.getters?.getDownloadConfig?.();
+		if (!config?.onDownloadSefer) return;
 		setLoading("sefer");
 		try {
-			const result = await onDownloadSefer();
-			if (result) triggerDownload(result, entireBookFilename);
+			const result = await config.onDownloadSefer();
+			if (result) triggerDownload(result, config.entireBookFilename ?? "book");
 			closeDropdown();
 		} finally {
 			setLoading(null);
 		}
-	}, [onDownloadSefer, entireBookFilename, closeDropdown]);
+	}, [flipBookRef, closeDropdown]);
 
-	const handleOpenRange = useCallback(() => {
-		setFromIndex(0);
-		setToIndex(Math.max(0, totalPages - 1));
-		setRangeOpen(true);
-		setOpen(true);
-	}, [totalPages]);
+	const runRangeDownload = useCallback(
+		async (from: number, to: number) => {
+			const config = flipBookRef.current?.getters?.getDownloadConfig?.();
+			if (!config?.onDownloadPageRange) return;
+			const pages: number[] = [];
+			const semanticPages: SemanticPageInfo[] = [];
+			for (let i = from; i <= to; i++) {
+				pages.push(i);
+				const info = selectablePages[i];
+				if (info) semanticPages.push(info);
+			}
+			setLoading("range");
+			try {
+				const result = await config.onDownloadPageRange(
+					pages,
+					semanticPages,
+					config.downloadContext,
+				);
+				if (result)
+					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${from + 1}-${to + 1}`);
+				closeDropdown();
+			} finally {
+				setLoading(null);
+			}
+		},
+		[flipBookRef, selectablePages, closeDropdown],
+	);
 
-	const handleRangeDownload = useCallback(async () => {
-		if (!onDownloadPageRange) return;
-		const from = Math.min(fromIndex, toIndex);
-		const to = Math.max(fromIndex, toIndex);
-		const pages: number[] = [];
-		const semanticPages: SemanticPageInfo[] = [];
-		for (let i = from; i <= to; i++) {
-			pages.push(i);
-			const info = selectablePages[i];
-			if (info) semanticPages.push(info);
-		}
-		setLoading("range");
-		try {
-			const result = await onDownloadPageRange(pages, semanticPages, downloadContext);
-			if (result) triggerDownload(result, `${rangeFilename}-${from + 1}-${to + 1}`);
-			closeDropdown();
-		} finally {
-			setLoading(null);
-		}
-	}, [
-		onDownloadPageRange,
-		fromIndex,
-		toIndex,
-		selectablePages,
-		downloadContext,
-		rangeFilename,
-		closeDropdown,
-	]);
+	useEffect(() => {
+		downloadExecutorRef.current = (from?: number, to?: number) => {
+			if (from === undefined && to === undefined) {
+				void handleEntireBook();
+			} else if (from !== undefined && to !== undefined) {
+				void runRangeDownload(from, to);
+			}
+		};
+		return () => {
+			downloadExecutorRef.current = null;
+		};
+	}, [downloadExecutorRef, handleEntireBook, runRangeDownload]);
 
 	if (!showDropdown) return null;
 
@@ -192,70 +203,88 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 					role="menu"
 					dir={isRtl(locale) ? "rtl" : "ltr"}
 				>
-					{hasSefer && (
-						<button
-							type="button"
-							role="menuitem"
-							className="flipbook-toolbar-download-menuitem"
-							onClick={handleEntireBook}
-							disabled={loading !== null}
-						>
-							{loading === "sefer" ? "…" : t("command.downloadEntireBook", locale)}
-						</button>
+					<fieldset
+						className="flipbook-toolbar-download-mode"
+						aria-label={t("toolbarItem.download", locale)}
+					>
+						{hasSefer && (
+							<label className="flipbook-toolbar-download-radio-label">
+								<input
+									type="radio"
+									name="download-mode"
+									className="flipbook-toolbar-download-radio"
+									checked={downloadMode === "entire"}
+									onChange={() => setDownloadMode("entire")}
+								/>
+								<span>{t("command.downloadEntireBook", locale)}</span>
+							</label>
+						)}
+						{hasRange && (
+							<label className="flipbook-toolbar-download-radio-label">
+								<input
+									type="radio"
+									name="download-mode"
+									className="flipbook-toolbar-download-radio"
+									checked={downloadMode === "range"}
+									onChange={() => setDownloadMode("range")}
+								/>
+								<span>{t("toolbarItem.downloadPageRange", locale)}</span>
+							</label>
+						)}
+					</fieldset>
+					{downloadMode === "range" && (
+						<div className="flipbook-toolbar-download-range">
+							<label className="flipbook-toolbar-download-range-label">
+								{t("toolbarItem.download.from", locale)}
+								<select
+									value={fromIndex}
+									onChange={(e) => setFromIndex(Number(e.target.value))}
+									className="flipbook-toolbar-download-range-select"
+								>
+									{selectablePages.map((p) => (
+										<option key={p.pageIndex} value={p.pageIndex}>
+											{p.semanticName || p.title || `Page ${p.pageIndex + 1}`}
+										</option>
+									))}
+								</select>
+							</label>
+							<label className="flipbook-toolbar-download-range-label">
+								{t("toolbarItem.download.to", locale)}
+								<select
+									value={toIndex}
+									onChange={(e) => setToIndex(Number(e.target.value))}
+									className="flipbook-toolbar-download-range-select"
+								>
+									{selectablePages.map((p) => (
+										<option key={p.pageIndex} value={p.pageIndex}>
+											{p.semanticName || p.title || `Page ${p.pageIndex + 1}`}
+										</option>
+									))}
+								</select>
+							</label>
+						</div>
 					)}
-					{hasRange && (
-						<>
-							<button
-								type="button"
-								role="menuitem"
-								className="flipbook-toolbar-download-menuitem"
-								onClick={handleOpenRange}
-								disabled={loading !== null}
-							>
-								{t("toolbarItem.downloadPageRange", locale)}
-							</button>
-							{rangeOpen && (
-								<div className="flipbook-toolbar-download-range">
-									<label className="flipbook-toolbar-download-range-label">
-										{t("toolbarItem.download.from", locale)}
-										<select
-											value={fromIndex}
-											onChange={(e) => setFromIndex(Number(e.target.value))}
-											className="flipbook-toolbar-download-range-select"
-										>
-											{selectablePages.map((p) => (
-												<option key={p.pageIndex} value={p.pageIndex}>
-													{p.semanticName || p.title || `Page ${p.pageIndex + 1}`}
-												</option>
-											))}
-										</select>
-									</label>
-									<label className="flipbook-toolbar-download-range-label">
-										{t("toolbarItem.download.to", locale)}
-										<select
-											value={toIndex}
-											onChange={(e) => setToIndex(Number(e.target.value))}
-											className="flipbook-toolbar-download-range-select"
-										>
-											{selectablePages.map((p) => (
-												<option key={p.pageIndex} value={p.pageIndex}>
-													{p.semanticName || p.title || `Page ${p.pageIndex + 1}`}
-												</option>
-											))}
-										</select>
-									</label>
-									<button
-										type="button"
-										className="flipbook-toolbar-download-range-download"
-										onClick={handleRangeDownload}
-										disabled={loading !== null}
-									>
-										{loading === "range" ? "…" : t("toolbarItem.download.download", locale)}
-									</button>
-								</div>
-							)}
-						</>
-					)}
+					<button
+						type="button"
+						role="menuitem"
+						className="flipbook-toolbar-download-menuitem flipbook-toolbar-download-primary"
+						onClick={() => {
+							if (downloadMode === "entire") {
+								void handleEntireBook();
+							} else {
+								const from = Math.min(fromIndex, toIndex);
+								const to = Math.max(fromIndex, toIndex);
+								void runRangeDownload(from, to);
+							}
+						}}
+						disabled={loading !== null}
+					>
+						{loading === "sefer"
+							? "…"
+							: loading === "range"
+								? "…"
+								: t("toolbarItem.download.download", locale)}
+					</button>
 				</div>
 			)}
 		</div>

@@ -157,7 +157,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 				if (pageSemantics && inputValue.trim()) {
 					const pageIndex = pageSemantics.semanticNameToIndex(inputValue.trim());
 					if (pageIndex != null && pageIndex >= 0 && pageIndex < totalPages) {
-						flipBookRef.current?.jumpToPage(pageIndex);
+						flipBookRef.current?.commands.jumpToPage(pageIndex);
 						justNavigatedRef.current = true;
 					}
 				}

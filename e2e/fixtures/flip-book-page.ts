@@ -1,4 +1,8 @@
 import type { Page } from "@playwright/test";
+import {
+	TEST_PARAM_FAST_DELTA_THRESHOLD,
+	TEST_PARAM_INITIAL_TURNED_LEAVES,
+} from "../../react/example/src/test-url-params";
 import { type FlipBookDOMState, getFlipBookDOMState } from "./dom-inspection";
 
 export interface FlipBookPageOptions {
@@ -43,10 +47,16 @@ export class FlipBookPage {
 	async goto(): Promise<void> {
 		const url = new URL(this.options.baseUrl);
 		if (this.options.initialTurnedLeaves.length > 0) {
-			url.searchParams.set("initialTurnedLeaves", this.options.initialTurnedLeaves.join(","));
+			url.searchParams.set(
+				TEST_PARAM_INITIAL_TURNED_LEAVES,
+				this.options.initialTurnedLeaves.join(","),
+			);
 		}
 		if (this.options.fastDeltaThreshold !== 500) {
-			url.searchParams.set("fastDeltaThreshold", this.options.fastDeltaThreshold.toString());
+			url.searchParams.set(
+				TEST_PARAM_FAST_DELTA_THRESHOLD,
+				this.options.fastDeltaThreshold.toString(),
+			);
 		}
 		await this.page.goto(url.toString());
 		await this.waitForReady();

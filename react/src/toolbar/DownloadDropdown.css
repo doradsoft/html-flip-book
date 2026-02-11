@@ -12,7 +12,8 @@
 .flipbook-toolbar-download-menu {
 	position: absolute;
 	top: 100%;
-	left: 0;
+	inset-inline-start: 0;
+	inset-inline-end: auto;
 	margin-top: 4px;
 	min-width: 200px;
 	max-height: min(60vh, 400px);
@@ -40,7 +41,7 @@
 	background: none;
 	color: #fff;
 	font-size: 14px;
-	text-align: left;
+	text-align: start;
 	cursor: pointer;
 }
 
@@ -53,9 +54,41 @@
 	cursor: not-allowed;
 }
 
+.flipbook-toolbar-download-mode {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px 12px 4px;
+	border: none;
+	margin: 0;
+}
+
+.flipbook-toolbar-download-radio-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: #fff;
+	font-size: 14px;
+	cursor: pointer;
+}
+
+.flipbook-toolbar-download-radio-label:hover {
+	background-color: rgba(255, 255, 255, 0.05);
+}
+
+.flipbook-toolbar-download-radio {
+	accent-color: rgba(255, 255, 255, 0.9);
+}
+
+.flipbook-toolbar-download-primary {
+	margin-top: 4px;
+	font-weight: 500;
+}
+
 .flipbook-toolbar-download-range {
 	display: flex;
 	flex-wrap: wrap;
+	flex-direction: row;
 	align-items: center;
 	gap: 8px;
 	padding: 8px 12px;
@@ -63,12 +96,21 @@
 	margin-top: 4px;
 }
 
+[dir="rtl"] .flipbook-toolbar-download-range {
+	flex-direction: row-reverse;
+}
+
 .flipbook-toolbar-download-range-label {
 	display: inline-flex;
 	align-items: center;
+	flex-direction: inherit;
 	gap: 6px;
 	color: #fff;
 	font-size: 13px;
+}
+
+[dir="rtl"] .flipbook-toolbar-download-range-label {
+	flex-direction: row-reverse;
 }
 
 .flipbook-toolbar-download-range-select {
@@ -79,6 +121,8 @@
 	color: #fff;
 	font-size: 13px;
 	min-width: 4ch;
+	text-align: start;
+	direction: inherit;
 }
 
 .flipbook-toolbar-download-range-download {

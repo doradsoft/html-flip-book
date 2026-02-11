@@ -16,8 +16,20 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			alias: [
 				{
+					find: "html-flip-book-vanilla/commands",
+					replacement: path.resolve(__dirname, "../../base/src/commands/index.ts"),
+				},
+				{
+					find: "html-flip-book-vanilla/download",
+					replacement: path.resolve(__dirname, "../../base/src/download/index.ts"),
+				},
+				{
 					find: "html-flip-book-vanilla/intl",
 					replacement: path.resolve(__dirname, "../../base/src/intl/index.ts"),
+				},
+				{
+					find: "html-flip-book-vanilla/store",
+					replacement: path.resolve(__dirname, "../../base/src/store/index.ts"),
 				},
 				{
 					find: "html-flip-book-react/toolbar",

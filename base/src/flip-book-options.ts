@@ -1,4 +1,5 @@
 import type { AspectRatio } from "./aspect-ratio";
+import type { DownloadConfig } from "./download/types";
 import type { PageSemantics } from "./page-semantics";
 
 /**
@@ -99,4 +100,9 @@ export interface FlipBookOptions {
 	 * Default: 4 (typical after front/back covers and soft covers).
 	 */
 	tocPageIndex?: number;
+	/**
+	 * Download configuration: entire book and page-range handlers plus filename hints.
+	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref.
+	 */
+	downloadConfig?: DownloadConfig;
 }

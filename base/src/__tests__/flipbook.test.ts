@@ -1370,15 +1370,15 @@ describe("FlipBook", () => {
 		});
 	});
 
-	describe("goToPage", () => {
+	describe("flipToPage", () => {
 		it("navigates forward to target page", async () => {
 			createPages(10);
 			const flipBook = new FlipBook({ pagesCount: 10 });
 			flipBook.render(".flipbook-container");
 
-			// goToPage uses leaf-based navigation, so going to page 6 means going to leaf 3
+			// flipToPage uses leaf-based navigation, so going to page 6 means going to leaf 3
 			// After flipping leaves 0, 1, 2, visible pages are [5, 6]
-			await flipBook.goToPage(6);
+			await flipBook.flipToPage(6);
 			// Wait for event loop to process callbacks
 			await new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -1395,7 +1395,7 @@ describe("FlipBook", () => {
 
 			// Starting at page 8, go to page 2 (leaf 1)
 			// After unflipping leaves 3, 2, visible pages should be [1, 2]
-			await flipBook.goToPage(2);
+			await flipBook.flipToPage(2);
 			// Wait for event loop to process callbacks
 			await new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -1408,10 +1408,10 @@ describe("FlipBook", () => {
 			const flipBook = new FlipBook({ pagesCount: 6 });
 			flipBook.render(".flipbook-container");
 
-			await flipBook.goToPage(-1);
+			await flipBook.flipToPage(-1);
 			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
 
-			await flipBook.goToPage(10);
+			await flipBook.flipToPage(10);
 			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Invalid page index"));
 		});
 	});

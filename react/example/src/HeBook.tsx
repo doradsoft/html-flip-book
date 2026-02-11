@@ -16,12 +16,17 @@ import {
 	NextButton,
 	PageIndicator,
 	PrevButton,
+	type SemanticPageInfo,
 	TocButton,
 	Toolbar,
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { exportEntireBookPdf, exportPageRangePdf } from "./pdfExport";
 import { getHebrewPdfFontName, loadHebrewFont } from "./pdfHebrewFont";
+import {
+	TEST_PARAM_FAST_DELTA_THRESHOLD,
+	TEST_PARAM_INITIAL_TURNED_LEAVES,
+} from "./test-url-params";
 
 // Import text files for Genesis (Bereshit)
 const textFiles = import.meta.glob("/assets/pages_data/he/*.txt", {
@@ -53,13 +58,27 @@ const BackCover = () => (
 	</div>
 );
 
-// Page titles for TOC. No back cover titles, no front interior title for he. שער = page after (e.g. TOC)
-const getChapterTitles = (_totalPages: number): Record<number, string> => ({
+// Page titles for non-content pages. שער = page after cover (e.g. TOC)
+const getSpecialPageTitles = (_totalPages: number): Record<number, string> => ({
 	0: "כריכה", // Front cover
 	2: "שער", // Page after cover (e.g. TOC)
 });
 
-function createHePageSemantics(totalPages: number): PageSemantics {
+/** Extract semantic title from first line: part after " — " (e.g. "פרק א' — בריאת העולם" → "בריאת העולם"). */
+function titleFromFirstLine(firstLine: string): string {
+	const sep = " — ";
+	const i = firstLine.indexOf(sep);
+	return i >= 0 ? firstLine.slice(i + sep.length).trim() : firstLine.trim();
+}
+
+function createHePageSemantics(
+	totalPages: number,
+	perekTitles: Record<number, string>,
+): PageSemantics {
+	const specialTitles = getSpecialPageTitles(totalPages);
+	const firstContent = 3;
+	const lastContent = totalPages - 4;
+
 	return {
 		indexToSemanticName(pageIndex: number): string {
 			if (pageIndex <= 2) return ""; // כריכה, כריכה פנים, שער
@@ -72,7 +91,12 @@ function createHePageSemantics(totalPages: number): PageSemantics {
 			return num + 2; // content starts at index 3
 		},
 		indexToTitle(pageIndex: number): string {
-			return getChapterTitles(totalPages)[pageIndex] ?? "";
+			if (pageIndex >= firstContent && pageIndex <= lastContent) {
+				const perekNum = pageIndex - 2;
+				const title = perekTitles[perekNum];
+				return title ?? `פרק ${toLetters(perekNum, { addQuotes: true })}`;
+			}
+			return specialTitles[pageIndex] ?? "";
 		},
 	};
 }
@@ -81,8 +105,8 @@ function createHePageSemantics(totalPages: number): PageSemantics {
 function useTestParams() {
 	return useMemo(() => {
 		const params = new URLSearchParams(window.location.search);
-		const initialTurnedLeaves = params.get("initialTurnedLeaves");
-		const fastDeltaThreshold = params.get("fastDeltaThreshold");
+		const initialTurnedLeaves = params.get(TEST_PARAM_INITIAL_TURNED_LEAVES);
+		const fastDeltaThreshold = params.get(TEST_PARAM_FAST_DELTA_THRESHOLD);
 
 		return {
 			initialTurnedLeaves: initialTurnedLeaves
@@ -102,6 +126,7 @@ export const HeBook = () => {
 	const [hePageContents, setHePageContents] = useState<(string | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		loadHebrewFont();
@@ -122,6 +147,14 @@ export const HeBook = () => {
 
 			// Sort by file number
 			files.sort((a, b) => a.order - b.order);
+
+			// Semantic page titles: part after " — " on first line of each asset
+			const perekTitles: Record<number, string> = {};
+			for (let i = 0; i < files.length; i++) {
+				const firstLine = files[i].content.split("\n")[0]?.trim() ?? "";
+				const title = titleFromFirstLine(firstLine);
+				if (title) perekTitles[i + 1] = title;
+			}
 
 			// Normalize: no redundant newlines between psukim (single line break only)
 			const normalizePsukim = (s: string) => s.replace(/\n{2,}/g, "\n").trim();
@@ -144,7 +177,7 @@ export const HeBook = () => {
 			];
 
 			const totalPages = contentPages.length + 6; // cover + front interior + toc + content + blank + back interior + back cover
-			const semantics = createHePageSemantics(totalPages);
+			const semantics = createHePageSemantics(totalPages, perekTitles);
 			setHePageSemantics(semantics);
 			setHePageContents(contents);
 
@@ -152,7 +185,7 @@ export const HeBook = () => {
 			const toc = (
 				<TocPage
 					key="toc"
-					onNavigate={(pageIndex) => flipBookRef.current?.goToPage(pageIndex)}
+					onNavigate={(pageIndex) => flipBookRef.current?.commands.jumpToPage(pageIndex)}
 					totalPages={totalPages}
 					pageSemantics={semantics}
 					heading="תוכן העניינים"
@@ -197,12 +230,60 @@ export const HeBook = () => {
 		[hePageSemantics],
 	);
 
+	const heDownloadConfig = useMemo(
+		() => ({
+			onDownloadSefer: async () => {
+				await loadHebrewFont();
+				const total = hePages.length;
+				const opts = {
+					pageContents: hePageContents,
+					rtl: true,
+					hebrewFontName: getHebrewPdfFontName(),
+				};
+				try {
+					const data = exportEntireBookPdf("ספר בראשית", total, opts);
+					return { ext: "pdf", data };
+				} catch (e) {
+					console.error("Hebrew entire-book PDF export failed:", e);
+					const data = exportEntireBookPdf("ספר בראשית", total, {
+						rtl: true,
+						hebrewFontName: getHebrewPdfFontName(),
+					});
+					return { ext: "pdf", data };
+				}
+			},
+			onDownloadPageRange: async (pages: number[], semanticPages: SemanticPageInfo[]) => {
+				if (!semanticPages.length) return null;
+				await loadHebrewFont();
+				const opts = {
+					pageContents: hePageContents,
+					rtl: true,
+					hebrewFontName: getHebrewPdfFontName(),
+				};
+				try {
+					const data = exportPageRangePdf("ספר בראשית", pages, semanticPages, opts);
+					return { ext: "pdf", data };
+				} catch (e) {
+					console.error("Hebrew range PDF export failed:", e);
+					const data = exportPageRangePdf("ספר בראשית", pages, semanticPages, {
+						rtl: true,
+						hebrewFontName: getHebrewPdfFontName(),
+					});
+					return { ext: "pdf", data };
+				}
+			},
+			entireBookFilename: "bereshit",
+			rangeFilename: "bereshit-pages",
+		}),
+		[hePages.length, hePageContents],
+	);
+
 	if (hePages.length === 0 || !hePageSemantics) {
 		return <div className="loading">טוען...</div>;
 	}
 
 	return (
-		<>
+		<div ref={containerRef} className="he-book-wrap">
 			<FlipBook
 				ref={flipBookRef}
 				className="he-book"
@@ -210,6 +291,7 @@ export const HeBook = () => {
 				direction="rtl"
 				pageSemantics={hePageSemantics}
 				of="נ"
+				tocPageIndex={2}
 				debug={true}
 				leavesBuffer={7}
 				coverConfig={{
@@ -218,11 +300,17 @@ export const HeBook = () => {
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={heHistoryMapper}
+				downloadConfig={heDownloadConfig}
 			/>
-			<Toolbar flipBookRef={flipBookRef} direction="rtl" pageSemantics={hePageSemantics}>
+			<Toolbar
+				flipBookRef={flipBookRef}
+				direction="rtl"
+				pageSemantics={hePageSemantics}
+				fullscreenTargetRef={containerRef}
+			>
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
-					<TocButton tocPageIndex={2} ariaLabel="תוכן העניינים" />
+					<TocButton />
 				</div>
 				<div className="flipbook-toolbar-nav-cluster">
 					<FirstPageButton />
@@ -232,33 +320,10 @@ export const HeBook = () => {
 					<LastPageButton />
 				</div>
 				<div className="flipbook-toolbar-end">
-					<DownloadDropdown
-						onDownloadSefer={async () => {
-							const data = exportEntireBookPdf("ספר בראשית", hePages.length, {
-								pageContents: hePageContents,
-								rtl: true,
-								hebrewFontName: getHebrewPdfFontName(),
-							});
-							return { ext: "pdf", data };
-						}}
-						onDownloadPageRange={async (pages, semanticPages) =>
-							semanticPages.length
-								? {
-										ext: "pdf",
-										data: exportPageRangePdf("ספר בראשית", pages, semanticPages, {
-											pageContents: hePageContents,
-											rtl: true,
-											hebrewFontName: getHebrewPdfFontName(),
-										}),
-									}
-								: null
-						}
-						entireBookFilename="bereshit"
-						rangeFilename="bereshit-pages"
-					/>
+					<DownloadDropdown />
 				</div>
 			</Toolbar>
-		</>
+		</div>
 	);
 };
 

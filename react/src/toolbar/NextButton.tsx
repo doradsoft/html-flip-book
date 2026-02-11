@@ -19,7 +19,7 @@ const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 	const { flipBookRef, isLastPage, locale } = useToolbar();
 
 	const handleClick = () => {
-		flipBookRef.current?.flipNext();
+		flipBookRef.current?.commands.flipNext();
 	};
 
 	const ariaLabel = t("command.jumpToNextPage", locale);

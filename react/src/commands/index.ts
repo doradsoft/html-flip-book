@@ -1,8 +1,19 @@
 /**
- * Flipbook command system - allows registering commands with hotkeys
- * and executing them from toolbar items or keyboard shortcuts.
+ * React-specific: provider and hook. Commands, hotkeys, and types come from base.
  */
 
+export type {
+	Command,
+	CommandContext,
+	CommandData,
+	CommandDefinition,
+	CommandOptions,
+	CommandRegistry,
+	FlipBookHandleLike,
+	FlipNavCommand,
+	HotkeyBinding,
+	JumpNavCommand,
+	NavCommand,
+} from "html-flip-book-vanilla/commands";
+export { defaultCommands } from "html-flip-book-vanilla/commands";
 export { CommandProvider, useCommands } from "./CommandContext";
-export { DEFAULT_HOTKEYS, defaultCommands } from "./defaultCommands";
-export type { Command, CommandOptions, CommandRegistry, HotkeyBinding } from "./types";

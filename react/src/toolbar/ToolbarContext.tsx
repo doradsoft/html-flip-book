@@ -15,6 +15,12 @@ interface ToolbarContextValue {
 	of: string | number;
 	isFirstPage: boolean;
 	isLastPage: boolean;
+	/** Ref used by openDownloadMenu command (Ctrl+S) to open the download dropdown. DownloadDropdown sets this. */
+	openDownloadMenuRef: React.MutableRefObject<(() => void) | null>;
+	/** Ref set by DownloadDropdown: (from?, to?) => void to run download (entire book or range). Used by download command. */
+	downloadExecutorRef: React.MutableRefObject<((from?: number, to?: number) => void) | null>;
+	/** When set (via Toolbar fullscreenTargetRef), fullscreen targets this container (e.g. sefer + toolbar). */
+	fullscreenTargetRef?: React.RefObject<HTMLElement | null>;
 }
 
 const ToolbarContext = createContext<ToolbarContextValue | null>(null);

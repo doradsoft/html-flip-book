@@ -19,7 +19,7 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 	const { flipBookRef, isFirstPage, locale } = useToolbar();
 
 	const handleClick = () => {
-		flipBookRef.current?.flipPrev();
+		flipBookRef.current?.commands.flipPrev();
 	};
 
 	const ariaLabel = t("command.jumpToPrevPage", locale);

@@ -1,7 +1,8 @@
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CommandDefinition, CommandOptions } from "../commands";
 import { CommandProvider } from "../commands/CommandContext";
-import type { Command, CommandOptions } from "../commands/types";
+import { openDownloadMenuCommand } from "../commands/open-download-menu-command";
 import type { FlipBookHandle, PageSemantics } from "../FlipBook";
 import { defaultLocale, directionFromLocale, type Locale } from "../i18n";
 import { ToolbarContext } from "./ToolbarContext";
@@ -23,9 +24,11 @@ interface ToolbarProps {
 	/** Enable keyboard hotkeys for commands. Defaults to true */
 	enableHotkeys?: boolean;
 	/** Custom commands to register (merged with defaults) */
-	commands?: Command[];
+	commands?: CommandDefinition[];
 	/** Options for specific commands (e.g., custom hotkeys, data) */
 	commandOptions?: Record<string, CommandOptions>;
+	/** When set, fullscreen (keyboard or button) targets this container only (e.g. sefer + toolbar wrapper). */
+	fullscreenTargetRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -43,24 +46,48 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	enableHotkeys = true,
 	commands,
 	commandOptions,
+	fullscreenTargetRef,
 }) => {
 	const direction = directionProp ?? directionFromLocale(localeProp ?? defaultLocale);
 	const locale = localeProp ?? (direction === "rtl" ? "he-IL" : "en-US");
+	const openDownloadMenuRef = useRef<(() => void) | null>(null);
+	const downloadExecutorRef = useRef<((from?: number, to?: number) => void) | null>(null);
 	const [currentPage, setCurrentPage] = useState(0);
 	const [totalPages, setTotalPages] = useState(0);
 	const [of, setOf] = useState<string | number>(0);
 	const [isFirstPage, setIsFirstPage] = useState(true);
 	const [isLastPage, setIsLastPage] = useState(false);
 
+	const mergedCommandOptions: Record<string, CommandOptions> = {
+		...(fullscreenTargetRef
+			? {
+					toggleFullscreen: {
+						data: {
+							getFullscreenTarget: () => fullscreenTargetRef.current ?? null,
+						},
+					},
+				}
+			: {}),
+		openDownloadMenu: {
+			data: { open: () => openDownloadMenuRef.current?.() },
+		},
+		download: {
+			data: {
+				onDownload: (from?: number, to?: number) => downloadExecutorRef.current?.(from, to),
+			},
+		},
+		...commandOptions,
+	};
+
 	// Update state from FlipBook ref (book is source of truth for current, total, of)
 	const updateState = useCallback(() => {
 		const fb = flipBookRef.current;
 		if (fb) {
-			setCurrentPage(fb.getCurrentPageIndex());
-			setTotalPages(fb.getTotalPages());
-			setOf(fb.getOf());
-			setIsFirstPage(fb.isFirstPage());
-			setIsLastPage(fb.isLastPage());
+			setCurrentPage(fb.getters.getCurrentPageIndex());
+			setTotalPages(fb.getters.getTotalPages());
+			setOf(fb.getters.getOf());
+			setIsFirstPage(fb.getters.isFirstPage());
+			setIsLastPage(fb.getters.isLastPage());
 		}
 	}, [flipBookRef]);
 
@@ -84,6 +111,9 @@ const Toolbar: React.FC<ToolbarProps> = ({
 				of,
 				isFirstPage,
 				isLastPage,
+				openDownloadMenuRef,
+				downloadExecutorRef,
+				fullscreenTargetRef,
 			}}
 		>
 			<div
@@ -97,14 +127,16 @@ const Toolbar: React.FC<ToolbarProps> = ({
 		</ToolbarContext.Provider>
 	);
 
+	const allCommands: CommandDefinition[] = [openDownloadMenuCommand, ...(commands ?? [])];
+
 	return (
 		<CommandProvider
 			flipBookRef={flipBookRef}
 			currentPage={currentPage}
 			totalPages={totalPages}
 			direction={direction}
-			commands={commands}
-			commandOptions={commandOptions}
+			commands={allCommands}
+			commandOptions={mergedCommandOptions}
 			disableHotkeys={!enableHotkeys}
 		>
 			{toolbarContent}

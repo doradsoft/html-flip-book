@@ -6,20 +6,25 @@ import { PageIndicator, Toolbar } from "../toolbar";
 // ── helpers ──────────────────────────────────────────────────────────
 
 /**
- * Creates a mock FlipBookHandle ref with sensible defaults.
- * `getCurrentPageIndex` can be changed dynamically via the returned ref.
+ * Creates a mock FlipBookHandle ref with sensible defaults (commands + getters only).
+ * Override getters.getCurrentPageIndex etc. to change state.
  */
 const createMockFlipBookRef = (overrides: Partial<FlipBookHandle> = {}) => ({
 	current: {
-		flipNext: vi.fn().mockResolvedValue(undefined),
-		flipPrev: vi.fn().mockResolvedValue(undefined),
-		goToPage: vi.fn().mockResolvedValue(undefined),
-		jumpToPage: vi.fn(),
-		getCurrentPageIndex: vi.fn().mockReturnValue(0),
-		getTotalPages: vi.fn().mockReturnValue(60),
-		getOf: vi.fn().mockReturnValue(60),
-		isFirstPage: vi.fn().mockReturnValue(true),
-		isLastPage: vi.fn().mockReturnValue(false),
+		commands: {
+			flipNext: vi.fn().mockResolvedValue(undefined),
+			flipPrev: vi.fn().mockResolvedValue(undefined),
+			flipToPage: vi.fn().mockResolvedValue(undefined),
+			jumpToPage: vi.fn(),
+			toggleDebugBar: vi.fn(),
+		},
+		getters: {
+			getCurrentPageIndex: vi.fn().mockReturnValue(0),
+			getTotalPages: vi.fn().mockReturnValue(60),
+			getOf: vi.fn().mockReturnValue(60),
+			isFirstPage: vi.fn().mockReturnValue(true),
+			isLastPage: vi.fn().mockReturnValue(false),
+		},
 		...overrides,
 	} as FlipBookHandle,
 });
@@ -176,8 +181,8 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			// Press Enter to navigate
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledTimes(1);
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(expectedJumpIndex);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledTimes(1);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(expectedJumpIndex);
 		});
 	});
 
@@ -199,9 +204,9 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "24" } });
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(47);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(47);
 			// Critical: NOT 45 (which would be perek 23 — the "one back" bug)
-			expect(mockRef.current.jumpToPage).not.toHaveBeenCalledWith(45);
+			expect(mockRef.current.commands.jumpToPage).not.toHaveBeenCalledWith(45);
 		});
 
 		it("typing '24' from perek 22 results in jumpToPage(47)", () => {
@@ -215,7 +220,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "24" } });
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(47);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(47);
 		});
 	});
 
@@ -231,7 +236,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			expect(input.value).toBe("1 / 27");
 
 			// Simulate page change via external navigation (e.g., button click)
-			mockRef.current.getCurrentPageIndex = vi.fn().mockReturnValue(44);
+			mockRef.current.getters.getCurrentPageIndex = vi.fn().mockReturnValue(44);
 			act(() => {
 				vi.advanceTimersByTime(200);
 			});
@@ -252,7 +257,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			expect(input.value).toBe("24");
 
 			// Change mock and poll
-			mockRef.current.getCurrentPageIndex = vi.fn().mockReturnValue(46);
+			mockRef.current.getters.getCurrentPageIndex = vi.fn().mockReturnValue(46);
 			act(() => {
 				vi.advanceTimersByTime(200);
 			});
@@ -281,7 +286,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			expect(input.value).toBe("24");
 
 			// Simulate the FlipBook updating (jumpToPage(47) → currentPageIndex = 46)
-			mockRef.current.getCurrentPageIndex = vi.fn().mockReturnValue(46);
+			mockRef.current.getters.getCurrentPageIndex = vi.fn().mockReturnValue(46);
 
 			// Advance timer to trigger Toolbar polling (updates currentPage).
 			// The useEffect clears justNavigatedRef and schedules setInputValue("24 / 27").
@@ -321,7 +326,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			expect(input.value).toBe("24");
 
 			// Now polling catches up
-			mockRef.current.getCurrentPageIndex = vi.fn().mockReturnValue(46);
+			mockRef.current.getters.getCurrentPageIndex = vi.fn().mockReturnValue(46);
 			act(() => {
 				vi.advanceTimersByTime(200);
 			});
@@ -345,7 +350,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "999" } });
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).not.toHaveBeenCalled();
+			expect(mockRef.current.commands.jumpToPage).not.toHaveBeenCalled();
 		});
 
 		it("typing '0' does not call jumpToPage", () => {
@@ -356,7 +361,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "0" } });
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).not.toHaveBeenCalled();
+			expect(mockRef.current.commands.jumpToPage).not.toHaveBeenCalled();
 		});
 
 		it("Escape cancels editing without navigation", () => {
@@ -367,7 +372,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "24" } });
 			fireEvent.keyDown(input, { key: "Escape" });
 
-			expect(mockRef.current.jumpToPage).not.toHaveBeenCalled();
+			expect(mockRef.current.commands.jumpToPage).not.toHaveBeenCalled();
 		});
 
 		it("navigating to the same perek still calls jumpToPage", () => {
@@ -380,7 +385,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.keyDown(input, { key: "Enter" });
 
 			// Should still call jumpToPage with the correct index
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(45);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(45);
 		});
 
 		it("navigating to perek 1 from any other perek", () => {
@@ -391,7 +396,7 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 			fireEvent.change(input, { target: { value: "1" } });
 			fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(1);
+			expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(1);
 		});
 	});
 });

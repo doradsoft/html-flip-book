@@ -18,6 +18,10 @@ const enUS: LocaleConfig = {
 		"command.jumpToLastPage": "Last page",
 		"command.jumpToPrevPage": "Previous page",
 		"command.jumpToNextPage": "Next page",
+		"command.toggleFullscreen": "Toggle fullscreen",
+		"command.toggleFullscreenDesc": "Enter or exit fullscreen mode",
+		"command.toggleDebug": "Toggle debug toolbar",
+		"command.toggleDebugDesc": "Show or hide the debug toolbar (Ctrl+Alt+D)",
 		"toolbarItem.goToPage": "Go to page",
 	},
 };

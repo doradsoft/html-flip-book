@@ -2,6 +2,8 @@
  * PDF export for the flip book example using jspdf.
  * Supports optional per-page content for real book export.
  * For Hebrew, set rtl: true and optionally register a font (e.g. via pdfHebrewFont) and pass hebrewFontName.
+ * For EN, markdownToPlain strips markdown to plain text. For higher-quality Markdown→PDF (e.g. server-side),
+ * consider @mdpdf/mdpdf (Node.js/Rust, not browser).
  */
 import { jsPDF } from "jspdf";
 import { addHebrewFontToDoc } from "./pdfHebrewFont";
@@ -16,6 +18,23 @@ const MARGIN = 20;
 const LINE_HEIGHT = 6;
 const PAGE_HEIGHT = 297; // A4 default in mm
 const BODY_Y_MAX = PAGE_HEIGHT - MARGIN;
+
+/** Convert markdown to plain text for PDF (strip # ** [] () etc., keep structure). */
+function markdownToPlainText(md: string): string {
+	return md
+		.replace(/^#+\s*/gm, "") // headings: remove # prefix
+		.replace(/\*\*([^*]+)\*\*/g, "$1") // bold
+		.replace(/\*([^*]+)\*/g, "$1") // italic
+		.replace(/__([^_]+)__/g, "$1") // bold
+		.replace(/_([^_]+)_/g, "$1") // italic
+		.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // links: keep label
+		.replace(/^[-*]\s+/gm, "• ") // list items
+		.replace(/^\d+\.\s+/gm, "") // numbered list
+		.replace(/^>\s*/gm, "") // blockquote
+		.replace(/`([^`]+)`/g, "$1") // inline code
+		.replace(/^```[\s\S]*?^```/gm, "") // fenced code blocks (multiline)
+		.trim();
+}
 
 /**
  * Draw text with wrapping and add new PDF pages as needed. Returns final y.
@@ -41,6 +60,8 @@ export interface EntireBookPdfOptions {
 	rtl?: boolean;
 	/** Font name if a Hebrew-capable font was registered with jsPDF (e.g. addFont). */
 	hebrewFontName?: string;
+	/** When true, run each page content through markdown-to-plain before rendering. */
+	markdownToPlain?: boolean;
 }
 
 /**
@@ -61,6 +82,7 @@ export function exportEntireBookPdf(
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const maxWidth = pageWidth - 2 * MARGIN;
 	const pageContents = options?.pageContents ?? null;
+	const markdownToPlain = options?.markdownToPlain ?? false;
 
 	if (pageContents && pageContents.length >= totalPages) {
 		// Real export: one PDF page per book page
@@ -68,7 +90,8 @@ export function exportEntireBookPdf(
 			if (i > 0) doc.addPage();
 			let y = MARGIN;
 			doc.setFontSize(10);
-			const content = pageContents[i];
+			let content = pageContents[i];
+			if (content && markdownToPlain) content = markdownToPlainText(content);
 			const label = content?.trim() ? content : `Page ${i + 1}`;
 			y = addWrappedText(doc, label, MARGIN, y, maxWidth);
 			// Optional: add a small footer
@@ -109,6 +132,8 @@ export interface PageRangePdfOptions {
 	rtl?: boolean;
 	/** Font name if a Hebrew-capable font was registered with jsPDF (e.g. addFont). */
 	hebrewFontName?: string;
+	/** When true, run each page content through markdown-to-plain before rendering. */
+	markdownToPlain?: boolean;
 }
 
 /**
@@ -130,6 +155,7 @@ export function exportPageRangePdf(
 	const pageWidth = doc.internal.pageSize.getWidth();
 	const maxWidth = pageWidth - 2 * MARGIN;
 	const pageContents = options?.pageContents ?? null;
+	const markdownToPlain = options?.markdownToPlain ?? false;
 
 	if (pageContents && pages.length > 0) {
 		// Real export: one PDF page per selected page
@@ -138,7 +164,8 @@ export function exportPageRangePdf(
 			const pageIndex = pages[i];
 			let y = MARGIN;
 			doc.setFontSize(10);
-			const content = pageContents[pageIndex];
+			let content = pageContents[pageIndex];
+			if (content && markdownToPlain) content = markdownToPlainText(content);
 			const label = content?.trim()
 				? content
 				: semanticPages.find((p) => p.pageIndex === pageIndex)?.title || `Page ${pageIndex + 1}`;

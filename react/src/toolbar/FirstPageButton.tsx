@@ -19,7 +19,7 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 	const { flipBookRef, isFirstPage, locale } = useToolbar();
 
 	const handleClick = () => {
-		flipBookRef.current?.jumpToPage(0);
+		flipBookRef.current?.commands.jumpToPage(0);
 	};
 
 	const defaultIcon = <ChevronFirstIcon size={18} />;

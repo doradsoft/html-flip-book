@@ -57,7 +57,7 @@ const defaultFilter = (entry: TocEntry): boolean => entry.title.length > 0;
  * @example
  * ```tsx
  * <TocPage
- *   onNavigate={(pageIndex) => flipBookRef.current?.goToPage(pageIndex)}
+ *   onNavigate={(pageIndex) => flipBookRef.current?.commands.flipToPage(pageIndex)}
  *   totalPages={20}
  *   pageSemantics={mySemantics}
  *   heading="Contents"
@@ -88,16 +88,16 @@ const TocPage: React.FC<TocPageProps> = ({
 	}
 
 	const renderDefaultEntry = (entry: TocEntry, onClick: () => void) => {
-		// Display: title (with semantic name or index as fallback for page number)
-		const displayText = entry.title || entry.semanticName || `Page ${entry.pageIndex}`;
-		const displayNumber = entry.semanticName || String(entry.pageIndex);
+		// Title on one side (left in LTR, right in RTL); semantic name or page index on the other
+		const title = entry.title || entry.semanticName || `Page ${entry.pageIndex + 1}`;
+		const pageOrSemantic = entry.semanticName || String(entry.pageIndex + 1);
 
 		return (
 			<li key={entry.pageIndex}>
 				<button type="button" className="toc-link" onClick={onClick}>
-					<span className="toc-title">{displayText}</span>
-					<span className="toc-dots" />
-					<span className="toc-page-num">{displayNumber}</span>
+					<span className="toc-title">{title}</span>
+					<span className="toc-dots" aria-hidden />
+					<span className="toc-page-num">{pageOrSemantic}</span>
 				</button>
 			</li>
 		);
@@ -108,13 +108,15 @@ const TocPage: React.FC<TocPageProps> = ({
 			className={`toc-page ${className ?? ""}`.trim()}
 			style={{ direction, textAlign: direction === "rtl" ? "right" : "left" }}
 		>
-			<h2 className="toc-heading">{heading}</h2>
-			<ul className="toc-list">
-				{entries.map((entry) => {
-					const onClick = () => onNavigate(entry.pageIndex);
-					return renderEntry ? renderEntry(entry, onClick) : renderDefaultEntry(entry, onClick);
-				})}
-			</ul>
+			<div className="toc-page__scroll">
+				<h2 className="toc-heading">{heading}</h2>
+				<ul className="toc-list">
+					{entries.map((entry) => {
+						const onClick = () => onNavigate(entry.pageIndex);
+						return renderEntry ? renderEntry(entry, onClick) : renderDefaultEntry(entry, onClick);
+					})}
+				</ul>
+			</div>
 		</div>
 	);
 };

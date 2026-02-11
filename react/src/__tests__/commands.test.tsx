@@ -1,21 +1,26 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Command } from "../commands";
-import { CommandProvider, DEFAULT_HOTKEYS, defaultCommands, useCommands } from "../commands";
+import type { CommandDefinition } from "../commands";
+import { CommandProvider, defaultCommands, useCommands } from "../commands";
 import type { FlipBookHandle } from "../FlipBook";
 
-// Mock flipbook ref
+// Mock flipbook ref (commands + getters only)
 const createMockFlipBookRef = (overrides: Partial<FlipBookHandle> = {}) => ({
 	current: {
-		flipNext: vi.fn().mockResolvedValue(undefined),
-		flipPrev: vi.fn().mockResolvedValue(undefined),
-		goToPage: vi.fn().mockResolvedValue(undefined),
-		jumpToPage: vi.fn(),
-		getCurrentPageIndex: vi.fn().mockReturnValue(2),
-		getTotalPages: vi.fn().mockReturnValue(10),
-		getOf: vi.fn().mockReturnValue(10),
-		isFirstPage: vi.fn().mockReturnValue(false),
-		isLastPage: vi.fn().mockReturnValue(false),
+		commands: {
+			flipNext: vi.fn().mockResolvedValue(undefined),
+			flipPrev: vi.fn().mockResolvedValue(undefined),
+			flipToPage: vi.fn().mockResolvedValue(undefined),
+			jumpToPage: vi.fn(),
+			toggleDebugBar: vi.fn(),
+		},
+		getters: {
+			getCurrentPageIndex: vi.fn().mockReturnValue(2),
+			getTotalPages: vi.fn().mockReturnValue(10),
+			getOf: vi.fn().mockReturnValue(10),
+			isFirstPage: vi.fn().mockReturnValue(false),
+			isLastPage: vi.fn().mockReturnValue(false),
+		},
 		...overrides,
 	} as FlipBookHandle,
 });
@@ -36,7 +41,7 @@ const TestCommandConsumer: React.FC<{
 	return (
 		<div>
 			<button type="button" onClick={() => executeCommand(commandId)} data-testid="exec-btn">
-				Execute {command?.name ?? commandId}
+				Execute {command?.name ?? command?.enName ?? commandId}
 			</button>
 			<span data-testid="can-execute">{canExec ? "yes" : "no"}</span>
 		</div>
@@ -52,20 +57,27 @@ describe("Default Commands", () => {
 		expect(commandIds).toContain("goToLast");
 		expect(commandIds).toContain("goToToc");
 		expect(commandIds).toContain("toggleFullscreen");
+		expect(commandIds).toContain("download");
 	});
 });
 
-describe("Default Hotkeys", () => {
+describe("Default Hotkeys (1:1 with command)", () => {
 	it("should have hotkeys for navigation commands", () => {
-		expect(DEFAULT_HOTKEYS.flipNext).toBeDefined();
-		expect(DEFAULT_HOTKEYS.flipPrev).toBeDefined();
-		expect(DEFAULT_HOTKEYS.goToFirst).toBeDefined();
-		expect(DEFAULT_HOTKEYS.goToLast).toBeDefined();
+		const flipNext = defaultCommands.find((c) => c.id === "flipNext");
+		const flipPrev = defaultCommands.find((c) => c.id === "flipPrev");
+		const goToFirst = defaultCommands.find((c) => c.id === "goToFirst");
+		const goToLast = defaultCommands.find((c) => c.id === "goToLast");
+		expect(flipNext?.hotkeys).toBeDefined();
+		expect(flipPrev?.hotkeys).toBeDefined();
+		expect(goToFirst?.hotkeys).toBeDefined();
+		expect(goToLast?.hotkeys).toBeDefined();
 	});
 
 	it("should include arrow keys for navigation", () => {
-		const flipNextKeys = DEFAULT_HOTKEYS.flipNext.map((h) => h.key);
-		const flipPrevKeys = DEFAULT_HOTKEYS.flipPrev.map((h) => h.key);
+		const flipNext = defaultCommands.find((c) => c.id === "flipNext");
+		const flipPrev = defaultCommands.find((c) => c.id === "flipPrev");
+		const flipNextKeys = flipNext?.hotkeys?.map((h) => h.key) ?? [];
+		const flipPrevKeys = flipPrev?.hotkeys?.map((h) => h.key) ?? [];
 		expect(flipNextKeys).toContain("ArrowRight");
 		expect(flipPrevKeys).toContain("ArrowLeft");
 	});
@@ -81,7 +93,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.flipNext).toHaveBeenCalled();
+		expect(mockRef.current.commands.flipNext).toHaveBeenCalled();
 	});
 
 	it("should provide canExecute function", () => {
@@ -144,7 +156,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(0);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(0);
 	});
 
 	it("should execute goToLast command", () => {
@@ -156,7 +168,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(9);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(9);
 	});
 
 	it("should execute goToFirst in RTL (same as LTR — always page 0)", () => {
@@ -168,7 +180,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(0);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(0);
 	});
 
 	it("should execute goToLast in RTL (same as LTR — always last page index)", () => {
@@ -180,7 +192,7 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(9);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(9);
 	});
 
 	it("should execute goToToc command with default index 4", () => {
@@ -192,15 +204,15 @@ describe("CommandProvider", () => {
 		);
 
 		fireEvent.click(screen.getByTestId("exec-btn"));
-		expect(mockRef.current.goToPage).toHaveBeenCalledWith(4);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(4);
 	});
 
 	it("should support custom commands", () => {
 		const mockRef = createMockFlipBookRef();
 		const customAction = vi.fn();
-		const customCommand: Command = {
+		const customCommand: CommandDefinition = {
 			id: "customCmd",
-			name: "Custom Command",
+			enName: "Custom Command",
 			execute: customAction,
 		};
 
@@ -246,7 +258,7 @@ describe("Hotkey handling", () => {
 		);
 
 		fireEvent.keyDown(document, { key: "ArrowRight" });
-		expect(mockRef.current.flipNext).toHaveBeenCalled();
+		expect(mockRef.current.commands.flipNext).toHaveBeenCalled();
 	});
 
 	it("should execute flipPrev on ArrowLeft", () => {
@@ -258,7 +270,7 @@ describe("Hotkey handling", () => {
 		);
 
 		fireEvent.keyDown(document, { key: "ArrowLeft" });
-		expect(mockRef.current.flipPrev).toHaveBeenCalled();
+		expect(mockRef.current.commands.flipPrev).toHaveBeenCalled();
 	});
 
 	it("should execute goToFirst on Home", () => {
@@ -270,7 +282,7 @@ describe("Hotkey handling", () => {
 		);
 
 		fireEvent.keyDown(document, { key: "Home" });
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(0);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(0);
 	});
 
 	it("should execute goToLast on End", () => {
@@ -282,7 +294,7 @@ describe("Hotkey handling", () => {
 		);
 
 		fireEvent.keyDown(document, { key: "End" });
-		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(9);
+		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(9);
 	});
 
 	it("should not execute hotkeys when disableHotkeys is true", () => {
@@ -300,7 +312,7 @@ describe("Hotkey handling", () => {
 		);
 
 		fireEvent.keyDown(document, { key: "ArrowRight" });
-		expect(mockRef.current.flipNext).not.toHaveBeenCalled();
+		expect(mockRef.current.commands.flipNext).not.toHaveBeenCalled();
 	});
 
 	it("should not execute hotkeys when typing in input", () => {
@@ -313,6 +325,6 @@ describe("Hotkey handling", () => {
 
 		const input = screen.getByTestId("test-input");
 		fireEvent.keyDown(input, { key: "ArrowRight" });
-		expect(mockRef.current.flipNext).not.toHaveBeenCalled();
+		expect(mockRef.current.commands.flipNext).not.toHaveBeenCalled();
 	});
 });

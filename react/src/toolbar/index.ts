@@ -1,8 +1,8 @@
 // Toolbar components barrel export
 
-export type { Command, CommandOptions, HotkeyBinding } from "../commands";
+export type { Command, CommandDefinition, CommandOptions, HotkeyBinding } from "../commands";
 // Commands
-export { DEFAULT_HOTKEYS, defaultCommands, useCommands } from "../commands";
+export { defaultCommands, useCommands } from "../commands";
 export type {
 	DownloadResult,
 	PageRangesDownloadContext,

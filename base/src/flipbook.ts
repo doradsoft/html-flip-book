@@ -3,6 +3,7 @@ import "./flipbook.scss";
 import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
+import type { DownloadConfig } from "./download/types";
 import type {
 	FlipBookOptions,
 	FlipPageSemantic,
@@ -51,7 +52,7 @@ interface FlipState {
  *
  * // Navigate programmatically
  * await flipBook.flipNext();
- * await flipBook.goToPage(5);
+ * await flipBook.flipToPage(5);
  * ```
  */
 class FlipBook {
@@ -77,6 +78,7 @@ class FlipBook {
 	private readonly pageSemantics: PageSemantics | undefined;
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
+	private readonly downloadConfig: DownloadConfig | undefined;
 	private leaves: Leaf[] = [];
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
@@ -190,7 +192,13 @@ class FlipBook {
 		this.historyMapper = options.historyMapper;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
+		this.downloadConfig = options.downloadConfig;
 		setTocPageIndex(options.tocPageIndex ?? 4);
+	}
+
+	/** Download config (handlers and filename hints). Used by toolbar. */
+	getDownloadConfig(): DownloadConfig | undefined {
+		return this.downloadConfig;
 	}
 
 	render(selector: string, debug = false) {
@@ -851,10 +859,10 @@ class FlipBook {
 	 * @param pageIndex - The target page index (0-based)
 	 * @returns Promise that resolves when all flip animations complete
 	 */
-	async goToPage(pageIndex: number): Promise<void> {
+	async flipToPage(pageIndex: number): Promise<void> {
 		if (pageIndex < 0 || pageIndex >= this.pagesCount) {
 			console.warn(
-				`goToPage: Invalid page index ${pageIndex}. Must be between 0 and ${this.pagesCount - 1}.`,
+				`flipToPage: Invalid page index ${pageIndex}. Must be between 0 and ${this.pagesCount - 1}.`,
 			);
 			return;
 		}

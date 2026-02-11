@@ -6,26 +6,28 @@ import {
 } from "html-flip-book-vanilla";
 import type React from "react";
 import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import type { DownloadConfig } from "./download/types";
 
 /**
- * Imperative handle exposed via ref for programmatic control of the FlipBook.
- *
- * @example
- * ```tsx
- * const ref = useRef<FlipBookHandle>(null);
- * // Later:
- * await ref.current?.flipNext();
- * ```
+ * Command methods exposed on the FlipBook ref (actions that change state).
  */
-export interface FlipBookHandle {
+export interface FlipBookHandleCommands {
 	/** Animate flip to the next page */
 	flipNext: () => Promise<void>;
 	/** Animate flip to the previous page */
 	flipPrev: () => Promise<void>;
-	/** Animate to a specific page index */
-	goToPage: (pageIndex: number) => Promise<void>;
+	/** Animate flip to a specific page index */
+	flipToPage: (pageIndex: number) => Promise<void>;
 	/** Jump to a specific page instantly without animation */
 	jumpToPage: (pageIndex: number) => void;
+	/** Toggle debug toolbar visibility (when debug mode is enabled). Bound to Ctrl+Alt+D by default. */
+	toggleDebugBar?: () => void;
+}
+
+/**
+ * Getter methods exposed on the FlipBook ref (read-only state).
+ */
+export interface FlipBookHandleGetters {
 	/** Get the current (leftmost visible) page index */
 	getCurrentPageIndex: () => number;
 	/** Get the total number of pages */
@@ -36,8 +38,25 @@ export interface FlipBookHandle {
 	isFirstPage: () => boolean;
 	/** Check if currently at the last page */
 	isLastPage: () => boolean;
-	/** Toggle debug toolbar visibility (when debug mode is enabled). Bound to Ctrl+Alt+D by default. */
-	toggleDebugBar?: () => void;
+	/** Get download config (handlers and filename hints). Used by toolbar. */
+	getDownloadConfig: () => DownloadConfig | undefined;
+}
+
+/**
+ * Imperative handle exposed via ref for programmatic control of the FlipBook.
+ *
+ * @example
+ * ```tsx
+ * const ref = useRef<FlipBookHandle>(null);
+ * await ref.current?.commands.flipNext();
+ * const page = ref.current?.getters.getCurrentPageIndex();
+ * ```
+ */
+export interface FlipBookHandle {
+	/** Command methods (flip, jump, toggle debug). */
+	commands: FlipBookHandleCommands;
+	/** Getter methods (current page, total, is first/last, getOf). */
+	getters: FlipBookHandleGetters;
 }
 
 /**
@@ -150,6 +169,11 @@ export interface FlipBookProps {
 	 * Default: 4.
 	 */
 	tocPageIndex?: number;
+	/**
+	 * Download configuration: entire book and page-range handlers plus filename hints.
+	 * Toolbar (DownloadDropdown) reads this from the flipbook ref.
+	 */
+	downloadConfig?: DownloadConfig;
 }
 
 /**
@@ -190,6 +214,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			handlers,
 			historyMapper,
 			tocPageIndex,
+			downloadConfig,
 		},
 		ref,
 	) => {
@@ -215,26 +240,32 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				onPageFlipped: handlers?.onPageFlipped,
 				historyMapper,
 				tocPageIndex: tocPageIndex ?? 4,
+				downloadConfig,
 			}),
 		);
 
-		// Expose imperative methods via ref
+		// Expose imperative handle: commands + getters only
 		useImperativeHandle(
 			ref,
 			() => ({
-				flipNext: () => flipBook.current.flipNext(),
-				flipPrev: () => flipBook.current.flipPrev(),
-				goToPage: (pageIndex: number) => flipBook.current.goToPage(pageIndex),
-				jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
-				getCurrentPageIndex: () => flipBook.current.currentPageIndex,
-				getTotalPages: () => flipBook.current.totalPages,
-				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.current.totalPages),
-				isFirstPage: () => flipBook.current.isFirstPage,
-				isLastPage: () => flipBook.current.isLastPage,
-				toggleDebugBar: () => {
-					const root = document.querySelector(`.${className}`);
-					const bar = root?.querySelector(".flipbook-debug-bar");
-					if (bar) bar.classList.toggle("flipbook-debug-bar--hidden");
+				commands: {
+					flipNext: () => flipBook.current.flipNext(),
+					flipPrev: () => flipBook.current.flipPrev(),
+					flipToPage: (pageIndex: number) => flipBook.current.flipToPage(pageIndex),
+					jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
+					toggleDebugBar: () => {
+						const root = document.querySelector(`.${className}`);
+						const bar = root?.querySelector(".flipbook-debug-bar");
+						if (bar) bar.classList.toggle("flipbook-debug-bar--hidden");
+					},
+				},
+				getters: {
+					getCurrentPageIndex: () => flipBook.current.currentPageIndex,
+					getTotalPages: () => flipBook.current.totalPages,
+					getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.current.totalPages),
+					isFirstPage: () => flipBook.current.isFirstPage,
+					isLastPage: () => flipBook.current.isLastPage,
+					getDownloadConfig: () => flipBook.current.getDownloadConfig(),
 				},
 			}),
 			[className],

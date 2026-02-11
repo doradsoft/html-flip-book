@@ -1,14 +1,14 @@
+import {
+	type CommandContext as CommandCtx,
+	type CommandDefinition,
+	type CommandOptions,
+	type CommandRegistry,
+	defaultCommands,
+	hotkeyMatches,
+} from "html-flip-book-vanilla/commands";
 import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 import type { FlipBookHandle } from "../FlipBook";
-import { DEFAULT_HOTKEYS, defaultCommands } from "./defaultCommands";
-import type {
-	Command,
-	CommandContext as CommandCtx,
-	CommandOptions,
-	CommandRegistry,
-	HotkeyBinding,
-} from "./types";
 
 interface CommandProviderProps {
 	/** Reference to the FlipBook instance */
@@ -20,7 +20,7 @@ interface CommandProviderProps {
 	/** Reading direction */
 	direction?: "rtl" | "ltr";
 	/** Custom commands to register (merged with defaults) */
-	commands?: Command[];
+	commands?: CommandDefinition[];
 	/** Options for specific commands */
 	commandOptions?: Record<string, CommandOptions>;
 	/** Disable all hotkey bindings */
@@ -29,68 +29,31 @@ interface CommandProviderProps {
 }
 
 interface CommandsContextValue {
-	/** Execute a command by ID */
-	executeCommand: (commandId: string) => void;
-	/** Check if a command can be executed */
+	executeCommand: (commandId: string, runData?: Record<string, unknown>) => void;
 	canExecute: (commandId: string) => boolean;
-	/** Get a command by ID */
-	getCommand: (commandId: string) => Command | undefined;
-	/** Get all registered commands */
-	getAllCommands: () => Command[];
+	getCommand: (commandId: string) => CommandDefinition | undefined;
+	getAllCommands: () => CommandDefinition[];
 }
 
 const CommandsContext = createContext<CommandsContextValue | null>(null);
 
 /**
- * For RTL (he-IL): arrow keys perform the opposite (ArrowLeft -> next, ArrowRight -> prev).
- * Returns the key to use when matching against command bindings.
- */
-function getEffectiveKey(key: string, direction: "ltr" | "rtl"): string {
-	if (direction !== "rtl") return key;
-	if (key === "ArrowLeft") return "ArrowRight";
-	if (key === "ArrowRight") return "ArrowLeft";
-	return key;
-}
-
-/**
- * Check if a hotkey binding matches a keyboard event.
- * When direction is rtl, ArrowLeft/Right are matched as their opposite for flip prev/next.
- */
-function hotkeyMatches(
-	binding: HotkeyBinding,
-	event: KeyboardEvent,
-	direction: "ltr" | "rtl",
-): boolean {
-	const effectiveKey = getEffectiveKey(event.key, direction);
-	if (effectiveKey !== binding.key) return false;
-
-	const modifiers = binding.modifiers ?? {};
-	if (!!modifiers.ctrl !== event.ctrlKey) return false;
-	if (!!modifiers.shift !== event.shiftKey) return false;
-	if (!!modifiers.alt !== event.altKey) return false;
-	if (!!modifiers.meta !== event.metaKey) return false;
-
-	return true;
-}
-
-/**
  * Provider component that manages flipbook commands and hotkeys.
+ * Uses framework-agnostic commands from base; only the provider and hook are React-specific.
  */
 export const CommandProvider: React.FC<CommandProviderProps> = ({
 	flipBookRef,
-	currentPage,
-	totalPages,
+	currentPage: _currentPage,
+	totalPages: _totalPages,
 	direction = "ltr",
 	commands: customCommands = [],
 	commandOptions = {},
 	disableHotkeys = false,
 	children,
 }) => {
-	// Build the command registry
 	const registry = useMemo<CommandRegistry>(() => {
 		const reg: CommandRegistry = {};
 
-		// Register default commands
 		for (const cmd of defaultCommands) {
 			reg[cmd.id] = {
 				command: cmd,
@@ -98,7 +61,6 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 			};
 		}
 
-		// Register/override with custom commands
 		for (const cmd of customCommands) {
 			reg[cmd.id] = {
 				command: cmd,
@@ -109,31 +71,27 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		return reg;
 	}, [customCommands, commandOptions]);
 
-	// Create command context for execution
 	const createCommandContext = useCallback(
-		(commandId: string): CommandCtx => {
+		(commandId: string, runData?: Record<string, unknown>): CommandCtx => {
 			const options = registry[commandId]?.options ?? {};
+			const data = runData ? { ...options.data, ...runData } : options.data;
 			return {
-				flipBookRef,
-				currentPage,
-				totalPages,
-				direction,
-				data: options.data,
+				handle: flipBookRef.current,
+				data,
 			};
 		},
-		[flipBookRef, currentPage, totalPages, direction, registry],
+		[flipBookRef, registry],
 	);
 
-	// Execute a command
 	const executeCommand = useCallback(
-		(commandId: string) => {
+		(commandId: string, runData?: Record<string, unknown>) => {
 			const entry = registry[commandId];
 			if (!entry) {
 				console.warn(`Command "${commandId}" not found`);
 				return;
 			}
 
-			const ctx = createCommandContext(commandId);
+			const ctx = createCommandContext(commandId, runData);
 			if (entry.command.canExecute && !entry.command.canExecute(ctx)) {
 				return;
 			}
@@ -143,7 +101,6 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		[registry, createCommandContext],
 	);
 
-	// Check if command can execute
 	const canExecute = useCallback(
 		(commandId: string): boolean => {
 			const entry = registry[commandId];
@@ -156,32 +113,27 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		[registry, createCommandContext],
 	);
 
-	// Get a command
 	const getCommand = useCallback(
-		(commandId: string): Command | undefined => registry[commandId]?.command,
+		(commandId: string): CommandDefinition | undefined => registry[commandId]?.command,
 		[registry],
 	);
 
-	// Get all commands
 	const getAllCommands = useCallback(
-		(): Command[] => Object.values(registry).map((e) => e.command),
+		(): CommandDefinition[] => Object.values(registry).map((e) => e.command),
 		[registry],
 	);
 
-	// Keyboard event handler
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent) => {
-			// Ignore when typing in inputs
 			const target = event.target as HTMLElement;
 			if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
 				return;
 			}
 
-			// Check each command's hotkeys (ArrowLeft/Right swapped for RTL)
 			for (const [commandId, entry] of Object.entries(registry)) {
 				if (entry.options.disableHotkeys) continue;
 
-				const hotkeys = entry.options.hotkeys ?? DEFAULT_HOTKEYS[commandId] ?? [];
+				const hotkeys = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
 				for (const binding of hotkeys) {
 					if (hotkeyMatches(binding, event, direction)) {
 						event.preventDefault();
@@ -194,7 +146,6 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		[registry, executeCommand, direction],
 	);
 
-	// Register keyboard listener
 	useEffect(() => {
 		if (disableHotkeys) return;
 
@@ -215,9 +166,6 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 	return <CommandsContext.Provider value={value}>{children}</CommandsContext.Provider>;
 };
 
-/**
- * Hook to access the commands system.
- */
 export const useCommands = (): CommandsContextValue => {
 	const ctx = useContext(CommandsContext);
 	if (!ctx) {

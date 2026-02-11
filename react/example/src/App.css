@@ -41,18 +41,57 @@ header {
 .he-book-container,
 .en-book-container {
 	flex-basis: 50%;
+	flex-grow: 1;
+	flex-shrink: 1;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: 16px;
 	min-width: 0; /* allow flex item to shrink below content size */
+	min-height: 0;
 }
 
-/* FlipBook measures its container via clientWidth/clientHeight; give it explicit size */
+/* Wrapper for fullscreen target (sefer + toolbar); stacks book and toolbar in a column. Fills container height. */
+.en-book-wrap,
+.he-book-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	width: 100%;
+	flex: 1;
+	min-height: 0;
+}
+
+/* Fullscreen: wrap fills viewport; stretch children so the book uses full width and height */
+.en-book-wrap:fullscreen,
+.en-book-wrap:-webkit-full-screen,
+.he-book-wrap:fullscreen,
+.he-book-wrap:-webkit-full-screen {
+	width: 100vw;
+	height: 100vh;
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+	align-items: stretch;
+}
+
+.en-book-wrap:fullscreen .en-book,
+.en-book-wrap:-webkit-full-screen .en-book,
+.he-book-wrap:fullscreen .he-book,
+.he-book-wrap:-webkit-full-screen .he-book {
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+}
+
+/* FlipBook measures its container via clientWidth/clientHeight; fill available height (not half) */
 .en-book,
 .he-book {
 	width: 100%;
+	flex: 1;
 	min-height: 420px;
 	position: relative;
 	box-sizing: border-box;
@@ -376,8 +415,14 @@ header {
 	background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* Limit title length and show ellipsis when truncated (match library TocPage.css) */
 .toc-title {
-	flex-shrink: 0;
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 65%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .toc-dots {

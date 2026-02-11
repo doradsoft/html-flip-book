@@ -13,6 +13,9 @@ export default defineConfig(() => {
 					entry: {
 						flipbook: resolve(__dirname, "base/src/flipbook.ts"),
 						intl: resolve(__dirname, "base/src/intl/index.ts"),
+						"commands/index": resolve(__dirname, "base/src/commands/index.ts"),
+						"download/index": resolve(__dirname, "base/src/download/index.ts"),
+						"store/index": resolve(__dirname, "base/src/store/index.ts"),
 					},
 					formats: ["es"] as LibraryFormats[],
 				},

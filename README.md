@@ -43,7 +43,7 @@ npm install html-flip-book-react
   - `FirstPageButton` / `LastPageButton` — Jump to ends
   - `PageIndicator` — Current page display
   - `FullscreenButton` — Toggle fullscreen mode
-- **Imperative API** — `flipNext()`, `flipPrev()`, `goToPage()`, `jumpToPage()`
+- **Imperative API** — `flipNext()`, `flipPrev()`, `flipToPage()`, `jumpToPage()`
 - **Ref Handle** — Access current page index, total pages, navigation state
 
 ### Examples

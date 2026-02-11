@@ -65,7 +65,7 @@ flipBook.render('#book-container');
 // Programmatic navigation
 await flipBook.flipNext();
 await flipBook.flipPrev();
-await flipBook.goToPage(5);
+await flipBook.flipToPage(5);
 flipBook.jumpToPage(0); // instant, no animation
 ```
 

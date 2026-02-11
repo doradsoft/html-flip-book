@@ -18,6 +18,10 @@ const heIL: LocaleConfig = {
 		"command.jumpToLastPage": "עמוד אחרון",
 		"command.jumpToPrevPage": "עמוד קודם",
 		"command.jumpToNextPage": "עמוד הבא",
+		"command.toggleFullscreen": "מסך מלא",
+		"command.toggleFullscreenDesc": "כניסה או יציאה ממסך מלא",
+		"command.toggleDebug": "סרגל כלים לדיבוג",
+		"command.toggleDebugDesc": "הצג או הסתר סרגל הדיבוג (Ctrl+Alt+D)",
 		"toolbarItem.goToPage": "מעבר לעמוד",
 	},
 };
