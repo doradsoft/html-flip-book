@@ -79,6 +79,7 @@ class FlipBook {
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
 	private readonly downloadConfig: DownloadConfig | undefined;
+	private readonly pageShadow: boolean;
 	private leaves: Leaf[] = [];
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
@@ -197,6 +198,7 @@ class FlipBook {
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
 		this.downloadConfig = options.downloadConfig;
+		this.pageShadow = options.pageShadow ?? true;
 		setTocPageIndex(options.tocPageIndex ?? 4);
 	}
 
@@ -257,6 +259,9 @@ class FlipBook {
 		this.bookElement = bookElement as HTMLElement;
 		if (!this.bookElement.classList.contains("flipbook")) {
 			this.bookElement.classList.add("flipbook");
+		}
+		if (!this.pageShadow) {
+			this.bookElement.classList.add("flipbook--no-page-shadow");
 		}
 
 		const pageElements = bookElement.querySelectorAll(".page");

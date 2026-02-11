@@ -159,6 +159,11 @@ export interface FlipBookProps {
 	 * Toolbar's DownloadDropdown reads this from the flipbook ref.
 	 */
 	downloadConfig?: DownloadConfig;
+	/**
+	 * When false, disables the inner page shadow/highlight (e.g. to avoid flicker with multiple books).
+	 * Default: true.
+	 */
+	pageShadow?: boolean;
 }
 
 /**
@@ -192,6 +197,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
+			pageShadow = true,
 			coverConfig,
 			of,
 			leafAspectRatio,
@@ -226,6 +232,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				historyMapper,
 				tocPageIndex: tocPageIndex ?? 4,
 				downloadConfig,
+				pageShadow,
 			}),
 		);
 
@@ -238,7 +245,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				flipToPage: (pageIndex: number) => flipBook.current.flipToPage(pageIndex),
 				jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
 				toggleDebugBar: () => {
-					const root = document.querySelector(`.${className}`);
+					const selectorClass = className.split(/\s+/)[0];
+					const root = document.querySelector(`.${selectorClass}`);
 					const bar = root?.querySelector(".flipbook-debug-bar");
 					if (bar) bar.classList.toggle("flipbook-debug-bar--hidden");
 				},
@@ -254,7 +262,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 
 		useEffect(() => {
 			const currentFlipBook = flipBook.current;
-			currentFlipBook.render(`.${className}`, debug);
+			const selectorClass = className.split(/\s+/)[0];
+			currentFlipBook.render(`.${selectorClass}`, debug);
 			setCurrentPageIndex(currentFlipBook.currentPageIndex);
 
 			// Cleanup function to destroy Hammer instance and event listeners
@@ -262,6 +271,18 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				currentFlipBook.destroy();
 			};
 		}, [className, debug]);
+
+		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
+		useEffect(() => {
+			const selectorClass = className.split(/\s+/)[0];
+			const el = document.querySelector(`.${selectorClass}`);
+			if (!el) return;
+			if (pageShadow) {
+				el.classList.remove("flipbook--no-page-shadow");
+			} else {
+				el.classList.add("flipbook--no-page-shadow");
+			}
+		}, [className, pageShadow]);
 
 		// Use Children.toArray to get stable keys for each page element
 		const pagesWithKeys = Children.toArray(pages);

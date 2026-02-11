@@ -105,4 +105,9 @@ export interface FlipBookOptions {
 	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref.
 	 */
 	downloadConfig?: DownloadConfig;
+	/**
+	 * When false, disables the inner page shadow/highlight (e.g. to avoid flicker with multiple books).
+	 * Default: true.
+	 */
+	pageShadow?: boolean;
 }

@@ -144,7 +144,14 @@ function useTestParams() {
 	}, []);
 }
 
-export const EnBook = () => {
+export interface EnBookConfig {
+	leavesBuffer?: number;
+	debug?: boolean;
+	/** When true, show page shadow (e.g. Comprehensive example). */
+	showPageShadow?: boolean;
+}
+
+export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
 	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
 	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
@@ -289,10 +296,12 @@ export const EnBook = () => {
 			<FlipBook
 				ref={flipBookRef}
 				className="en-book"
+				pageShadow={config?.showPageShadow ?? true}
 				pages={enPages}
 				pageSemantics={enPageSemantics}
 				tocPageIndex={2}
-				debug={true}
+				debug={config?.debug ?? true}
+				leavesBuffer={config?.leavesBuffer}
 				coverConfig={{
 					coverIndices: "auto",
 				}}
