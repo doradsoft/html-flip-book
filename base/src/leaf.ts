@@ -2,12 +2,12 @@ import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
 
-/** Schedule a frame callback; fallback for test envs where requestAnimationFrame is missing */
-const scheduleFrame =
-	typeof requestAnimationFrame !== "undefined"
-		? requestAnimationFrame
-		: (cb: (timestamp: number) => void) =>
-				setTimeout(() => cb(performance.now()), 0) as unknown as number;
+/** Schedule a frame callback; fallback for test envs where requestAnimationFrame is missing. Called at invoke time so test mocks apply. */
+function scheduleFrame(cb: (timestamp: number) => void): number {
+	return typeof requestAnimationFrame !== "undefined"
+		? requestAnimationFrame(cb)
+		: (setTimeout(() => cb(performance.now()), 0) as unknown as number);
+}
 
 /** Multiplier for shadow intensity (slightly stronger than base) */
 const SHADOW_STRENGTH_MULTIPLIER = 1.1;
