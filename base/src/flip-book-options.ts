@@ -2,6 +2,26 @@ import type { AspectRatio } from "./aspect-ratio";
 import type { PageSemantics } from "./page-semantics";
 
 /**
+ * Semantic info for the current page, passed to onPageFlipped and historyMapper.
+ * Sourced from PageSemantics when available.
+ */
+export interface FlipPageSemantic {
+	semanticName: string;
+	title: string;
+}
+
+/**
+ * Optional mapper to sync flip-book page with browser history (pushState on flip, restore on popstate).
+ * When provided, the flip-book will pushState when the user flips and restore the page on back/forward.
+ */
+export interface HistoryMapper {
+	/** Build a route string from the current page (and optional semantic). Used for pushState/replaceState. */
+	pageToRoute: (pageIndex: number, semantic: FlipPageSemantic | undefined) => string;
+	/** Parse a route string (e.g. from popstate) and return the page index, or null if invalid. */
+	routeToPage: (route: string) => number | null;
+}
+
+/**
  * Configuration options for creating a FlipBook instance.
  *
  * @example
@@ -28,6 +48,13 @@ export interface FlipBookOptions {
 	pageSemantics?: PageSemantics;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
+	/** Callback fired when the user flips to a new page. Receives page index and semantic info (if pageSemantics is set). */
+	onPageFlipped?: (pageIndex: number, semantic: FlipPageSemantic | undefined) => void;
+	/**
+	 * When set, the flip-book syncs with browser history: pushState on flip, restore page on popstate (back/forward).
+	 * Default: undefined (no history integration).
+	 */
+	historyMapper?: HistoryMapper;
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
 	fastDeltaThreshold?: number;
 	/** Indices of leaves that should start in the turned (flipped) state. Default: [] */

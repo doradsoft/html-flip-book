@@ -3,7 +3,7 @@ import "./flipbook.scss";
 import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
-import type { FlipBookOptions } from "./flip-book-options";
+import type { FlipBookOptions, FlipPageSemantic, HistoryMapper } from "./flip-book-options";
 import { FlipDirection } from "./flip-direction";
 import { type FlipPosition, Leaf } from "./leaf";
 import type { PageSemantics } from "./page-semantics";
@@ -60,6 +60,14 @@ class FlipBook {
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
+	private readonly onPageFlipped?: (
+		pageIndex: number,
+		semantic: FlipPageSemantic | undefined,
+	) => void;
+	private readonly historyMapper?: HistoryMapper;
+	private _historyInitialized = false;
+	private _isRestoringFromHistory = false;
+	private _boundPopstate: (() => void) | undefined;
 	private readonly pageSemantics: PageSemantics | undefined;
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
@@ -82,6 +90,51 @@ class FlipBook {
 	private isInsideNoFlipZone(el: EventTarget | null): boolean {
 		return el instanceof Element && el.closest(FlipBook.NO_FLIP_SELECTOR) != null;
 	}
+
+	private getSemanticForPage(pageIndex: number): FlipPageSemantic | undefined {
+		if (!this.pageSemantics) return undefined;
+		return {
+			semanticName: this.pageSemantics.indexToSemanticName(pageIndex),
+			title: this.pageSemantics.indexToTitle(pageIndex),
+		};
+	}
+
+	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
+		const pageIndex = this.currentPageIndex;
+		const semantic = this.getSemanticForPage(pageIndex);
+		if (this.onPageChanged) this.onPageChanged(pageIndex);
+		if (this.onPageFlipped) this.onPageFlipped(pageIndex, semantic);
+		if (typeof window !== "undefined" && this.historyMapper && !this._isRestoringFromHistory) {
+			const route = this.historyMapper.pageToRoute(pageIndex, semantic);
+			const state = { route };
+			const url = route.startsWith("#")
+				? `${window.location.pathname}${window.location.search}${route}`
+				: route;
+			if (isInitial || !this._historyInitialized) {
+				window.history.replaceState(state, "", url);
+				this._historyInitialized = true;
+			} else {
+				window.history.pushState(state, "", url);
+			}
+		}
+	}
+
+	private handlePopstate = (): void => {
+		if (!this.historyMapper || typeof window === "undefined") return;
+		const route =
+			(typeof window.history.state === "object" && window.history.state?.route) ||
+			window.location.pathname + window.location.search + window.location.hash;
+		const pageIndex = this.historyMapper.routeToPage(route);
+		if (pageIndex !== null && pageIndex >= 0 && pageIndex < this.pagesCount) {
+			this._isRestoringFromHistory = true;
+			try {
+				this.jumpToPage(pageIndex);
+			} finally {
+				this._isRestoringFromHistory = false;
+			}
+		}
+	};
+
 	private get isLTR(): boolean {
 		return this.direction === "ltr";
 	}
@@ -111,6 +164,8 @@ class FlipBook {
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
 		this.pageSemantics = options.pageSemantics;
 		this.onPageChanged = options.onPageChanged;
+		this.onPageFlipped = options.onPageFlipped;
+		this.historyMapper = options.historyMapper;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
 	}
@@ -285,6 +340,13 @@ class FlipBook {
 		// Apply initial leaves buffer visibility
 		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
+
+		// History: initial replaceState and popstate listener
+		if (typeof window !== "undefined" && this.historyMapper) {
+			this.syncHistoryAndNotifyFlipped(true);
+			this._boundPopstate = this.handlePopstate.bind(this);
+			window.addEventListener("popstate", this._boundPopstate);
+		}
 	}
 
 	/**
@@ -643,10 +705,8 @@ class FlipBook {
 		}
 		// Update leaves buffer visibility after turn completes
 		this.updateLeavesBufferVisibility();
-		// Notify React/consumer so content buffer can update (e.g. mount content for new visible range)
-		if (this.onPageChanged) {
-			this.onPageChanged(this.currentPageIndex);
-		}
+		// Notify React/consumer and sync history
+		this.syncHistoryAndNotifyFlipped(false);
 		// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally.
 		// TODO: set prev-page / next-page classes for prev/next pages as accordingally
 	}
@@ -861,10 +921,8 @@ class FlipBook {
 		// Update leaves buffer visibility
 		this.updateLeavesBufferVisibility();
 
-		// Notify callback
-		if (this.onPageChanged) {
-			this.onPageChanged(this.currentPageIndex);
-		}
+		// Notify callback and sync history
+		this.syncHistoryAndNotifyFlipped(false);
 	}
 
 	/**
@@ -880,6 +938,10 @@ class FlipBook {
 	 * Should be called when the FlipBook is no longer needed.
 	 */
 	destroy() {
+		if (typeof window !== "undefined" && this._boundPopstate) {
+			window.removeEventListener("popstate", this._boundPopstate);
+			this._boundPopstate = undefined;
+		}
 		if (this.hammer) {
 			this.hammer.destroy();
 			this.hammer = undefined;
@@ -897,3 +959,4 @@ class FlipBook {
 }
 
 export { FlipBook, type PageSemantics };
+export type { FlipPageSemantic, HistoryMapper } from "./flip-book-options";

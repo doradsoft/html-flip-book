@@ -1,7 +1,13 @@
 // HeBook.tsx
 
 import { toLetters, toNumber } from "gematry";
-import { FlipBook, type FlipBookHandle, type PageSemantics, TocPage } from "html-flip-book-react";
+import {
+	FlipBook,
+	type FlipBookHandle,
+	type HistoryMapper,
+	type PageSemantics,
+	TocPage,
+} from "html-flip-book-react";
 import {
 	DownloadDropdown,
 	FirstPageButton,
@@ -171,6 +177,26 @@ export const HeBook = () => {
 		loadTextFiles();
 	}, []);
 
+	const heHistoryMapper: HistoryMapper | undefined = useMemo(
+		() =>
+			hePageSemantics
+				? {
+						pageToRoute: (pageIndex, semantic) => `#page/${semantic?.semanticName ?? pageIndex}`,
+						routeToPage: (route) => {
+							const m = route.match(/#page\/(.+)/);
+							if (!m) return null;
+							const name = m[1];
+							const semantics = hePageSemantics;
+							const idx = semantics ? semantics.semanticNameToIndex(name) : null;
+							if (idx !== null) return idx;
+							const n = parseInt(name, 10);
+							return Number.isNaN(n) ? null : n;
+						},
+					}
+				: undefined,
+		[hePageSemantics],
+	);
+
 	if (hePages.length === 0 || !hePageSemantics) {
 		return <div className="loading">טוען...</div>;
 	}
@@ -191,6 +217,7 @@ export const HeBook = () => {
 				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
+				historyMapper={heHistoryMapper}
 			/>
 			<Toolbar flipBookRef={flipBookRef} direction="rtl" pageSemantics={hePageSemantics}>
 				<div className="flipbook-toolbar-start">

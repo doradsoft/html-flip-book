@@ -1,6 +1,11 @@
 // EnBook.tsx
 
-import { FlipBook, type FlipBookHandle, type PageSemantics } from "html-flip-book-react";
+import {
+	FlipBook,
+	type FlipBookHandle,
+	type HistoryMapper,
+	type PageSemantics,
+} from "html-flip-book-react";
 import {
 	DownloadDropdown,
 	FirstPageButton,
@@ -161,6 +166,25 @@ export const EnBook = () => {
 		loadMarkdownFiles();
 	}, []);
 
+	const enHistoryMapper: HistoryMapper | undefined = useMemo(
+		() =>
+			enPageSemantics
+				? {
+						pageToRoute: (pageIndex, semantic) => `#page/${semantic?.semanticName ?? pageIndex}`,
+						routeToPage: (route) => {
+							const m = route.match(/#page\/(.+)/);
+							if (!m) return null;
+							const name = m[1];
+							const idx = enPageSemantics.semanticNameToIndex(name);
+							if (idx !== null) return idx;
+							const n = parseInt(name, 10);
+							return Number.isNaN(n) ? null : n;
+						},
+					}
+				: undefined,
+		[enPageSemantics],
+	);
+
 	return enPages.length && enPageSemantics ? (
 		<>
 			<FlipBook
@@ -174,6 +198,7 @@ export const EnBook = () => {
 				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
+				historyMapper={enHistoryMapper}
 			/>
 			<Toolbar flipBookRef={flipBookRef} direction="ltr" pageSemantics={enPageSemantics}>
 				<div className="flipbook-toolbar-start">
