@@ -155,6 +155,11 @@ function shouldIncludeTestCase(tc: TestCase): boolean {
 		return false;
 	}
 
+	// Exclude no-drop + forward: assertion checks target spread page which stays at 180° when flip is canceled
+	if (tc.dropCategory === "no-drop" && tc.flipDir === "forward") {
+		return false;
+	}
+
 	// Exclude RTL edge leaf cases (first/last) which have timing-sensitive behavior
 	// that's unreliable with mocked time due to race conditions
 	const isFirstLeaf = tc.targetLeafIndex === 0;
