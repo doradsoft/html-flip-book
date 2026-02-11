@@ -143,12 +143,8 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 
 	const runRangeDownload = useCallback(
 		async (from: number, to: number) => {
-			console.debug("[DownloadDropdown] runRangeDownload called:", { from, to });
 			const config = flipBookRef.current?.getDownloadConfig?.();
-			if (!config?.onDownloadPageRange) {
-				console.warn("[DownloadDropdown] No onDownloadPageRange in config");
-				return;
-			}
+			if (!config?.onDownloadPageRange) return;
 			const pages: number[] = [];
 			const semanticPages: SemanticPageInfo[] = [];
 			for (let i = from; i <= to; i++) {
@@ -156,22 +152,12 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 				const info = selectablePages[i];
 				if (info) semanticPages.push(info);
 			}
-			console.debug(
-				"[DownloadDropdown] pages array:",
-				pages,
-				"semanticPages:",
-				semanticPages.length,
-			);
 			setLoading("range");
 			try {
 				const result = await config.onDownloadPageRange(
 					pages,
 					semanticPages,
 					config.downloadContext,
-				);
-				console.debug(
-					"[DownloadDropdown] onDownloadPageRange result:",
-					result ? `ext=${result.ext}, data=${result.data.length} chars` : "NULL",
 				);
 				if (result)
 					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${from + 1}-${to + 1}`);

@@ -1,62 +1,43 @@
 /**
- * Merge PDFs from URLs on the fly (pdf-merger-js).
- * Used for the real ebook split under assets/pages_data/en/pdf/.
+ * Merge PDFs from in-memory base64 data (pdf-merger-js).
+ * No fetch needed — PDF content is imported at build time.
  */
 import PDFMerger from "pdf-merger-js/browser";
 
-/**
- * Fetch PDF from url; return Blob or null on failure.
- */
-async function fetchPdf(url: string): Promise<Blob | null> {
-	try {
-		const res = await fetch(url);
-		if (!res.ok) {
-			console.warn(`[pdfMerge] fetchPdf FAILED (status ${res.status}) for:`, url);
-			return null;
-		}
-		const buf = await res.arrayBuffer();
-		const blob = new Blob([buf], { type: "application/pdf" });
-		console.debug(`[pdfMerge] fetchPdf OK — ${blob.size} bytes from:`, url);
-		return blob;
-	} catch (err) {
-		console.warn("[pdfMerge] fetchPdf EXCEPTION for:", url, err);
-		return null;
+/** Decode a base64 string into a Uint8Array. */
+function b64ToUint8Array(b64: string): Uint8Array {
+	const binary = atob(b64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
 	}
+	return bytes;
 }
 
 /**
- * Merge PDFs from the given URLs into one. Returns base64 string or null if any fetch fails.
+ * Merge one or more PDFs (given as base64 strings) into a single PDF.
+ * Returns the merged result as a base64 string, or null on failure.
  */
-export async function mergePdfsFromUrls(urls: string[]): Promise<string | null> {
-	console.debug(`[pdfMerge] mergePdfsFromUrls called with ${urls.length} URL(s)`);
-	if (urls.length === 0) return null;
-	const merger = new PDFMerger();
+export async function mergePdfs(pdfBase64s: string[]): Promise<string | null> {
+	if (pdfBase64s.length === 0) return null;
 
-	for (let idx = 0; idx < urls.length; idx++) {
-		const url = urls[idx];
-		const blob = await fetchPdf(url);
-		if (!blob) {
-			console.warn(`[pdfMerge] Aborting merge — fetch failed at index ${idx}/${urls.length}`);
-			return null;
-		}
-		await merger.add(blob);
-		console.debug(`[pdfMerge] Added PDF ${idx + 1}/${urls.length} to merger`);
+	const merger = new PDFMerger();
+	for (const b64 of pdfBase64s) {
+		const bytes = b64ToUint8Array(b64);
+		await merger.add(bytes);
 	}
 
-	const bytes = await merger.saveAsBuffer();
-	console.debug(
-		`[pdfMerge] saveAsBuffer returned ${bytes instanceof Uint8Array ? `Uint8Array(${bytes.length})` : typeof bytes}`,
-	);
-	if (!(bytes instanceof Uint8Array)) return null;
+	const result = await merger.saveAsBuffer();
+	if (!(result instanceof Uint8Array)) return null;
+
+	// Encode merged PDF as base64
 	let binary = "";
 	const chunk = 8192;
-	for (let i = 0; i < bytes.length; i += chunk) {
-		const sub = bytes.subarray(i, i + chunk);
+	for (let i = 0; i < result.length; i += chunk) {
+		const sub = result.subarray(i, i + chunk);
 		for (let j = 0; j < sub.length; j++) {
 			binary += String.fromCharCode(sub[j]);
 		}
 	}
-	const result = btoa(binary);
-	console.debug(`[pdfMerge] Merge complete — ${result.length} base64 chars`);
-	return result;
+	return btoa(binary);
 }

@@ -1,43 +1,41 @@
 /**
- * Tests for mergePdfsFromUrls – verifies that multiple PDFs are actually
- * merged into one document (not just the first / "from" page).
+ * Tests for mergePdfs – verifies that multiple PDFs (given as base64 strings)
+ * are actually merged into one document (not just the first / "from" page).
  */
 import { PDFDocument } from "pdf-lib";
 import PDFMerger from "pdf-merger-js/browser";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Re-implement mergePdfsFromUrls inline so the test doesn't depend on the
+// Re-implement mergePdfs inline so the test doesn't depend on the
 // example app's import path, while exercising the exact same algorithm.
 // ---------------------------------------------------------------------------
 
-async function fetchPdf(url: string): Promise<Blob | null> {
-	try {
-		const res = await fetch(url);
-		if (!res.ok) return null;
-		const buf = await res.arrayBuffer();
-		return new Blob([buf], { type: "application/pdf" });
-	} catch {
-		return null;
+function b64ToUint8Array(b64: string): Uint8Array {
+	const binary = atob(b64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
 	}
+	return bytes;
 }
 
-async function mergePdfsFromUrls(urls: string[]): Promise<string | null> {
-	if (urls.length === 0) return null;
+async function mergePdfs(pdfBase64s: string[]): Promise<string | null> {
+	if (pdfBase64s.length === 0) return null;
 	const merger = new PDFMerger();
 
-	for (const url of urls) {
-		const blob = await fetchPdf(url);
-		if (!blob) return null;
-		await merger.add(blob);
+	for (const b64 of pdfBase64s) {
+		const bytes = b64ToUint8Array(b64);
+		await merger.add(bytes);
 	}
 
-	const bytes = await merger.saveAsBuffer();
-	if (!(bytes instanceof Uint8Array)) return null;
+	const result = await merger.saveAsBuffer();
+	if (!(result instanceof Uint8Array)) return null;
+
 	let binary = "";
 	const chunk = 8192;
-	for (let i = 0; i < bytes.length; i += chunk) {
-		const sub = bytes.subarray(i, i + chunk);
+	for (let i = 0; i < result.length; i += chunk) {
+		const sub = result.subarray(i, i + chunk);
 		for (let j = 0; j < sub.length; j++) {
 			binary += String.fromCharCode(sub[j]);
 		}
@@ -49,28 +47,23 @@ async function mergePdfsFromUrls(urls: string[]): Promise<string | null> {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Create a minimal valid PDF with `pageCount` blank pages using pdf-lib. */
-async function createPdfWithPages(pageCount: number): Promise<Uint8Array> {
+/** Create a minimal valid PDF with `pageCount` blank pages, returned as base64. */
+async function createPdfBase64(pageCount: number): Promise<string> {
 	const doc = await PDFDocument.create();
 	for (let i = 0; i < pageCount; i++) {
 		doc.addPage([612, 792]); // US Letter
 	}
-	return doc.save();
-}
-
-/** Decode base64 string → Uint8Array */
-function base64ToBytes(b64: string): Uint8Array {
-	const binary = atob(b64);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) {
-		bytes[i] = binary.charCodeAt(i);
+	const bytes = await doc.save();
+	let binary = "";
+	for (let i = 0; i < bytes.length; i++) {
+		binary += String.fromCharCode(bytes[i]);
 	}
-	return bytes;
+	return btoa(binary);
 }
 
-/** Count pages in a PDF represented as Uint8Array. */
-async function countPdfPages(pdfBytes: Uint8Array): Promise<number> {
-	const doc = await PDFDocument.load(pdfBytes);
+/** Count pages in a PDF represented as base64. */
+async function countPdfPages(b64: string): Promise<number> {
+	const doc = await PDFDocument.load(b64ToUint8Array(b64));
 	return doc.getPageCount();
 }
 
@@ -78,112 +71,42 @@ async function countPdfPages(pdfBytes: Uint8Array): Promise<number> {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("mergePdfsFromUrls", () => {
-	let fetchSpy: ReturnType<typeof vi.spyOn>;
-
-	beforeEach(() => {
-		fetchSpy = vi.spyOn(globalThis, "fetch");
-	});
-
-	afterEach(() => {
-		fetchSpy.mockRestore();
-	});
-
+describe("mergePdfs", () => {
 	it("should merge multiple single-page PDFs into one with all pages", async () => {
-		// Create 3 distinct single-page PDFs
-		const pdf1 = await createPdfWithPages(1);
-		const pdf2 = await createPdfWithPages(1);
-		const pdf3 = await createPdfWithPages(1);
+		const pdf1 = await createPdfBase64(1);
+		const pdf2 = await createPdfBase64(1);
+		const pdf3 = await createPdfBase64(1);
 
-		// Mock fetch to return each PDF based on URL
-		const urlMap: Record<string, Uint8Array> = {
-			"http://test/chapter-1.pdf": pdf1,
-			"http://test/chapter-2.pdf": pdf2,
-			"http://test/chapter-3.pdf": pdf3,
-		};
-
-		fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-			const data = urlMap[url];
-			if (!data) return new Response(null, { status: 404 });
-			return new Response(new Blob([data], { type: "application/pdf" }), {
-				status: 200,
-				headers: { "Content-Type": "application/pdf" },
-			});
-		});
-
-		const result = await mergePdfsFromUrls([
-			"http://test/chapter-1.pdf",
-			"http://test/chapter-2.pdf",
-			"http://test/chapter-3.pdf",
-		]);
+		const result = await mergePdfs([pdf1, pdf2, pdf3]);
 
 		expect(result).not.toBeNull();
-		const mergedBytes = base64ToBytes(result as string);
-		const pageCount = await countPdfPages(mergedBytes);
+		const pageCount = await countPdfPages(result as string);
 		expect(pageCount).toBe(3);
 	});
 
 	it("should merge multi-page PDFs and preserve total page count", async () => {
 		// PDF A has 2 pages, PDF B has 3 pages → merged should have 5
-		const pdfA = await createPdfWithPages(2);
-		const pdfB = await createPdfWithPages(3);
+		const pdfA = await createPdfBase64(2);
+		const pdfB = await createPdfBase64(3);
 
-		fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-			const data = url.includes("a.pdf") ? pdfA : url.includes("b.pdf") ? pdfB : null;
-			if (!data) return new Response(null, { status: 404 });
-			return new Response(new Blob([data], { type: "application/pdf" }), {
-				status: 200,
-				headers: { "Content-Type": "application/pdf" },
-			});
-		});
-
-		const result = await mergePdfsFromUrls(["http://test/a.pdf", "http://test/b.pdf"]);
+		const result = await mergePdfs([pdfA, pdfB]);
 
 		expect(result).not.toBeNull();
-		const pageCount = await countPdfPages(base64ToBytes(result as string));
+		const pageCount = await countPdfPages(result as string);
 		expect(pageCount).toBe(5);
 	});
 
-	it("should return null when one fetch fails (404)", async () => {
-		const pdf1 = await createPdfWithPages(1);
-
-		fetchSpy.mockImplementation(async (input: string | URL | Request) => {
-			const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-			if (url.includes("good.pdf")) {
-				return new Response(new Blob([pdf1], { type: "application/pdf" }), {
-					status: 200,
-					headers: { "Content-Type": "application/pdf" },
-				});
-			}
-			return new Response(null, { status: 404 });
-		});
-
-		const result = await mergePdfsFromUrls(["http://test/good.pdf", "http://test/missing.pdf"]);
-
-		expect(result).toBeNull();
-	});
-
-	it("should return null for empty URL array", async () => {
-		const result = await mergePdfsFromUrls([]);
+	it("should return null for empty input array", async () => {
+		const result = await mergePdfs([]);
 		expect(result).toBeNull();
 	});
 
 	it("should handle a single PDF (from === to)", async () => {
-		const pdf = await createPdfWithPages(1);
+		const pdf = await createPdfBase64(1);
 
-		fetchSpy.mockImplementation(
-			async () =>
-				new Response(new Blob([pdf], { type: "application/pdf" }), {
-					status: 200,
-					headers: { "Content-Type": "application/pdf" },
-				}),
-		);
-
-		const result = await mergePdfsFromUrls(["http://test/only.pdf"]);
+		const result = await mergePdfs([pdf]);
 		expect(result).not.toBeNull();
-		const pageCount = await countPdfPages(base64ToBytes(result as string));
+		const pageCount = await countPdfPages(result as string);
 		expect(pageCount).toBe(1);
 	});
 });

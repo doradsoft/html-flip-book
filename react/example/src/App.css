@@ -303,6 +303,45 @@ header {
 	right: auto;
 }
 
+/* Fore-edge groove — embossed vertical line ~30px from the outer edge,
+   mimicking the pressed channel on a real hardcover cloth binding */
+.front-cover::after,
+.back-cover::after {
+	content: "";
+	position: absolute;
+	top: 24px;
+	bottom: 24px;
+	width: 2px;
+	pointer-events: none;
+	z-index: 1;
+	background: rgba(0, 0, 0, 0.22);
+	box-shadow:
+		1px 0 0 rgba(255, 255, 255, 0.15),
+		-1px 0 0 rgba(0, 0, 0, 0.08);
+}
+
+/* LTR front cover: groove on the right (fore-edge) */
+.front-cover:not(.he-cover)::after {
+	right: 30px;
+}
+
+/* LTR back cover: groove on the left (fore-edge) */
+.back-cover:not(.he-cover)::after {
+	left: 30px;
+}
+
+/* RTL front cover: groove on the left (fore-edge) */
+.he-cover.front-cover::after {
+	left: 30px;
+	right: auto;
+}
+
+/* RTL back cover: groove on the right (fore-edge) */
+.he-cover.back-cover::after {
+	right: 30px;
+	left: auto;
+}
+
 /* --- Static cover frame (visible behind all pages) ---
    Sized to coverAspectRatio by the engine; pages are smaller (leafAspectRatio).
    The gap between the frame and page edges simulates the book board overhang. */

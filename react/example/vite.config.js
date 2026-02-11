@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
 	const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
 	return {
 		mode,
-		assetsInclude: ["**/*.md", "**/*.pdf"],
+		assetsInclude: ["**/*.md"],
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
 			alias: [
@@ -74,29 +74,17 @@ export default defineConfig(({ mode }) => {
 		plugins: [
 			react(),
 			{
-				name: "pdf-raw-server",
-				configureServer(server) {
-					server.middlewares.use((req, res, next) => {
-						if (!req.url) return next();
-						const [pathname, query] = req.url.split("?");
-						// Only serve raw PDF when the browser fetches the file directly.
-						// Skip Vite-internal requests (?url, ?import, etc.) so the module
-						// pipeline works normally for import.meta.glob.
-						if (pathname.endsWith(".pdf") && !query) {
-							const filePath = path.resolve(
-								__dirname,
-								pathname.startsWith("/") ? pathname.slice(1) : pathname,
-							);
-							if (fs.existsSync(filePath)) {
-								const stat = fs.statSync(filePath);
-								res.setHeader("Content-Type", "application/pdf");
-								res.setHeader("Content-Length", stat.size.toString());
-								fs.createReadStream(filePath).pipe(res);
-								return;
-							}
-						}
-						next();
-					});
+				name: "pdf-b64-loader",
+				transform(_code, id) {
+					// Handle *.pdf?b64 imports: read the file and export as base64 string.
+					// This lets import.meta.glob("*.pdf", { query: "?b64", eager: true })
+					// give us the PDF content inline, no fetch needed at runtime.
+					if (id.endsWith(".pdf?b64")) {
+						const filePath = id.replace("?b64", "");
+						const data = fs.readFileSync(filePath);
+						const b64 = data.toString("base64");
+						return { code: `export default "${b64}";`, map: null };
+					}
 				},
 			},
 			{
