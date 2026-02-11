@@ -94,6 +94,8 @@ class FlipBook {
 	private prevVisiblePageIndices: [number] | [number, number] | undefined;
 	// Hammer instance for cleanup
 	private hammer: HammerManager | undefined;
+	// Resize observer for re-layout on container size changes
+	private resizeObserver: ResizeObserver | undefined;
 
 	private static readonly NO_FLIP_SELECTOR = "[data-flipbook-no-flip]";
 
@@ -203,6 +205,50 @@ class FlipBook {
 		return this.downloadConfig;
 	}
 
+	/** Build the set of page indices that use cover sizing. */
+	private buildCoverPageIndicesSet(): Set<number> {
+		const coverPageIndicesSet = new Set<number>();
+		if (this.coverPageIndices) {
+			const indices =
+				this.coverPageIndices === "auto" ? [0, this.pagesCount - 1] : this.coverPageIndices;
+			for (const pageIdx of indices) {
+				coverPageIndicesSet.add(pageIdx);
+			}
+		}
+		return coverPageIndicesSet;
+	}
+
+	/**
+	 * Recalculate page sizes from the current container dimensions and
+	 * re-apply width/height/position styles. Called during initial render
+	 * and automatically on container resize (e.g. entering fullscreen).
+	 */
+	private recalculateSizes(): void {
+		if (!this.bookElement || !this.pageElements.length) return;
+
+		const maxCoverSize = new Size(this.bookElement.clientWidth / 2, this.bookElement.clientHeight);
+		const coverSize = maxCoverSize.aspectRatioFit(this.coverAspectRatio);
+		const leafSize = new Size(
+			(coverSize.width * this.leafAspectRatio.width) / this.coverAspectRatio.width,
+			(coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height,
+		);
+		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
+
+		const containerWidth = this.bookElement.clientWidth;
+		const containerHeight = this.bookElement.clientHeight;
+
+		for (const pageElement of this.pageElements) {
+			const isCoverPage = pageElement.dataset.isCoverPage === "1";
+			const pageSize = isCoverPage ? coverSize : leafSize;
+
+			pageElement.style.width = `${pageSize.width}px`;
+			pageElement.style.height = `${pageSize.height}px`;
+			pageElement.style[this.isLTR ? "left" : "right"] =
+				`${(containerWidth - 2 * pageSize.width) / 2}px`;
+			pageElement.style.top = `${(containerHeight - pageSize.height) / 2}px`;
+		}
+	}
+
 	render(selector: string, debug = false) {
 		const bookElement = document.querySelector(selector);
 		if (!bookElement) {
@@ -220,42 +266,23 @@ class FlipBook {
 		this.pageElements = Array.from(pageElements) as HTMLElement[];
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
-		const maxCoverSize = new Size(this.bookElement.clientWidth / 2, this.bookElement.clientHeight);
-		const coverSize = maxCoverSize.aspectRatioFit(this.coverAspectRatio);
-		const leafSize = new Size(
-			(coverSize.width * this.leafAspectRatio.width) / this.coverAspectRatio.width,
-			(coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height,
-		);
-		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
+
+		// Compute and apply sizes (also called on resize)
+		this.recalculateSizes();
 
 		// Determine which specific pages are cover exteriors (use coverSize).
 		// Interior sides of cover leaves use leafSize — physically, the endpaper is
 		// glued to the inside of the board and matches the text-block page size.
-		const coverPageIndicesSet = new Set<number>();
-		if (this.coverPageIndices) {
-			const indices =
-				this.coverPageIndices === "auto" ? [0, this.pagesCount - 1] : this.coverPageIndices;
-			for (const pageIdx of indices) {
-				coverPageIndicesSet.add(pageIdx);
-			}
-		}
+		const coverPageIndicesSet = this.buildCoverPageIndicesSet();
 
 		this.pageElements.forEach((pageElement, pageIndex) => {
 			const leafIndex = Math.floor(pageIndex / 2);
-			const isCoverPage = coverPageIndicesSet.has(pageIndex);
-			const pageSize = isCoverPage ? coverSize : leafSize;
 
-			pageElement.style.width = `${pageSize.width}px`;
-			pageElement.style.height = `${pageSize.height}px`;
-
-			pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
 			pageElement.dataset.pageIndex = pageIndex.toString();
-			pageElement.style[this.isLTR ? "left" : "right"] =
-				`${(bookElement.clientWidth - 2 * pageSize.width) / 2}px`;
-			pageElement.style.top = `${(bookElement.clientHeight - pageSize.height) / 2}px`;
 			pageElement.dataset.pageSemanticName =
 				this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
 			pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? "";
+			pageElement.dataset.isCoverPage = coverPageIndicesSet.has(pageIndex) ? "1" : "";
 
 			const isOddPage = (pageIndex + 1) % 2 === 1;
 			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
@@ -353,6 +380,14 @@ class FlipBook {
 				firstVisiblePageIndex + 1 < this.pagesCount
 					? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
 					: [firstVisiblePageIndex];
+		}
+
+		// Observe container size changes and re-layout automatically.
+		if (typeof ResizeObserver !== "undefined") {
+			this.resizeObserver = new ResizeObserver(() => {
+				this.recalculateSizes();
+			});
+			this.resizeObserver.observe(this.bookElement);
 		}
 
 		this.hammer = new Hammer(this.bookElement);
@@ -1011,6 +1046,10 @@ class FlipBook {
 		if (typeof window !== "undefined" && this._boundPopstate) {
 			window.removeEventListener("popstate", this._boundPopstate);
 			this._boundPopstate = undefined;
+		}
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect();
+			this.resizeObserver = undefined;
 		}
 		if (this.hammer) {
 			this.hammer.destroy();

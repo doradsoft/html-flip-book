@@ -1953,4 +1953,95 @@ describe("FlipBook", () => {
 			flipBook.destroy();
 		});
 	});
+
+	describe("resize re-layout", () => {
+		let resizeCallback: (() => void) | undefined;
+		let observedElement: Element | undefined;
+		let disconnected: boolean;
+
+		beforeEach(() => {
+			resizeCallback = undefined;
+			observedElement = undefined;
+			disconnected = false;
+
+			// Provide a mock ResizeObserver so the FlipBook can observe container size changes
+			globalThis.ResizeObserver = class MockResizeObserver {
+				constructor(cb: ResizeObserverCallback) {
+					// Store the callback so we can trigger it manually
+					resizeCallback = () => cb([], this as unknown as ResizeObserver);
+				}
+				observe(el: Element) {
+					observedElement = el;
+				}
+				unobserve() {}
+				disconnect() {
+					disconnected = true;
+				}
+			} as unknown as typeof ResizeObserver;
+		});
+
+		afterEach(() => {
+			(globalThis as Record<string, unknown>).ResizeObserver = undefined;
+		});
+
+		it("should observe the book element for resize", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			expect(observedElement).toBe(container);
+			flipBook.destroy();
+		});
+
+		it("should disconnect the observer on destroy", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			flipBook.destroy();
+
+			expect(disconnected).toBe(true);
+		});
+
+		it("should recalculate page sizes when container resizes", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			// Grab initial page width
+			const page = container.querySelector(".page") as HTMLElement;
+			const initialWidth = page.style.width;
+
+			// Resize the container to a larger size
+			Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+			Object.defineProperty(container, "clientHeight", { value: 900, configurable: true });
+
+			// Trigger the resize observer callback
+			expect(resizeCallback).toBeDefined();
+			resizeCallback?.();
+
+			// Page dimensions should have changed
+			expect(page.style.width).not.toBe(initialWidth);
+
+			flipBook.destroy();
+		});
+
+		it("should update perspective on resize", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+
+			// The book element gets a CSS class "flipbook" and is the container itself
+			const bookEl = container;
+			const initialPerspective = bookEl.style.perspective;
+
+			// Resize
+			Object.defineProperty(container, "clientWidth", { value: 1600, configurable: true });
+			Object.defineProperty(container, "clientHeight", { value: 1200, configurable: true });
+			resizeCallback?.();
+
+			expect(bookEl.style.perspective).not.toBe(initialPerspective);
+
+			flipBook.destroy();
+		});
+	});
 });
