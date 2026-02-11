@@ -3,11 +3,18 @@ import "./flipbook.scss";
 import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
-import type { FlipBookOptions, FlipPageSemantic, HistoryMapper } from "./flip-book-options";
+import type {
+	FlipBookOptions,
+	FlipPageSemantic,
+	HistoryMapper,
+	PageFlipDirection,
+	PageFlipParams,
+} from "./flip-book-options";
 import { FlipDirection } from "./flip-direction";
 import { type FlipPosition, Leaf } from "./leaf";
 import type { PageSemantics } from "./page-semantics";
 import { Size } from "./size";
+import { setTocPageIndex } from "./store";
 
 /** Default threshold for fast flip detection (in ms) */
 const DEFAULT_FAST_DELTA = 500;
@@ -60,11 +67,10 @@ class FlipBook {
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
-	private readonly onPageFlipped?: (
-		pageIndex: number,
-		semantic: FlipPageSemantic | undefined,
-	) => void;
+	private readonly onPageFlipping?: (params: PageFlipParams) => void;
+	private readonly onPageFlipped?: (params: PageFlipParams) => void;
 	private readonly historyMapper?: HistoryMapper;
+	private lastFlipParams: PageFlipParams | undefined;
 	private _historyInitialized = false;
 	private _isRestoringFromHistory = false;
 	private _boundPopstate: (() => void) | undefined;
@@ -99,11 +105,26 @@ class FlipBook {
 		};
 	}
 
+	private buildPageFlipParams(
+		leftmostPageIndex: number,
+		direction: PageFlipDirection,
+	): PageFlipParams {
+		const rightPageIndex = Math.min(leftmostPageIndex + 1, this.pagesCount - 1);
+		const pageIndices: [number, number] = [leftmostPageIndex, rightPageIndex];
+		const semantics: [FlipPageSemantic | undefined, FlipPageSemantic | undefined] = [
+			this.getSemanticForPage(leftmostPageIndex),
+			this.getSemanticForPage(rightPageIndex),
+		];
+		const leafIndex = Math.floor(leftmostPageIndex / 2);
+		return { leafIndex, pageIndices, semantics, direction };
+	}
+
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
 		const pageIndex = this.currentPageIndex;
 		const semantic = this.getSemanticForPage(pageIndex);
 		if (this.onPageChanged) this.onPageChanged(pageIndex);
-		if (this.onPageFlipped) this.onPageFlipped(pageIndex, semantic);
+		const params = this.lastFlipParams ?? this.buildPageFlipParams(pageIndex, "forward");
+		if (this.onPageFlipped) this.onPageFlipped(params);
 		if (typeof window !== "undefined" && this.historyMapper && !this._isRestoringFromHistory) {
 			const route = this.historyMapper.pageToRoute(pageIndex, semantic);
 			const state = { route };
@@ -164,10 +185,12 @@ class FlipBook {
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
 		this.pageSemantics = options.pageSemantics;
 		this.onPageChanged = options.onPageChanged;
+		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
 		this.historyMapper = options.historyMapper;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
+		setTocPageIndex(options.tocPageIndex ?? 4);
 	}
 
 	render(selector: string, debug = false) {
@@ -601,6 +624,12 @@ class FlipBook {
 		this.pendingFlipStartingPos = 0;
 		this.isDragging = false;
 
+		const targetPageIndex =
+			flipTo === 1 ? 2 * (flipState.leaf.index + 1) : 2 * flipState.leaf.index;
+		const direction: PageFlipDirection = flipTo === 1 ? "forward" : "backward";
+		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, direction);
+		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
+
 		// Complete the flip asynchronously - don't block new flips!
 		flipState.leaf.flipToPosition(flipTo).then(() => {
 			this.activeFlips.delete(flipState.leaf.index);
@@ -773,6 +802,9 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		const targetPageIndex = this.currentPageIndex + 2;
+		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
+		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
 		try {
 			await leaf.flipToPosition(1);
@@ -802,6 +834,9 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		const targetPageIndex = this.currentPageIndex - 2;
+		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
+		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
 		try {
 			await leaf.flipToPosition(0);
@@ -959,4 +994,9 @@ class FlipBook {
 }
 
 export { FlipBook, type PageSemantics };
-export type { FlipPageSemantic, HistoryMapper } from "./flip-book-options";
+export type {
+	FlipPageSemantic,
+	HistoryMapper,
+	PageFlipDirection,
+	PageFlipParams,
+} from "./flip-book-options";

@@ -10,6 +10,24 @@ export interface FlipPageSemantic {
 	title: string;
 }
 
+/** Direction of the flip for callback params. */
+export type PageFlipDirection = "forward" | "backward";
+
+/**
+ * Params passed to onPageFlipping and onPageFlipped.
+ * Describes the spread (target for flipping, current for flipped): leaf index, page indices, semantics, direction.
+ */
+export interface PageFlipParams {
+	/** Index of the leaf that is (being) turned. */
+	leafIndex: number;
+	/** Left and right page indices of the spread (after the flip). */
+	pageIndices: [number, number];
+	/** Semantic info for the two pages; undefined when pageSemantics not set. */
+	semantics: [FlipPageSemantic | undefined, FlipPageSemantic | undefined];
+	/** Direction of the flip. */
+	direction: PageFlipDirection;
+}
+
 /**
  * Optional mapper to sync flip-book page with browser history (pushState on flip, restore on popstate).
  * When provided, the flip-book will pushState when the user flips and restore the page on back/forward.
@@ -48,8 +66,10 @@ export interface FlipBookOptions {
 	pageSemantics?: PageSemantics;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
-	/** Callback fired when the user flips to a new page. Receives page index and semantic info (if pageSemantics is set). */
-	onPageFlipped?: (pageIndex: number, semantic: FlipPageSemantic | undefined) => void;
+	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */
+	onPageFlipping?: (params: PageFlipParams) => void;
+	/** Callback fired when a flip completes. Receives params (leaf, spread page indices, semantics, direction). */
+	onPageFlipped?: (params: PageFlipParams) => void;
 	/**
 	 * When set, the flip-book syncs with browser history: pushState on flip, restore page on popstate (back/forward).
 	 * Default: undefined (no history integration).
@@ -74,4 +94,9 @@ export interface FlipBookOptions {
 	 * Default: undefined (all pages use leafSize).
 	 */
 	coverPageIndices?: number[] | "auto";
+	/**
+	 * Table of contents page index (book-level). Populates the store used by goToToc command and UI.
+	 * Default: 4 (typical after front/back covers and soft covers).
+	 */
+	tocPageIndex?: number;
 }

@@ -1,7 +1,7 @@
 import {
 	FlipBook as FlipBookBase,
-	type FlipPageSemantic,
 	type HistoryMapper,
+	type PageFlipParams,
 	type PageSemantics,
 } from "html-flip-book-vanilla";
 import type React from "react";
@@ -83,6 +83,16 @@ export interface CoverConfig {
 }
 
 /**
+ * Handlers for FlipBook events. Pass via the `handlers` prop.
+ */
+export interface FlipBookHandlers {
+	/** Fired when a flip animation starts. Params: leaf index, page indices, semantics, direction. */
+	onPageFlipping?: (params: PageFlipParams) => void;
+	/** Fired when a flip completes. Params: leaf index, page indices, semantics, direction. */
+	onPageFlipped?: (params: PageFlipParams) => void;
+}
+
+/**
  * Props for the FlipBook React component.
  */
 export interface FlipBookProps {
@@ -111,7 +121,7 @@ export interface FlipBookProps {
 	 */
 	coverConfig?: CoverConfig;
 	/**
-	 * Override for the "of" part of the page indicator (e.g. "נ" for Hebrew books).
+	 * Override for the "of" part of the page indicator (e.g. a gematria letter for the total, like "נ" for 50 in Hebrew books).
 	 * Defaults to total pages count when not set.
 	 */
 	of?: string | number;
@@ -127,14 +137,19 @@ export interface FlipBookProps {
 	 */
 	coverAspectRatio?: { width: number; height: number };
 	/**
-	 * Callback fired when the user flips to a new page (page index + semantic info when pageSemantics is set).
+	 * Event handlers. Use this to pass callbacks (e.g. onPageFlipped) instead of top-level props.
 	 */
-	onPageFlipped?: (pageIndex: number, semantic: FlipPageSemantic | undefined) => void;
+	handlers?: FlipBookHandlers;
 	/**
 	 * When set, syncs the flip-book with browser history: pushState on flip, restore page on back/forward.
 	 * Default: undefined.
 	 */
 	historyMapper?: HistoryMapper;
+	/**
+	 * Table of contents page index (book-level). Populates the store used by goToToc command and TocButton.
+	 * Default: 4.
+	 */
+	tocPageIndex?: number;
 }
 
 /**
@@ -172,8 +187,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			of,
 			leafAspectRatio,
 			coverAspectRatio,
-			onPageFlipped,
+			handlers,
 			historyMapper,
+			tocPageIndex,
 		},
 		ref,
 	) => {
@@ -195,8 +211,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				coverAspectRatio: coverAspectRatio,
 				coverPageIndices: coverConfig?.coverIndices,
 				onPageChanged: (index: number) => setPageIndexRef.current?.(index),
-				onPageFlipped,
+				onPageFlipping: handlers?.onPageFlipping,
+				onPageFlipped: handlers?.onPageFlipped,
 				historyMapper,
+				tocPageIndex: tocPageIndex ?? 4,
 			}),
 		);
 
@@ -359,6 +377,11 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 FlipBookReact.displayName = "FlipBook";
 
 export { FlipBookReact as FlipBook };
-export type { PageSemantics, FlipPageSemantic, HistoryMapper };
+export type {
+	FlipPageSemantic,
+	HistoryMapper,
+	PageFlipParams,
+	PageSemantics,
+} from "html-flip-book-vanilla";
 export type { TocEntry, TocPageProps } from "./TocPage";
 export { TocPage } from "./TocPage";
