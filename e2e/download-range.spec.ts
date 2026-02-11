@@ -4,7 +4,7 @@ import { PDFDocument } from "pdf-lib";
 
 test.describe("Download range (EN book)", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 		// Wait for the EN book to finish loading (async markdown import).
 		await expect(page.locator(".en-book-container .en-book")).toBeVisible({ timeout: 15_000 });
 	});

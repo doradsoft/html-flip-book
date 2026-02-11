@@ -7,7 +7,8 @@ import { expect, test } from "@playwright/test";
 
 test.describe("First Page Flip - LTR", () => {
 	test("forward flip past middle completes", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
@@ -31,7 +32,8 @@ test.describe("First Page Flip - LTR", () => {
 	});
 
 	test("forward flip before middle returns", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
@@ -59,7 +61,8 @@ test.describe("First Page Flip - LTR", () => {
 	// which provides deterministic clock control for velocity-based tests
 
 	test("no movement returns to start", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
+		await page.waitForSelector(".en-book.flipbook .page", { state: "visible", timeout: 15_000 });
 
 		const flipbook = page.locator(".en-book.flipbook");
 		await expect(flipbook).toBeVisible();
@@ -85,12 +88,12 @@ test.describe("First Page Flip - LTR", () => {
 
 test.describe("First Page Flip - RTL", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=rtl-comprehensive");
+		await page.waitForSelector(".he-book.flipbook .page", { state: "visible", timeout: 15_000 });
 	});
 
 	test("forward flip past middle completes", async ({ page }) => {
 		const flipbook = page.locator(".he-book.flipbook");
-		await flipbook.scrollIntoViewIfNeeded();
 		await expect(flipbook).toBeVisible();
 
 		const firstPage = flipbook.locator(".page").first();
@@ -113,7 +116,6 @@ test.describe("First Page Flip - RTL", () => {
 
 	test("forward flip before middle returns", async ({ page }) => {
 		const flipbook = page.locator(".he-book.flipbook");
-		await flipbook.scrollIntoViewIfNeeded();
 		await expect(flipbook).toBeVisible();
 
 		const firstPage = flipbook.locator(".page").first();

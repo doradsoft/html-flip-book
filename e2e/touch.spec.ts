@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test.describe("FlipBook Touch Interactions", () => {
 	test.use({ hasTouch: true });
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=ltr-comprehensive");
 	});
 
 	test("should flip forward with touch swipe left (LTR)", async ({ page }) => {

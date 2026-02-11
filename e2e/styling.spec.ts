@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("FlipBook Page Classes", () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=rtl-comprehensive");
 	});
 
 	test("should have odd/even classes on pages", async ({ page }) => {
@@ -79,7 +79,7 @@ test.describe("FlipBook Page Classes", () => {
 
 test.describe("FlipBook Responsive", () => {
 	test("should resize pages on viewport change", async ({ page }) => {
-		await page.goto("/");
+		await page.goto("/?example=rtl-comprehensive");
 
 		const flipbook = page.locator(".he-book.flipbook");
 		await expect(flipbook).toBeVisible();

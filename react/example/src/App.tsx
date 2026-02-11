@@ -1,6 +1,6 @@
 // App.tsx
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import type { EnBookConfig } from "./EnBook";
 import EnBook from "./EnBook";
@@ -87,7 +87,23 @@ function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 }
 
 export const App: FC = () => {
-	const [selectedId, setSelectedId] = useState<ExampleId>("ltr-comprehensive");
+	const [selectedId, setSelectedId] = useState<ExampleId>(() => {
+		const params = new URLSearchParams(window.location.search);
+		const example = params.get("example") as ExampleId | null;
+		if (example && EXAMPLES.some((e) => e.id === example)) {
+			return example;
+		}
+		return "ltr-comprehensive";
+	});
+
+	// Sync from URL on mount so E2E and direct links always show the right example
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const example = params.get("example") as ExampleId | null;
+		if (example && EXAMPLES.some((e) => e.id === example)) {
+			setSelectedId(example);
+		}
+	}, []);
 
 	const ltrExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "LTR"), []);
 	const rtlExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "RTL"), []);

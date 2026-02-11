@@ -46,6 +46,11 @@ export class FlipBookPage {
 	/** Navigate to the test app with configured options */
 	async goto(): Promise<void> {
 		const url = new URL(this.options.baseUrl);
+		// Select the right example based on direction so the correct book is rendered
+		url.searchParams.set(
+			"example",
+			this.options.direction === "ltr" ? "ltr-comprehensive" : "rtl-comprehensive",
+		);
 		if (this.options.initialTurnedLeaves.length > 0) {
 			url.searchParams.set(
 				TEST_PARAM_INITIAL_TURNED_LEAVES,
