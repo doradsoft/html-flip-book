@@ -309,37 +309,38 @@ header {
 .back-cover::after {
 	content: "";
 	position: absolute;
-	top: 24px;
-	bottom: 24px;
-	width: 2px;
+	top: 0;
+	bottom: 0;
+	width: 4px;
 	pointer-events: none;
 	z-index: 1;
-	background: rgba(0, 0, 0, 0.22);
+	background: rgba(0, 0, 0, 0.28);
 	box-shadow:
-		1px 0 0 rgba(255, 255, 255, 0.15),
-		-1px 0 0 rgba(0, 0, 0, 0.08);
+		1px 0 0 rgba(255, 255, 255, 0.18),
+		2px 0 0 rgba(255, 255, 255, 0.06),
+		-1px 0 0 rgba(0, 0, 0, 0.12);
 }
 
-/* LTR front cover: groove on the right (fore-edge) */
+/* LTR front cover: groove near the spine (left) */
 .front-cover:not(.he-cover)::after {
-	right: 30px;
+	left: min(30px, 8%);
 }
 
-/* LTR back cover: groove on the left (fore-edge) */
+/* LTR back cover: groove near the spine (right) */
 .back-cover:not(.he-cover)::after {
-	left: 30px;
+	right: min(30px, 8%);
 }
 
-/* RTL front cover: groove on the left (fore-edge) */
+/* RTL front cover: groove near the spine (right) */
 .he-cover.front-cover::after {
-	left: 30px;
-	right: auto;
+	right: min(30px, 8%);
+	left: auto;
 }
 
-/* RTL back cover: groove on the right (fore-edge) */
+/* RTL back cover: groove near the spine (left) */
 .he-cover.back-cover::after {
-	right: 30px;
-	left: auto;
+	left: min(30px, 8%);
+	right: auto;
 }
 
 /* --- Static cover frame (visible behind all pages) ---

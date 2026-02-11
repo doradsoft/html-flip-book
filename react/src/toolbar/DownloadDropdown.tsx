@@ -159,8 +159,11 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 					semanticPages,
 					config.downloadContext,
 				);
-				if (result)
-					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${from + 1}-${to + 1}`);
+				if (result) {
+					const fromName = semanticPages[0]?.semanticName ?? String(from);
+					const toName = semanticPages[semanticPages.length - 1]?.semanticName ?? String(to);
+					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${fromName}-${toName}`);
+				}
 				closeDropdown();
 			} finally {
 				setLoading(null);
