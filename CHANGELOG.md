@@ -21,6 +21,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+- None
+
+### Engineering
+
+- None
+
+---
+
+## [0.0.0-alpha.27] - 2026-02-11
+
+### Added
+
+- None
+
+### Fixed
+
+- None
+
+### Changed
+
+- None
+
+### Breaking Changes
+
 - **Alpha only (not semver-breaking):** Fullscreen command now uses `data.getFullscreenTarget()` instead of `data.fullscreenTargetRef` (React ref). Use `commandOptions.toggleFullscreen.data = { getFullscreenTarget: () => ref.current ?? null }` if you need a specific target.
 
 ### Engineering
