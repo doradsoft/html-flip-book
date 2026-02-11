@@ -1,3 +1,7 @@
 * text=auto eol=lf
 
 dist/** -diff linguist-generated=true
+
+# Pages data (PDFs, assets): store as full blobs, no delta compression
+react/example/assets/pages_data/** -delta
+react/example/public/downloads/** -delta

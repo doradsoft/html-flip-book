@@ -10,13 +10,13 @@ export const goToLastCommand: JumpNavCommand = {
 	nameKey: "command.jumpToLastPage",
 	hotkeys,
 	execute: (ctx) => {
-		const total = ctx.handle?.getters.getTotalPages() ?? 0;
-		ctx.handle?.commands.jumpToPage(total - 1);
+		const total = ctx.handle?.getTotalPages() ?? 0;
+		ctx.handle?.jumpToPage(total - 1);
 		return undefined;
 	},
 	canExecute: (ctx) => {
-		const current = ctx.handle?.getters.getCurrentPageIndex() ?? 0;
-		const total = ctx.handle?.getters.getTotalPages() ?? 0;
+		const current = ctx.handle?.getCurrentPageIndex() ?? 0;
+		const total = ctx.handle?.getTotalPages() ?? 0;
 		return current !== total - 1;
 	},
 };

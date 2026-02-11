@@ -14,10 +14,9 @@ export const flipNextCommand: FlipNavCommand = {
 	nameKey: "command.jumpToNextPage",
 	hotkeys,
 	execute: (ctx) => {
-		ctx.handle?.commands.flipNext();
+		ctx.handle?.flipNext();
 		return undefined;
 	},
 	canExecute: (ctx) =>
-		(ctx.handle?.getters.getCurrentPageIndex() ?? 0) <
-		(ctx.handle?.getters.getTotalPages() ?? 0) - 1,
+		(ctx.handle?.getCurrentPageIndex() ?? 0) < (ctx.handle?.getTotalPages() ?? 0) - 1,
 };

@@ -10,8 +10,8 @@ export const flipPrevCommand: FlipNavCommand = {
 	nameKey: "command.jumpToPrevPage",
 	hotkeys,
 	execute: (ctx) => {
-		ctx.handle?.commands.flipPrev();
+		ctx.handle?.flipPrev();
 		return undefined;
 	},
-	canExecute: (ctx) => (ctx.handle?.getters.getCurrentPageIndex() ?? 0) > 0,
+	canExecute: (ctx) => (ctx.handle?.getCurrentPageIndex() ?? 0) > 0,
 };

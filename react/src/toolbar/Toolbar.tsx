@@ -83,11 +83,11 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	const updateState = useCallback(() => {
 		const fb = flipBookRef.current;
 		if (fb) {
-			setCurrentPage(fb.getters.getCurrentPageIndex());
-			setTotalPages(fb.getters.getTotalPages());
-			setOf(fb.getters.getOf());
-			setIsFirstPage(fb.getters.isFirstPage());
-			setIsLastPage(fb.getters.isLastPage());
+			setCurrentPage(fb.getCurrentPageIndex());
+			setTotalPages(fb.getTotalPages());
+			setOf(fb.getOf());
+			setIsFirstPage(fb.isFirstPage());
+			setIsLastPage(fb.isLastPage());
 		}
 	}, [flipBookRef]);
 

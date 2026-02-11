@@ -1,4 +1,6 @@
+import { goToLastCommand } from "html-flip-book-vanilla/commands";
 import type React from "react";
+import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
 import { ChevronLastIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
@@ -16,10 +18,11 @@ interface LastPageButtonProps {
  * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isLastPage, totalPages, locale } = useToolbar();
+	const { locale } = useToolbar();
+	const { execute, canExecute } = useCommands();
 
 	const handleClick = () => {
-		flipBookRef.current?.commands.jumpToPage(totalPages - 1);
+		execute(goToLastCommand);
 	};
 
 	const defaultIcon = <ChevronLastIcon size={18} />;
@@ -30,7 +33,7 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 			onClick={handleClick}
 			ariaLabel={ariaLabel}
 			title={ariaLabel}
-			disabled={isLastPage}
+			disabled={!canExecute(goToLastCommand)}
 			className={`flipbook-toolbar-last ${className ?? ""}`.trim()}
 		>
 			{children ?? defaultIcon}

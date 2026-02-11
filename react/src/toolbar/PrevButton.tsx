@@ -1,4 +1,6 @@
+import { flipPrevCommand } from "html-flip-book-vanilla/commands";
 import type React from "react";
+import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
 import { ChevronLeftIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
@@ -16,10 +18,11 @@ interface PrevButtonProps {
  * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isFirstPage, locale } = useToolbar();
+	const { locale } = useToolbar();
+	const { execute, canExecute } = useCommands();
 
 	const handleClick = () => {
-		flipBookRef.current?.commands.flipPrev();
+		execute(flipPrevCommand);
 	};
 
 	const ariaLabel = t("command.jumpToPrevPage", locale);
@@ -30,7 +33,7 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 			onClick={handleClick}
 			ariaLabel={ariaLabel}
 			title={ariaLabel}
-			disabled={isFirstPage}
+			disabled={!canExecute(flipPrevCommand)}
 			className={`flipbook-toolbar-prev ${className ?? ""}`.trim()}
 		>
 			{children ?? defaultIcon}

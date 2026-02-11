@@ -20,6 +20,9 @@
 6. **Toolbar is just a wrapper for multiple toolbar items.**
    The Toolbar component provides context (flipBook ref, direction, locale, etc.) and wraps the command provider and a container for the items. It does not implement behavior; it lays out and configures the store and commands, and renders the items the consumer places inside it.
 
+7. **Commands call flipbook methods; flipbook methods are internal.**
+   There are only two concepts: **commands** (public API) and **flipbook methods** (internal). Commands call flipbook methods (e.g. `handle.flipNext()`, `handle.jumpToPage(n)`) which may rely on internal engine state. There is no intermediate "actions" layer. Consumers never call flipbook methods directly; they interact through commands (`executeCommand`) and getters (ref).
+
 ## Layering (high level)
 
 ```
@@ -29,9 +32,9 @@ Book config (e.g. tocPageIndex) → Store (base)
                     ↓                          ↓
               executeCommand("goToToc")   TocButton disabled state
                     ↓
-              FlipBook ref (flipNext, jumpToPage, …)
+              FlipBook methods (flipNext, jumpToPage, …) — internal, not public API
 ```
 
-- **Base:** store, commands, flipbook engine, download types.
+- **Base:** store, commands, flipbook engine, download types. Internal types like `FlipBookHandleLike` stay in base and are not re-exported by framework wrappers.
 - **React:** FlipBook (wraps engine), Toolbar (wraps command provider + context), toolbar items (use commands + store).
-- **Consumer:** Renders one or more books, sets book-level config (e.g. Toolbar `tocPageIndex`), which populates the store; places toolbar items inside Toolbar.
+- **Consumer:** Renders one or more books, sets book-level config (e.g. Toolbar `tocPageIndex`), which populates the store; places toolbar items inside Toolbar. Interacts via commands and getters only.

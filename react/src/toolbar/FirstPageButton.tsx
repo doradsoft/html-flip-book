@@ -1,4 +1,6 @@
+import { goToFirstCommand } from "html-flip-book-vanilla/commands";
 import type React from "react";
+import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
 import { ChevronFirstIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
@@ -16,10 +18,11 @@ interface FirstPageButtonProps {
  * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isFirstPage, locale } = useToolbar();
+	const { locale } = useToolbar();
+	const { execute, canExecute } = useCommands();
 
 	const handleClick = () => {
-		flipBookRef.current?.commands.jumpToPage(0);
+		execute(goToFirstCommand);
 	};
 
 	const defaultIcon = <ChevronFirstIcon size={18} />;
@@ -30,7 +33,7 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 			onClick={handleClick}
 			ariaLabel={ariaLabel}
 			title={ariaLabel}
-			disabled={isFirstPage}
+			disabled={!canExecute(goToFirstCommand)}
 			className={`flipbook-toolbar-first ${className ?? ""}`.trim()}
 		>
 			{children ?? defaultIcon}

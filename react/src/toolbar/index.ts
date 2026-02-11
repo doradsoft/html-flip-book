@@ -2,8 +2,20 @@
 
 export type { Command, CommandDefinition, CommandOptions, HotkeyBinding } from "../commands";
 // Commands
-export { defaultCommands, useCommands } from "../commands";
+export {
+	defaultCommands,
+	downloadCommand,
+	flipNextCommand,
+	flipPrevCommand,
+	goToFirstCommand,
+	goToLastCommand,
+	goToTocCommand,
+	toggleDebugCommand,
+	toggleFullscreenCommand,
+	useCommands,
+} from "../commands";
 export type {
+	DownloadConfig,
 	DownloadResult,
 	PageRangesDownloadContext,
 	PageRangesDownloadHandler,

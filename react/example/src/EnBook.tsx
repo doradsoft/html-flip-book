@@ -21,38 +21,35 @@ import {
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "react-markdown";
-import { exportEntireBookPdf, exportPageRangePdf } from "./pdfExport";
+import { exportEntireBookPdf } from "./pdfExport";
 import { mergePdfsFromUrls } from "./pdfMerge";
-import {
-	TEST_PARAM_FAST_DELTA_THRESHOLD,
-	TEST_PARAM_INITIAL_TURNED_LEAVES,
-} from "./test-url-params";
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
+const pdfFiles: Record<string, { default: string }> = import.meta.glob(
+	"/assets/pages_data/en/pdf/*.pdf",
+	{ query: "?url", eager: true },
+);
 
-/** Real ebook split: one PDF per chapter under assets. Keys sorted by leading number. */
-const enPdfModules = import.meta.glob<string>("/assets/pages_data/en/pdf/*.pdf", {
-	query: "?url",
-	import: "default",
-});
-const sortedEnPdfKeys = Object.keys(enPdfModules)
-	.filter((k) => /\/\d+-/.test(k))
-	.sort((a, b) => {
-		const nA = parseInt(a.replace(/^.*\/(\d+)-.*$/, "$1"), 10);
-		const nB = parseInt(b.replace(/^.*\/(\d+)-.*$/, "$1"), 10);
-		return nA - nB;
-	});
-
-async function getEnChapterPdfUrls(): Promise<string[]> {
-	const modules = await Promise.all(sortedEnPdfKeys.map((k) => enPdfModules[k]()));
-	return modules
-		.map((m) => {
-			if (typeof m === "string") return m;
-			if (m && typeof m === "object" && "default" in m) return (m as { default: string }).default;
-			return null;
-		})
-		.filter((u): u is string => typeof u === "string");
+/** Extract numeric prefix from a file path (e.g. "/assets/.../012-foo.md" → "012") */
+function getNumericPrefix(filepath: string): string {
+	const filename = filepath.split("/").pop() ?? "";
+	return filename.match(/^(\d+)/)?.[1] ?? "";
 }
+
+/** Map from numeric prefix → resolved PDF asset URL */
+const pdfUrlByPrefix = new Map<string, string>();
+for (const [path, mod] of Object.entries(pdfFiles)) {
+	const prefix = getNumericPrefix(path);
+	if (prefix) pdfUrlByPrefix.set(prefix, mod.default);
+}
+
+// DEBUG: log the PDF glob results and prefix map at module load time
+console.debug(
+	"[EnBook] pdfFiles glob entries:",
+	Object.keys(pdfFiles).length,
+	Object.entries(pdfFiles).map(([p, m]) => ({ path: p, url: m.default })),
+);
+console.debug("[EnBook] pdfUrlByPrefix:", [...pdfUrlByPrefix.entries()]);
 
 /** Front cover component */
 const FrontCover = () => (
@@ -138,8 +135,8 @@ function assertIsMarkdownModule(module: unknown): asserts module is MarkdownModu
 function useTestParams() {
 	return useMemo(() => {
 		const params = new URLSearchParams(window.location.search);
-		const initialTurnedLeaves = params.get(TEST_PARAM_INITIAL_TURNED_LEAVES);
-		const fastDeltaThreshold = params.get(TEST_PARAM_FAST_DELTA_THRESHOLD);
+		const initialTurnedLeaves = params.get("initialTurnedLeaves");
+		const fastDeltaThreshold = params.get("fastDeltaThreshold");
 
 		return {
 			initialTurnedLeaves: initialTurnedLeaves
@@ -157,6 +154,8 @@ export const EnBook = () => {
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
 	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
 	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
+	/** PDF asset URL per book page index (null for covers/TOC, URL for content pages) */
+	const [pagePdfUrls, setPagePdfUrls] = useState<(string | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
 
@@ -166,9 +165,16 @@ export const EnBook = () => {
 				Object.entries(markdownFiles).map(async ([path, resolver]) => {
 					const content = await resolver();
 					assertIsMarkdownModule(content);
+					const prefix = getNumericPrefix(path);
+					const pdfUrl = pdfUrlByPrefix.get(prefix) ?? null;
+					console.debug(
+						`[EnBook] MD file: prefix=${prefix}, pdfUrl=${pdfUrl ? "YES" : "NULL"}`,
+						path,
+					);
 					return {
 						path,
 						content: content.default,
+						pdfUrl,
 					};
 				}),
 			);
@@ -199,13 +205,23 @@ export const EnBook = () => {
 				"Back Cover — More in This Series\nJavaScript Fundamentals, React Development, Node.js Backend",
 			];
 
+			// PDF URL per book page (null for cover/TOC, URL for content pages)
+			const pdfUrls: (string | null)[] = [
+				null, // front cover
+				null, // front cover interior
+				null, // TOC
+				...files.map((f) => f.pdfUrl),
+				null, // back cover interior
+				null, // back cover
+			];
+
 			const totalPages = 6 + contentPages.length;
 			const semantics = createEnPageSemantics(totalPages, contentTitles);
 
 			const toc = (
 				<TocPage
 					key="toc"
-					onNavigate={(pageIndex: number) => flipBookRef.current?.commands.jumpToPage(pageIndex)}
+					onNavigate={(pageIndex: number) => flipBookRef.current?.jumpToPage(pageIndex)}
 					totalPages={totalPages}
 					pageSemantics={semantics}
 					heading="Table of Contents"
@@ -226,7 +242,20 @@ export const EnBook = () => {
 				<BackCover key="back-cover" />,
 			];
 
+			// DEBUG: log the full pagePdfUrls mapping
+			console.debug(
+				"[EnBook] pagePdfUrls:",
+				pdfUrls.map((u, i) => `[${i}] ${u ?? "null"}`),
+			);
+			console.debug(
+				"[EnBook] content files with PDFs:",
+				files.filter((f) => f.pdfUrl).length,
+				"/",
+				files.length,
+			);
+
 			setEnPageContents(contents);
+			setPagePdfUrls(pdfUrls);
 			setEnPageSemantics(semantics);
 			setEnPages(pages);
 		};
@@ -235,6 +264,42 @@ export const EnBook = () => {
 	}, []);
 
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	const enDownloadConfig = useMemo(
+		() => ({
+			onDownloadSefer: async () => {
+				const data = exportEntireBookPdf("SQL Tutorial", enPages.length, {
+					pageContents: enPageContents,
+				});
+				return { ext: "pdf", data };
+			},
+			onDownloadPageRange: async (pages: number[], _semanticPages: SemanticPageInfo[]) => {
+				// Collect PDF asset URLs for the selected page range
+				console.debug("[EnBook] onDownloadPageRange called with pages:", pages);
+				console.debug("[EnBook] pagePdfUrls length:", pagePdfUrls.length);
+				const urlsWithIndex = pages.map((i) => ({ pageIndex: i, url: pagePdfUrls[i] ?? null }));
+				console.debug("[EnBook] page→url mapping:", urlsWithIndex);
+				const urls = urlsWithIndex
+					.filter((e): e is { pageIndex: number; url: string } => e.url != null)
+					.map((e) => e.url);
+				console.debug("[EnBook] filtered URLs to merge:", urls.length, urls);
+				if (urls.length === 0) {
+					console.warn("[EnBook] No PDF URLs found for selected pages — returning null");
+					return null;
+				}
+				const data = await mergePdfsFromUrls(urls);
+				console.debug(
+					"[EnBook] mergePdfsFromUrls result:",
+					data ? `base64 (${data.length} chars)` : "NULL",
+				);
+				if (!data) return null;
+				return { ext: "pdf", data };
+			},
+			entireBookFilename: "sql-tutorial",
+			rangeFilename: "sql-tutorial-pages",
+		}),
+		[enPages.length, enPageContents, pagePdfUrls],
+	);
 
 	const enHistoryMapper: HistoryMapper | undefined = useMemo(
 		() =>
@@ -255,50 +320,6 @@ export const EnBook = () => {
 		[enPageSemantics],
 	);
 
-	const downloadConfig = useMemo(
-		() => ({
-			onDownloadSefer: async () => {
-				const urls = await getEnChapterPdfUrls();
-				const base64 = urls.length ? await mergePdfsFromUrls(urls) : null;
-				if (base64) return { ext: "pdf", data: base64 };
-				const data = exportEntireBookPdf("SQL Tutorial", enPages.length, {
-					pageContents: enPageContents,
-					markdownToPlain: true,
-				});
-				return { ext: "pdf", data };
-			},
-			onDownloadPageRange: async (pages: number[], semanticPages: SemanticPageInfo[]) => {
-				if (!semanticPages.length || pages.length === 0) return null;
-				const urls = await getEnChapterPdfUrls();
-				const firstContent = 3;
-				const lastContent = enPages.length - 4;
-				const fromPage = Math.min(...pages);
-				const toPage = Math.max(...pages);
-				const contentIndices: number[] = [];
-				for (let p = fromPage; p <= toPage; p++) {
-					if (p >= firstContent && p <= lastContent) {
-						contentIndices.push(p - firstContent);
-					}
-				}
-				const urlsToMerge = contentIndices
-					.filter((i) => i >= 0 && i < urls.length)
-					.map((i) => urls[i]);
-				const base64 = urlsToMerge.length > 0 ? await mergePdfsFromUrls(urlsToMerge) : null;
-				if (base64) return { ext: "pdf", data: base64 };
-				return {
-					ext: "pdf",
-					data: exportPageRangePdf("SQL Tutorial", pages, semanticPages, {
-						pageContents: enPageContents,
-						markdownToPlain: true,
-					}),
-				};
-			},
-			entireBookFilename: "sql-tutorial",
-			rangeFilename: "sql-tutorial-pages",
-		}),
-		[enPages.length, enPageContents],
-	);
-
 	return enPages.length && enPageSemantics ? (
 		<div ref={containerRef} className="en-book-wrap">
 			<FlipBook
@@ -314,7 +335,7 @@ export const EnBook = () => {
 				initialTurnedLeaves={testParams.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={enHistoryMapper}
-				downloadConfig={downloadConfig}
+				downloadConfig={enDownloadConfig}
 			/>
 			<Toolbar
 				flipBookRef={flipBookRef}

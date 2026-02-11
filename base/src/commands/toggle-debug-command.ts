@@ -10,7 +10,7 @@ export const toggleDebugCommand: CommandDefinition = {
 	descriptionKey: "command.toggleDebugDesc",
 	hotkeys,
 	execute: (ctx) => {
-		ctx.handle?.commands.toggleDebugBar?.();
+		ctx.handle?.toggleDebugBar?.();
 		return undefined;
 	},
 };

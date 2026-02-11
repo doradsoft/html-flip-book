@@ -1,4 +1,6 @@
+import { flipNextCommand } from "html-flip-book-vanilla/commands";
 import type React from "react";
+import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
 import { ChevronRightIcon } from "../icons";
 import { ToolbarButton } from "./ToolbarButton";
@@ -16,10 +18,11 @@ interface NextButtonProps {
  * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
  */
 const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
-	const { flipBookRef, isLastPage, locale } = useToolbar();
+	const { locale } = useToolbar();
+	const { execute, canExecute } = useCommands();
 
 	const handleClick = () => {
-		flipBookRef.current?.commands.flipNext();
+		execute(flipNextCommand);
 	};
 
 	const ariaLabel = t("command.jumpToNextPage", locale);
@@ -30,7 +33,7 @@ const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 			onClick={handleClick}
 			ariaLabel={ariaLabel}
 			title={ariaLabel}
-			disabled={isLastPage}
+			disabled={!canExecute(flipNextCommand)}
 			className={`flipbook-toolbar-next ${className ?? ""}`.trim()}
 		>
 			{children ?? defaultIcon}

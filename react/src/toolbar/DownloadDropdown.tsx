@@ -60,7 +60,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 		downloadExecutorRef,
 		flipBookRef,
 	} = useToolbar();
-	const downloadConfig = flipBookRef.current?.getters?.getDownloadConfig?.() ?? undefined;
+	const downloadConfig = flipBookRef.current?.getDownloadConfig?.() ?? undefined;
 	const [open, setOpen] = useState(false);
 
 	useEffect(() => {
@@ -84,14 +84,15 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	const hasRange = Boolean(downloadConfig?.onDownloadPageRange);
 	const showDropdown = hasSefer || hasRange;
 
-	// When opening, default mode to "entire" if available, else "range"; init range to full book
+	// When opening, default mode to "entire" if available, else "range"; init range from flipbook ref (source of truth)
 	useEffect(() => {
 		if (open) {
 			setDownloadMode(hasSefer ? "entire" : "range");
+			const total = flipBookRef.current?.getTotalPages?.() ?? totalPages;
 			setFromIndex(0);
-			setToIndex(Math.max(0, totalPages - 1));
+			setToIndex(Math.max(0, total - 1));
 		}
-	}, [open, hasSefer, totalPages]);
+	}, [open, hasSefer, totalPages, flipBookRef]);
 
 	const closeDropdown = useCallback(() => {
 		setOpen(false);
@@ -128,7 +129,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	}, [open, closeDropdown]);
 
 	const handleEntireBook = useCallback(async () => {
-		const config = flipBookRef.current?.getters?.getDownloadConfig?.();
+		const config = flipBookRef.current?.getDownloadConfig?.();
 		if (!config?.onDownloadSefer) return;
 		setLoading("sefer");
 		try {
@@ -142,8 +143,12 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 
 	const runRangeDownload = useCallback(
 		async (from: number, to: number) => {
-			const config = flipBookRef.current?.getters?.getDownloadConfig?.();
-			if (!config?.onDownloadPageRange) return;
+			console.debug("[DownloadDropdown] runRangeDownload called:", { from, to });
+			const config = flipBookRef.current?.getDownloadConfig?.();
+			if (!config?.onDownloadPageRange) {
+				console.warn("[DownloadDropdown] No onDownloadPageRange in config");
+				return;
+			}
 			const pages: number[] = [];
 			const semanticPages: SemanticPageInfo[] = [];
 			for (let i = from; i <= to; i++) {
@@ -151,12 +156,22 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 				const info = selectablePages[i];
 				if (info) semanticPages.push(info);
 			}
+			console.debug(
+				"[DownloadDropdown] pages array:",
+				pages,
+				"semanticPages:",
+				semanticPages.length,
+			);
 			setLoading("range");
 			try {
 				const result = await config.onDownloadPageRange(
 					pages,
 					semanticPages,
 					config.downloadContext,
+				);
+				console.debug(
+					"[DownloadDropdown] onDownloadPageRange result:",
+					result ? `ext=${result.ext}, data=${result.data.length} chars` : "NULL",
 				);
 				if (result)
 					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${from + 1}-${to + 1}`);
@@ -272,8 +287,11 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 							if (downloadMode === "entire") {
 								void handleEntireBook();
 							} else {
+								const total = flipBookRef.current?.getTotalPages?.() ?? totalPages;
 								const from = Math.min(fromIndex, toIndex);
-								const to = Math.max(fromIndex, toIndex);
+								let to = Math.max(fromIndex, toIndex);
+								if (total > 0 && to >= total) to = total - 1;
+								if (to < from) return;
 								void runRangeDownload(from, to);
 							}
 						}}

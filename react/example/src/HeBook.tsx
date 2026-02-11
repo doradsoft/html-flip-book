@@ -185,7 +185,7 @@ export const HeBook = () => {
 			const toc = (
 				<TocPage
 					key="toc"
-					onNavigate={(pageIndex) => flipBookRef.current?.commands.jumpToPage(pageIndex)}
+					onNavigate={(pageIndex) => flipBookRef.current?.jumpToPage(pageIndex)}
 					totalPages={totalPages}
 					pageSemantics={semantics}
 					heading="תוכן העניינים"

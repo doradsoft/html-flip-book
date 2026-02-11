@@ -11,8 +11,8 @@ export const goToTocCommand: JumpNavCommand = {
 	nameKey: "command.jumpToToc",
 	hotkeys,
 	execute: (ctx) => {
-		ctx.handle?.commands.jumpToPage(getTocPageIndex());
+		ctx.handle?.jumpToPage(getTocPageIndex());
 		return undefined;
 	},
-	canExecute: (ctx) => ctx.handle?.getters.getCurrentPageIndex() !== getTocPageIndex(),
+	canExecute: (ctx) => ctx.handle?.getCurrentPageIndex() !== getTocPageIndex(),
 };

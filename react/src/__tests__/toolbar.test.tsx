@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { setTocPageIndex } from "html-flip-book-vanilla/store";
 import { describe, expect, it, vi } from "vitest";
 import type { FlipBookHandle } from "../FlipBook";
@@ -9,7 +9,6 @@ import {
 	ChevronLastIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
-	DownloadDropdown,
 	FullscreenButton,
 	MaximizeIcon,
 	MinimizeIcon,
@@ -18,23 +17,20 @@ import {
 	Toolbar,
 } from "../toolbar";
 
-// Mock flipbook ref (commands + getters only)
+// Mock flipbook ref
 const createMockFlipBookRef = (overrides: Partial<FlipBookHandle> = {}) => ({
 	current: {
-		commands: {
-			flipNext: vi.fn().mockResolvedValue(undefined),
-			flipPrev: vi.fn().mockResolvedValue(undefined),
-			flipToPage: vi.fn().mockResolvedValue(undefined),
-			jumpToPage: vi.fn(),
-			toggleDebugBar: vi.fn(),
-		},
-		getters: {
-			getCurrentPageIndex: vi.fn().mockReturnValue(2),
-			getTotalPages: vi.fn().mockReturnValue(10),
-			getOf: vi.fn().mockReturnValue(10),
-			isFirstPage: vi.fn().mockReturnValue(false),
-			isLastPage: vi.fn().mockReturnValue(false),
-		},
+		flipNext: vi.fn().mockResolvedValue(undefined),
+		flipPrev: vi.fn().mockResolvedValue(undefined),
+		flipToPage: vi.fn().mockResolvedValue(undefined),
+		jumpToPage: vi.fn(),
+		toggleDebugBar: vi.fn(),
+		getCurrentPageIndex: vi.fn().mockReturnValue(2),
+		getTotalPages: vi.fn().mockReturnValue(10),
+		getOf: vi.fn().mockReturnValue(10),
+		isFirstPage: vi.fn().mockReturnValue(false),
+		isLastPage: vi.fn().mockReturnValue(false),
+		getDownloadConfig: vi.fn().mockReturnValue(undefined),
 		...overrides,
 	} as FlipBookHandle,
 });
@@ -138,13 +134,11 @@ describe("TocButton", () => {
 	it("should jump to TOC page from store (default 4)", () => {
 		setTocPageIndex(4);
 		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(0),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-			},
+			getCurrentPageIndex: vi.fn().mockReturnValue(0),
+			getTotalPages: vi.fn().mockReturnValue(10),
+			getOf: vi.fn().mockReturnValue(10),
+			isFirstPage: vi.fn().mockReturnValue(false),
+			isLastPage: vi.fn().mockReturnValue(false),
 		});
 		render(
 			<Toolbar flipBookRef={mockRef}>
@@ -153,19 +147,17 @@ describe("TocButton", () => {
 		);
 
 		fireEvent.click(screen.getByRole("button", { name: /table of contents/i }));
-		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(4);
+		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(4);
 	});
 
 	it("should jump to TOC page from store when set to 2", () => {
 		setTocPageIndex(2);
 		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(0),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-			},
+			getCurrentPageIndex: vi.fn().mockReturnValue(0),
+			getTotalPages: vi.fn().mockReturnValue(10),
+			getOf: vi.fn().mockReturnValue(10),
+			isFirstPage: vi.fn().mockReturnValue(false),
+			isLastPage: vi.fn().mockReturnValue(false),
 		});
 		render(
 			<Toolbar flipBookRef={mockRef}>
@@ -174,7 +166,7 @@ describe("TocButton", () => {
 		);
 
 		fireEvent.click(screen.getByRole("button", { name: /table of contents/i }));
-		expect(mockRef.current.commands.jumpToPage).toHaveBeenCalledWith(2);
+		expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(2);
 	});
 
 	it("should use custom ariaLabel when provided", () => {
@@ -191,13 +183,11 @@ describe("TocButton", () => {
 	it("should be disabled when on TOC page", () => {
 		setTocPageIndex(4);
 		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(4),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-			},
+			getCurrentPageIndex: vi.fn().mockReturnValue(4),
+			getTotalPages: vi.fn().mockReturnValue(10),
+			getOf: vi.fn().mockReturnValue(10),
+			isFirstPage: vi.fn().mockReturnValue(false),
+			isLastPage: vi.fn().mockReturnValue(false),
 		});
 		render(
 			<Toolbar flipBookRef={mockRef}>
@@ -266,102 +256,5 @@ describe("Toolbar", () => {
 		);
 
 		expect(screen.getByRole("toolbar")).toBeTruthy();
-	});
-});
-
-describe("DownloadDropdown", () => {
-	it("should not render when no download config", () => {
-		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(0),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-				getDownloadConfig: vi.fn().mockReturnValue(undefined),
-			},
-		});
-		render(
-			<Toolbar flipBookRef={mockRef}>
-				<DownloadDropdown />
-			</Toolbar>,
-		);
-		expect(screen.queryByRole("button", { name: /download/i })).toBeNull();
-	});
-
-	it("should call onDownloadSefer when Entire is selected and Download clicked", async () => {
-		const onDownloadSefer = vi.fn().mockResolvedValue(null);
-		const onDownloadPageRange = vi.fn();
-		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(0),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-				getDownloadConfig: vi.fn().mockReturnValue({
-					onDownloadSefer,
-					onDownloadPageRange,
-					entireBookFilename: "book",
-					rangeFilename: "pages",
-				}),
-			},
-		});
-		render(
-			<Toolbar flipBookRef={mockRef}>
-				<DownloadDropdown />
-			</Toolbar>,
-		);
-		fireEvent.click(screen.getByRole("button", { name: /download/i }));
-		// Default mode is "entire"; click the single Download action
-		const downloadBtn = screen.getByRole("menuitem", { name: /^download$/i });
-		await act(async () => {
-			fireEvent.click(downloadBtn);
-		});
-		expect(onDownloadSefer).toHaveBeenCalledTimes(1);
-		expect(onDownloadPageRange).not.toHaveBeenCalled();
-	});
-
-	it("should call onDownloadPageRange with full range (from through to) when Range selected", async () => {
-		const onDownloadSefer = vi.fn();
-		const onDownloadPageRange = vi.fn().mockResolvedValue(null);
-		const mockRef = createMockFlipBookRef({
-			getters: {
-				getCurrentPageIndex: vi.fn().mockReturnValue(0),
-				getTotalPages: vi.fn().mockReturnValue(10),
-				getOf: vi.fn().mockReturnValue(10),
-				isFirstPage: vi.fn().mockReturnValue(false),
-				isLastPage: vi.fn().mockReturnValue(false),
-				getDownloadConfig: vi.fn().mockReturnValue({
-					onDownloadSefer,
-					onDownloadPageRange,
-					entireBookFilename: "book",
-					rangeFilename: "pages",
-				}),
-			},
-		});
-		render(
-			<Toolbar flipBookRef={mockRef}>
-				<DownloadDropdown />
-			</Toolbar>,
-		);
-		fireEvent.click(screen.getByRole("button", { name: /download/i }));
-		// Select "Page range" radio
-		const rangeRadio = screen.getByRole("radio", { name: /download page range/i });
-		fireEvent.click(rangeRadio);
-		// From/to selects: set From to index 2, To to index 5 (so range 2..5 inclusive = 4 pages)
-		const fromSelect = screen.getByLabelText(/from/i);
-		const toSelect = screen.getByLabelText(/to/i);
-		fireEvent.change(fromSelect, { target: { value: "2" } });
-		fireEvent.change(toSelect, { target: { value: "5" } });
-		// Click Download
-		const downloadBtn = screen.getByRole("menuitem", { name: /^download$/i });
-		await act(async () => {
-			fireEvent.click(downloadBtn);
-		});
-		expect(onDownloadPageRange).toHaveBeenCalledTimes(1);
-		const [pages] = onDownloadPageRange.mock.calls[0];
-		expect(pages).toEqual([2, 3, 4, 5]);
-		expect(onDownloadSefer).not.toHaveBeenCalled();
 	});
 });

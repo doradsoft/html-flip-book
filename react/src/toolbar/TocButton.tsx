@@ -1,4 +1,4 @@
-import { getTocPageIndex } from "html-flip-book-vanilla/store";
+import { goToTocCommand } from "html-flip-book-vanilla/commands";
 import type React from "react";
 import { useCommands } from "../commands/CommandContext";
 import { t } from "../i18n";
@@ -20,16 +20,15 @@ interface TocButtonProps {
  * TOC page index comes from store (populated by book config); command and UI both use the store.
  */
 const TocButton: React.FC<TocButtonProps> = ({ children, ariaLabel: ariaLabelProp, className }) => {
-	const { currentPage, locale } = useToolbar();
-	const { executeCommand, canExecute } = useCommands();
+	const { locale } = useToolbar();
+	const { execute, canExecute } = useCommands();
 	const ariaLabel = ariaLabelProp ?? t("command.jumpToToc", locale);
 
 	const handleClick = () => {
-		executeCommand("goToToc");
+		execute(goToTocCommand);
 	};
 
-	const isOnToc = currentPage === getTocPageIndex();
-	const disabled = isOnToc || !canExecute("goToToc");
+	const disabled = !canExecute(goToTocCommand);
 
 	return (
 		<ToolbarButton

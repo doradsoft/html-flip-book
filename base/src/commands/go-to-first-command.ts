@@ -10,8 +10,8 @@ export const goToFirstCommand: JumpNavCommand = {
 	nameKey: "command.jumpToFirstPage",
 	hotkeys,
 	execute: (ctx) => {
-		ctx.handle?.commands.jumpToPage(0);
+		ctx.handle?.jumpToPage(0);
 		return undefined;
 	},
-	canExecute: (ctx) => ctx.handle?.getters.getCurrentPageIndex() !== 0,
+	canExecute: (ctx) => ctx.handle?.getCurrentPageIndex() !== 0,
 };

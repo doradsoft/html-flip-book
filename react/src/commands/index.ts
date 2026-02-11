@@ -9,11 +9,20 @@ export type {
 	CommandDefinition,
 	CommandOptions,
 	CommandRegistry,
-	FlipBookHandleLike,
 	FlipNavCommand,
 	HotkeyBinding,
 	JumpNavCommand,
 	NavCommand,
 } from "html-flip-book-vanilla/commands";
-export { defaultCommands } from "html-flip-book-vanilla/commands";
+export {
+	defaultCommands,
+	downloadCommand,
+	flipNextCommand,
+	flipPrevCommand,
+	goToFirstCommand,
+	goToLastCommand,
+	goToTocCommand,
+	toggleDebugCommand,
+	toggleFullscreenCommand,
+} from "html-flip-book-vanilla/commands";
 export { CommandProvider, useCommands } from "./CommandContext";

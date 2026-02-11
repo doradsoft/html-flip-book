@@ -1,35 +1,22 @@
-import type { DownloadConfig } from "../download/types";
-
 /**
- * Command methods for flipbook navigation (actions that change state).
+ * Framework-agnostic handle exposing flipbook methods.
+ * Commands receive this via CommandContext to call flipbook methods internally.
+ * These methods are NOT part of the public consumer API — consumers interact
+ * through commands (execute) and getters (ref) only.
  */
-export interface FlipBookHandleCommandsLike {
+export interface FlipBookHandleLike {
 	flipNext: () => Promise<void>;
 	flipPrev: () => Promise<void>;
 	flipToPage: (pageIndex: number) => Promise<void>;
 	jumpToPage: (pageIndex: number) => void;
 	toggleDebugBar?: () => void;
-}
-
-/**
- * Getter methods for flipbook state (read-only).
- */
-export interface FlipBookHandleGettersLike {
 	getCurrentPageIndex: () => number;
 	getTotalPages: () => number;
 	getOf: () => string | number;
 	isFirstPage: () => boolean;
 	isLastPage: () => boolean;
-	getDownloadConfig?: () => DownloadConfig | undefined;
-}
-
-/**
- * Framework-agnostic handle for flipbook navigation.
- * React and other bindings expose a ref that conforms to this interface (commands + getters only).
- */
-export interface FlipBookHandleLike {
-	commands: FlipBookHandleCommandsLike;
-	getters: FlipBookHandleGettersLike;
+	/** Download configuration for the book. Undefined when no download is configured. */
+	getDownloadConfig?: () => import("../download/types").DownloadConfig | undefined;
 }
 
 /**
@@ -62,7 +49,7 @@ export interface CommandData {
 
 /**
  * Context passed to command execution: handle and optional command-specific data.
- * Commands read currentPage, totalPages, etc. from handle.getters (and other stores like toc when needed).
+ * Commands read currentPage, totalPages, etc. from handle (and other stores like toc when needed).
  */
 export interface CommandContext {
 	handle: FlipBookHandleLike | null;

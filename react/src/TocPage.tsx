@@ -57,7 +57,7 @@ const defaultFilter = (entry: TocEntry): boolean => entry.title.length > 0;
  * @example
  * ```tsx
  * <TocPage
- *   onNavigate={(pageIndex) => flipBookRef.current?.commands.flipToPage(pageIndex)}
+ *   onNavigate={(pageIndex) => flipBookRef.current?.flipToPage(pageIndex)}
  *   totalPages={20}
  *   pageSemantics={mySemantics}
  *   heading="Contents"

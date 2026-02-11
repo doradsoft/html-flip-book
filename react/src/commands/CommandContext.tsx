@@ -29,9 +29,11 @@ interface CommandProviderProps {
 }
 
 interface CommandsContextValue {
-	executeCommand: (commandId: string, runData?: Record<string, unknown>) => void;
-	canExecute: (commandId: string) => boolean;
-	getCommand: (commandId: string) => CommandDefinition | undefined;
+	/** Execute a command (pass the command object, not a string ID). */
+	execute: (command: CommandDefinition, runData?: Record<string, unknown>) => void;
+	/** Check if a command can execute (for disabled state). */
+	canExecute: (command: CommandDefinition) => boolean;
+	/** Get all registered commands. */
 	getAllCommands: () => CommandDefinition[];
 }
 
@@ -72,8 +74,8 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 	}, [customCommands, commandOptions]);
 
 	const createCommandContext = useCallback(
-		(commandId: string, runData?: Record<string, unknown>): CommandCtx => {
-			const options = registry[commandId]?.options ?? {};
+		(command: CommandDefinition, runData?: Record<string, unknown>): CommandCtx => {
+			const options = registry[command.id]?.options ?? {};
 			const data = runData ? { ...options.data, ...runData } : options.data;
 			return {
 				handle: flipBookRef.current,
@@ -83,39 +85,25 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		[flipBookRef, registry],
 	);
 
-	const executeCommand = useCallback(
-		(commandId: string, runData?: Record<string, unknown>) => {
-			const entry = registry[commandId];
-			if (!entry) {
-				console.warn(`Command "${commandId}" not found`);
+	const execute = useCallback(
+		(command: CommandDefinition, runData?: Record<string, unknown>) => {
+			const ctx = createCommandContext(command, runData);
+			if (command.canExecute && !command.canExecute(ctx)) {
 				return;
 			}
 
-			const ctx = createCommandContext(commandId, runData);
-			if (entry.command.canExecute && !entry.command.canExecute(ctx)) {
-				return;
-			}
-
-			entry.command.execute(ctx);
+			command.execute(ctx);
 		},
-		[registry, createCommandContext],
+		[createCommandContext],
 	);
 
 	const canExecute = useCallback(
-		(commandId: string): boolean => {
-			const entry = registry[commandId];
-			if (!entry) return false;
-
-			const ctx = createCommandContext(commandId);
-			if (!entry.command.canExecute) return true;
-			return entry.command.canExecute(ctx);
+		(command: CommandDefinition): boolean => {
+			const ctx = createCommandContext(command);
+			if (!command.canExecute) return true;
+			return command.canExecute(ctx);
 		},
-		[registry, createCommandContext],
-	);
-
-	const getCommand = useCallback(
-		(commandId: string): CommandDefinition | undefined => registry[commandId]?.command,
-		[registry],
+		[createCommandContext],
 	);
 
 	const getAllCommands = useCallback(
@@ -130,20 +118,20 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 				return;
 			}
 
-			for (const [commandId, entry] of Object.entries(registry)) {
+			for (const entry of Object.values(registry)) {
 				if (entry.options.disableHotkeys) continue;
 
 				const hotkeys = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
 				for (const binding of hotkeys) {
 					if (hotkeyMatches(binding, event, direction)) {
 						event.preventDefault();
-						executeCommand(commandId);
+						execute(entry.command);
 						return;
 					}
 				}
 			}
 		},
-		[registry, executeCommand, direction],
+		[registry, execute, direction],
 	);
 
 	useEffect(() => {
@@ -155,12 +143,11 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 
 	const value = useMemo<CommandsContextValue>(
 		() => ({
-			executeCommand,
+			execute,
 			canExecute,
-			getCommand,
 			getAllCommands,
 		}),
-		[executeCommand, canExecute, getCommand, getAllCommands],
+		[execute, canExecute, getAllCommands],
 	);
 
 	return <CommandsContext.Provider value={value}>{children}</CommandsContext.Provider>;
