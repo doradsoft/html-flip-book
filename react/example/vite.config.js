@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
 		assetsInclude: ["**/*.md"],
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
+			dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
 			alias: [
 				{
 					find: "html-flip-book-vanilla/commands",
