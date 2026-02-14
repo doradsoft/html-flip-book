@@ -13,12 +13,14 @@ export type ExampleId =
 	| "ltr-history"
 	| "ltr-debug"
 	| "ltr-download"
+	| "ltr-initial-position"
 	| "ltr-comprehensive"
 	| "rtl-shadow"
 	| "rtl-buffer"
 	| "rtl-history"
 	| "rtl-debug"
 	| "rtl-download"
+	| "rtl-initial-position"
 	| "rtl-comprehensive";
 
 const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
@@ -27,12 +29,14 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-history", label: "History mapping" },
 	{ section: "LTR", id: "ltr-debug", label: "Debug" },
 	{ section: "LTR", id: "ltr-download", label: "Download" },
+	{ section: "LTR", id: "ltr-initial-position", label: "Initial position" },
 	{ section: "LTR", id: "ltr-comprehensive", label: "Comprehensive" },
 	{ section: "RTL", id: "rtl-shadow", label: "Shadow" },
 	{ section: "RTL", id: "rtl-buffer", label: "Buffer" },
 	{ section: "RTL", id: "rtl-history", label: "History mapping" },
 	{ section: "RTL", id: "rtl-debug", label: "Debug" },
 	{ section: "RTL", id: "rtl-download", label: "Download" },
+	{ section: "RTL", id: "rtl-initial-position", label: "Initial position" },
 	{ section: "RTL", id: "rtl-comprehensive", label: "Comprehensive" },
 ];
 
@@ -48,6 +52,14 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 			return { debug: true, enableHistory: false, enableDownload: false };
 		case "ltr-download":
 			return { enableDownload: true, enableHistory: false, debug: false };
+		case "ltr-initial-position":
+			return {
+				leavesBuffer: 3,
+				initialTurnedLeaves: Array.from({ length: 5 }, (_, i) => i),
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
 		case "ltr-comprehensive":
 			return {
 				leavesBuffer: 3,
@@ -73,6 +85,14 @@ function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 			return { leavesBuffer: 7, debug: true, enableHistory: false, enableDownload: false };
 		case "rtl-download":
 			return { leavesBuffer: 7, enableDownload: true, enableHistory: false, debug: false };
+		case "rtl-initial-position":
+			return {
+				leavesBuffer: 7,
+				initialTurnedLeaves: Array.from({ length: 20 }, (_, i) => i),
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
 		case "rtl-comprehensive":
 			return {
 				leavesBuffer: 7,
