@@ -52,11 +52,7 @@ npm install html-flip-book-react
 
 ## Roadmap
 
-- [ ] Cover pages styling
-- [ ] Render on resize
-- [ ] Internationalization
 - [ ] Curl animation / animated page edges
-- [ ] Lazy page building
 - [ ] Vertical flip direction
 - [ ] Vue component
 - [ ] Angular component
