@@ -272,22 +272,27 @@ class FlipBook {
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
 
-		// Compute and apply sizes (also called on resize)
-		this.recalculateSizes();
-
 		// Determine which specific pages are cover exteriors (use coverSize).
 		// Interior sides of cover leaves use leafSize — physically, the endpaper is
 		// glued to the inside of the board and matches the text-block page size.
 		const coverPageIndicesSet = this.buildCoverPageIndicesSet();
 
+		// Set data attributes before recalculateSizes() so it can read dataset.isCoverPage
+		// to apply the correct cover vs leaf dimensions on the very first layout pass.
 		this.pageElements.forEach((pageElement, pageIndex) => {
-			const leafIndex = Math.floor(pageIndex / 2);
-
 			pageElement.dataset.pageIndex = pageIndex.toString();
 			pageElement.dataset.pageSemanticName =
 				this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
 			pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? "";
 			pageElement.dataset.isCoverPage = coverPageIndicesSet.has(pageIndex) ? "1" : "";
+		});
+
+		// Compute and apply sizes (also called on resize).
+		// Must run after dataset.isCoverPage is set so covers get coverSize.
+		this.recalculateSizes();
+
+		this.pageElements.forEach((pageElement, pageIndex) => {
+			const leafIndex = Math.floor(pageIndex / 2);
 
 			const isOddPage = (pageIndex + 1) % 2 === 1;
 			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
@@ -305,19 +310,6 @@ class FlipBook {
 				...(isCurrentPage ? ["current-page"] : []),
 			);
 			if (isOddPage) {
-				// Apply correct initial transform based on turned state
-				if (isInitiallyTurned) {
-					// Fully turned: rotateY(180) or similar based on direction
-					const scaleX = -1;
-					const transform = `translateX(${this.isLTR ? "100%" : "-100%"})rotateY(${this.isLTR ? "180deg" : "-180deg"})scaleX(${scaleX})`;
-					pageElement.style.transform = transform;
-					pageElement.style.transformOrigin = this.isLTR ? "left" : "right";
-					pageElement.style.zIndex = `${pageIndex}`; // Turned pages have lower z-index
-				} else {
-					pageElement.style.transform = `translateX(${this.isLTR ? `` : `-`}100%)`;
-					pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
-				}
-
 				this.leaves[leafIndex] = new Leaf(
 					leafIndex,
 					[pageElement, undefined],
@@ -351,18 +343,16 @@ class FlipBook {
 					},
 				);
 			} else {
-				// Even page (back side of leaf)
-				if (isInitiallyTurned) {
-					// Fully turned: apply matching transform for back side
-					const scaleX = 1;
-					pageElement.style.transform = `translateX(0px)rotateY(${this.isLTR ? "180deg" : "-180deg"})scaleX(${scaleX})`;
-					pageElement.style.transformOrigin = this.isLTR ? "right" : "left";
-					pageElement.style.zIndex = `${pageIndex}`; // Turned pages have lower z-index
-				} else {
-					pageElement.style.transform = `scaleX(-1)translateX(${this.isLTR ? `-` : ``}100%)`;
-					pageElement.style.zIndex = `${this.pagesCount - pageIndex}`;
-				}
+				// Even page (back side of leaf) — attach to the leaf created above.
 				this.leaves[leafIndex].pages[1] = pageElement;
+
+				// Both pages of the leaf are now available.
+				// Use applyTransform to set the correct initial transform — this ensures
+				// the transforms exactly match what applyTransform produces during flips.
+				// Previously, hardcoded transforms used rotateY(±180deg) for turned pages,
+				// which made them invisible due to backface-visibility: hidden.
+				const initialPosition = isInitiallyTurned ? 1 : 0;
+				this.leaves[leafIndex].applyTransform(initialPosition);
 			}
 		});
 

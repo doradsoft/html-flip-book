@@ -1165,6 +1165,57 @@ describe("FlipBook", () => {
 			expect(pages[1].style.display).not.toBe("none"); // leaf 0
 			expect(pages[2].style.display).toBe("none"); // leaf 1 - outside buffer
 		});
+
+		it("should always keep cover leaves visible when coverPageIndices is set, even outside buffer", () => {
+			const pages = createPages(56); // 28 leaves (like a Sefer with covers)
+			const flipBook = new FlipBook({
+				pagesCount: 56,
+				leavesBuffer: 7,
+				initialTurnedLeaves: [
+					0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+				],
+				coverPageIndices: "auto", // covers at pages 0 and 55
+			});
+			flipBook.render(".flipbook-container");
+
+			// Current position is leaf 21 (page 42). Buffer=7 → leaves 14-28 visible.
+			// Cover leaf 0 (pages 0,1) and cover leaf 27 (pages 54,55) are FAR outside buffer
+			// but must remain visible because they are cover boards.
+			expect(pages[0].style.display).not.toBe("none"); // front cover (leaf 0) - cover exempt
+			expect(pages[1].style.display).not.toBe("none"); // front cover interior (leaf 0)
+			expect(pages[54].style.display).not.toBe("none"); // back cover interior (leaf 27) - cover exempt
+			expect(pages[55].style.display).not.toBe("none"); // back cover (leaf 27)
+
+			// Non-cover leaves outside buffer should be hidden
+			expect(pages[2].style.display).toBe("none"); // leaf 1 - outside buffer, not cover
+			expect(pages[3].style.display).toBe("none"); // leaf 1
+			expect(pages[24].style.display).toBe("none"); // leaf 12 - just outside buffer (14-2=12 margin would include, but let's check leaf 11)
+
+			// Pages within buffer should be visible
+			expect(pages[42].style.display).not.toBe("none"); // leaf 21 - current
+			expect(pages[43].style.display).not.toBe("none"); // leaf 21
+		});
+
+		it("should apply coverSize (not leafSize) to cover pages on initial render", () => {
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				coverPageIndices: "auto", // pages 0 and 19
+			});
+			flipBook.render(".flipbook-container");
+
+			// Cover pages should have dataset.isCoverPage set BEFORE sizing is computed
+			expect(pages[0].dataset.isCoverPage).toBe("1");
+			expect(pages[19].dataset.isCoverPage).toBe("1");
+			// Non-cover pages
+			expect(pages[1].dataset.isCoverPage).toBe("");
+			expect(pages[10].dataset.isCoverPage).toBe("");
+
+			// Covers should be wider than non-cover pages (coverAspectRatio > leafAspectRatio)
+			const coverWidth = parseFloat(pages[0].style.width);
+			const leafWidth = parseFloat(pages[2].style.width);
+			expect(coverWidth).toBeGreaterThan(leafWidth);
+		});
 	});
 
 	describe("navigation properties", () => {
@@ -1813,7 +1864,7 @@ describe("FlipBook", () => {
 
 		it("shows correct edge hover for RTL mode", () => {
 			createPages(4);
-			const flipBook = new FlipBook({ pagesCount: 4, isRTL: true });
+			const flipBook = new FlipBook({ pagesCount: 4, direction: "rtl" });
 			flipBook.render(".flipbook-container");
 
 			const bookElement = getBookElement(flipBook);
