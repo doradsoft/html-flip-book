@@ -157,6 +157,8 @@ export interface EnBookConfig {
 	enableHistory?: boolean;
 	/** When false, omit download config and toolbar download (default true when config absent). */
 	enableDownload?: boolean;
+	/** Leaves to mark as turned on initial render (opens the book at a specific position). */
+	initialTurnedLeaves?: number[];
 }
 
 export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
@@ -313,7 +315,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				coverConfig={{
 					coverIndices: "auto",
 				}}
-				initialTurnedLeaves={testParams.initialTurnedLeaves}
+				initialTurnedLeaves={testParams.initialTurnedLeaves ?? config?.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
 				historyMapper={enHistoryMapper}
 				downloadConfig={enDownloadConfig}
