@@ -200,7 +200,7 @@ class FlipBook {
 		this.coverPageIndices = options.coverPageIndices;
 		this.downloadConfig = options.enableDownload !== false ? options.downloadConfig : undefined;
 		this.pageShadow = options.pageShadow ?? true;
-		this.snapshotDuringFlip = options.snapshotDuringFlip ?? false;
+		this.snapshotDuringFlip = options.snapshotDuringFlip ?? true;
 		setTocPageIndex(options.tocPageIndex ?? 4);
 	}
 

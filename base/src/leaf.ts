@@ -81,11 +81,15 @@ export class Leaf {
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "transform";
-			// When snapshotDuringFlip is enabled, lock down the page with strict
-			// containment so the browser can use a cached GPU texture of the content
-			// and avoid re-layout/repaint of children during the 3D animation.
 			if (this.bookProperties.snapshotDuringFlip) {
+				// Lock down the page with strict containment so the browser
+				// operates on a cached GPU texture during the 3D animation.
 				page.style.contain = "strict";
+				// Hide overflow to prevent scrollbar artifacts in the snapshot.
+				page.style.overflow = "hidden";
+				// Disable text selection during the flip to avoid selection
+				// artefacts on the rotating snapshot.
+				page.style.userSelect = "none";
 			}
 		}
 	}
@@ -97,6 +101,8 @@ export class Leaf {
 			page.style.willChange = "";
 			if (this.bookProperties.snapshotDuringFlip) {
 				page.style.contain = "layout style paint";
+				page.style.overflow = "";
+				page.style.userSelect = "";
 			}
 		}
 	}

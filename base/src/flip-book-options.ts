@@ -130,7 +130,9 @@ export interface FlipBookOptions {
 	 * during flip animations so the browser can operate on a cached GPU
 	 * texture rather than re-rendering page content every frame. This
 	 * significantly reduces jank when flipping multiple pages rapidly.
-	 * Default: false.
+	 * During the snapshot, page overflow is hidden and text selection is
+	 * disabled; both are restored when the flip animation completes.
+	 * Default: true.
 	 */
 	snapshotDuringFlip?: boolean;
 }

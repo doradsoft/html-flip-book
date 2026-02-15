@@ -14,6 +14,7 @@ export type ExampleId =
 	| "ltr-debug"
 	| "ltr-download"
 	| "ltr-initial-position"
+	| "ltr-no-snapshot"
 	| "ltr-comprehensive"
 	| "rtl-shadow"
 	| "rtl-buffer"
@@ -21,6 +22,7 @@ export type ExampleId =
 	| "rtl-debug"
 	| "rtl-download"
 	| "rtl-initial-position"
+	| "rtl-no-snapshot"
 	| "rtl-comprehensive";
 
 const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
@@ -30,6 +32,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-debug", label: "Debug" },
 	{ section: "LTR", id: "ltr-download", label: "Download" },
 	{ section: "LTR", id: "ltr-initial-position", label: "Initial position" },
+	{ section: "LTR", id: "ltr-no-snapshot", label: "No snapshot" },
 	{ section: "LTR", id: "ltr-comprehensive", label: "Comprehensive" },
 	{ section: "RTL", id: "rtl-shadow", label: "Shadow" },
 	{ section: "RTL", id: "rtl-buffer", label: "Buffer" },
@@ -37,6 +40,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "RTL", id: "rtl-debug", label: "Debug" },
 	{ section: "RTL", id: "rtl-download", label: "Download" },
 	{ section: "RTL", id: "rtl-initial-position", label: "Initial position" },
+	{ section: "RTL", id: "rtl-no-snapshot", label: "No snapshot" },
 	{ section: "RTL", id: "rtl-comprehensive", label: "Comprehensive" },
 ];
 
@@ -56,6 +60,14 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 			return {
 				leavesBuffer: 3,
 				initialTurnedLeaves: Array.from({ length: 5 }, (_, i) => i),
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
+		case "ltr-no-snapshot":
+			return {
+				leavesBuffer: 3,
+				snapshotDuringFlip: false,
 				debug: false,
 				enableHistory: false,
 				enableDownload: false,
@@ -89,6 +101,14 @@ function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 			return {
 				leavesBuffer: 7,
 				initialTurnedLeaves: Array.from({ length: 20 }, (_, i) => i),
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
+		case "rtl-no-snapshot":
+			return {
+				leavesBuffer: 7,
+				snapshotDuringFlip: false,
 				debug: false,
 				enableHistory: false,
 				enableDownload: false,

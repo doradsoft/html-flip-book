@@ -131,6 +131,8 @@ export interface HeBookConfig {
 	enableDownload?: boolean;
 	/** Leaves to mark as turned on initial render (opens the book at a specific position). */
 	initialTurnedLeaves?: number[];
+	/** When false, disables snapshot-during-flip optimisation (default true). */
+	snapshotDuringFlip?: boolean;
 }
 
 export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
@@ -308,6 +310,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 				tocPageIndex={2}
 				debug={config?.debug ?? true}
 				leavesBuffer={config?.leavesBuffer ?? 7}
+				snapshotDuringFlip={config?.snapshotDuringFlip}
 				coverConfig={{
 					coverIndices: "auto",
 				}}

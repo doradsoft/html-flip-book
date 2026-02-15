@@ -159,6 +159,8 @@ export interface EnBookConfig {
 	enableDownload?: boolean;
 	/** Leaves to mark as turned on initial render (opens the book at a specific position). */
 	initialTurnedLeaves?: number[];
+	/** When false, disables snapshot-during-flip optimisation (default true). */
+	snapshotDuringFlip?: boolean;
 }
 
 export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
@@ -307,6 +309,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				ref={flipBookRef}
 				className="en-book"
 				pageShadow={config?.showPageShadow ?? true}
+				snapshotDuringFlip={config?.snapshotDuringFlip}
 				pages={enPages}
 				pageSemantics={enPageSemantics}
 				tocPageIndex={2}

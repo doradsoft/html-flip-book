@@ -168,7 +168,7 @@ export interface FlipBookProps {
 	 * When true, uses aggressive containment on pages during flip animations
 	 * so the browser can operate on a cached GPU texture rather than
 	 * re-rendering content every frame. Reduces jank when flipping rapidly.
-	 * Default: false.
+	 * Default: true.
 	 */
 	snapshotDuringFlip?: boolean;
 	/**
@@ -215,7 +215,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			fastDeltaThreshold,
 			leavesBuffer,
 			pageShadow = true,
-			snapshotDuringFlip = false,
+			snapshotDuringFlip = true,
 			enableHistory,
 			enableDownload,
 			coverConfig,
