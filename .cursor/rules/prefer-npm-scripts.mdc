@@ -1,0 +1,21 @@
+---
+description: Always prefer npm scripts over raw CLI commands
+alwaysApply: true
+---
+
+# Prefer Project Scripts Over Raw CLI
+
+When a project has a task runner (npm scripts, etc.), **always use the defined script** instead of invoking the underlying CLI directly.
+
+## Rules
+
+- Before running any command, check `package.json` scripts for a matching task.
+- Use `npm run build` instead of `npx tsc` / `npx vite build`.
+- Use `npm test` instead of `npx jest` / `npx vitest`.
+- Use `npm run build:example` instead of directly invoking vite on the example.
+- Same principle applies to any task runner found in the repo.
+
+## Why
+
+- Scripts encode project-specific flags, env vars, and paths.
+- Running the CLI directly skips those and causes subtle breakage.
