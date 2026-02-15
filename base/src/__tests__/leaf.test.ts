@@ -12,6 +12,8 @@ describe("Leaf", () => {
 		isLTR: true,
 		pagesCount: 10,
 		leavesCount: 5,
+		pageShadow: true,
+		snapshotDuringFlip: true,
 	};
 
 	beforeEach(() => {
@@ -551,37 +553,6 @@ describe("Leaf", () => {
 
 				// shadowProgress = 1, highlightStrength = min(1, 1 * 0.9) = 0.9
 				expect(mockPage1.style.getPropertyValue("--inner-shadow-highlight")).toBe("0.900");
-			});
-		});
-
-		describe("lift calculations", () => {
-			it("sets lift to 0 at position 0", () => {
-				const leaf = new Leaf(
-					0,
-					[mockPage1, mockPage2],
-					NOT_FLIPPED,
-					defaultBookProperties,
-					onTurnedMock,
-				);
-
-				leaf.applyTransform(0);
-
-				expect(mockPage1.style.getPropertyValue("--inner-shadow-lift")).toBe("0.000px");
-			});
-
-			it("sets lift to max at position 0.5", () => {
-				const leaf = new Leaf(
-					0,
-					[mockPage1, mockPage2],
-					NOT_FLIPPED,
-					defaultBookProperties,
-					onTurnedMock,
-				);
-
-				leaf.applyTransform(0.5);
-
-				// shadowProgress = 1, lift = 1 * 8 = 8
-				expect(mockPage1.style.getPropertyValue("--inner-shadow-lift")).toBe("8.000px");
 			});
 		});
 

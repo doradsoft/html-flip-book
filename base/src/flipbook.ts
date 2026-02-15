@@ -93,6 +93,15 @@ class FlipBook {
 	touchStartingPos = { x: 0, y: 0 };
 	/** True when the current touch started inside a [data-flipbook-no-flip] element (e.g. carousel). */
 	private touchStartedInNoFlipZone = false;
+	/**
+	 * Direction lock for the current touch gesture.
+	 * Once the first significant movement (>5 px) determines the dominant axis,
+	 * the lock stays for the rest of the gesture.  'vertical' means native scroll
+	 * wins — Hammer pan events are rejected.  'horizontal' means every touchmove
+	 * gets preventDefault() so Hammer can drive the page flip.
+	 */
+	touchDirectionLock: "none" | "vertical" | "horizontal" = "none";
+	private static readonly DIRECTION_LOCK_THRESHOLD = 5;
 	private prevVisiblePageIndices: [number] | [number, number] | undefined;
 	// Hammer instance for cleanup
 	private hammer: HammerManager | undefined;
@@ -139,11 +148,18 @@ class FlipBook {
 			const url = route.startsWith("#")
 				? `${window.location.pathname}${window.location.search}${route}`
 				: route;
+			// Use the *native* History.prototype methods rather than
+			// window.history.pushState/replaceState.  Frameworks like Next.js
+			// monkey-patch the instance methods to intercept URL changes and
+			// trigger full soft navigations (RSC fetch + React re-render).
+			// That is catastrophically expensive during rapid page flips.
+			// Calling the prototype method bypasses the patch while still
+			// updating the browser URL bar and history stack correctly.
 			if (isInitial || !this._historyInitialized) {
-				window.history.replaceState(state, "", url);
+				History.prototype.replaceState.call(window.history, state, "", url);
 				this._historyInitialized = true;
 			} else {
-				window.history.pushState(state, "", url);
+				History.prototype.pushState.call(window.history, state, "", url);
 			}
 		}
 	}
@@ -390,6 +406,11 @@ class FlipBook {
 		}
 
 		this.hammer = new Hammer(this.bookElement);
+		// Only recognise horizontal pans — vertical touch gestures must
+		// remain native scroll events. Without this, a vertical scroll can
+		// contaminate the pan state (wrong starting X) causing the next
+		// flip to jump to a random position or get stuck.
+		this.hammer.get("pan").set({ direction: Hammer.DIRECTION_HORIZONTAL });
 		this.hammer.on("panstart", this.onDragStart.bind(this));
 		this.hammer.on("panmove", this.onDragUpdate.bind(this));
 		this.hammer.on("panend", this.onDragEnd.bind(this));
@@ -545,6 +566,11 @@ class FlipBook {
 	}
 
 	private onDragStart(event: HammerInput) {
+		// Reject pan events that belong to a touch gesture locked to vertical
+		// (i.e. the user is scrolling, not flipping).
+		if (this.touchDirectionLock === "vertical") {
+			return;
+		}
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
 		if (this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) {
 			return;
@@ -563,6 +589,11 @@ class FlipBook {
 	}
 
 	private onDragUpdate(event: HammerInput) {
+		// Reject pan events that belong to a touch gesture locked to vertical.
+		if (this.touchDirectionLock === "vertical") {
+			return;
+		}
+
 		// Get or create the current manual flip state
 		let flipState = this.currentManualFlip;
 
@@ -570,7 +601,7 @@ class FlipBook {
 		const bookWidth = this.bookElement?.clientWidth ?? 0;
 
 		// Calculate delta
-		const delta = this.isLTR
+		let delta = this.isLTR
 			? this.pendingFlipStartingPos - currentPos
 			: currentPos - this.pendingFlipStartingPos;
 
@@ -606,10 +637,22 @@ class FlipBook {
 			const leaf = this.getNextAvailableLeaf(direction);
 			if (!leaf) return;
 
+			// Acquire the flip lock for the full drag cycle; the matching
+			// endFlip() is deferred until the release animation completes
+			// in onDragEnd, so the snapshot/scrollbar lockdown stays stable.
+			leaf.beginFlip();
+
+			// Snap the starting position to the current finger position so
+			// the first rendered frame has delta ≈ 0 and the page begins at
+			// its resting position (0 for forward, 1 for backward) instead
+			// of jumping to an intermediate value.
+			this.pendingFlipStartingPos = currentPos;
+			delta = 0;
+
 			flipState = {
 				leaf,
 				direction,
-				startingPos: this.pendingFlipStartingPos,
+				startingPos: currentPos,
 				delta: 0,
 				isDuringAutoFlip: false,
 			};
@@ -674,6 +717,8 @@ class FlipBook {
 				}
 				break;
 			default:
+				// Safety: release the drag-level flip lock if direction is unexpected.
+				flipState.leaf.endFlip();
 				return;
 		}
 
@@ -691,6 +736,10 @@ class FlipBook {
 
 		// Complete the flip asynchronously - don't block new flips!
 		flipState.leaf.flipToPosition(flipTo).then(() => {
+			// Release the drag-level flip lock acquired in onDragUpdate.
+			// The animation's own beginFlip/endFlip is ref-counted inside, so
+			// the snapshot stays active until this final endFlip() zeroes it.
+			flipState.leaf.endFlip();
 			this.activeFlips.delete(flipState.leaf.index);
 		});
 	}
@@ -702,6 +751,7 @@ class FlipBook {
 		const touch = e.touches[0];
 		this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
 		this.touchStartedInNoFlipZone = this.isInsideNoFlipZone(e.target);
+		this.touchDirectionLock = "none";
 	};
 
 	private handleTouchMove = (e: TouchEvent) => {
@@ -715,10 +765,23 @@ class FlipBook {
 		const touch = e.touches[0];
 		const deltaX = touch.pageX - this.touchStartingPos.x;
 		const deltaY = touch.pageY - this.touchStartingPos.y;
-		// only allow vertical scrolling, as if allowing horizontal scrolling, it will interfere with the flip gesture (for touch devices)
-		if (Math.abs(deltaX) > Math.abs(deltaY)) {
+
+		// Lock direction on the first significant movement.  Once locked the
+		// decision is final for the rest of this gesture — prevents the old
+		// bug where accumulated vertical delta kept overruling a late
+		// horizontal change-of-direction within the same gesture.
+		if (this.touchDirectionLock === "none") {
+			const absDx = Math.abs(deltaX);
+			const absDy = Math.abs(deltaY);
+			if (absDx > FlipBook.DIRECTION_LOCK_THRESHOLD || absDy > FlipBook.DIRECTION_LOCK_THRESHOLD) {
+				this.touchDirectionLock = absDx >= absDy ? "horizontal" : "vertical";
+			}
+		}
+
+		if (this.touchDirectionLock === "horizontal") {
 			e.preventDefault();
 		}
+		// 'vertical' or 'none' → let the browser handle native scroll
 	};
 
 	private handleMouseMove = throttle(MOUSE_MOVE_THROTTLE_MS, (event: MouseEvent) => {

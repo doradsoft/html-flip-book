@@ -8,6 +8,7 @@
 		"node": ">=24.0.0"
 	},
 	"scripts": {
+		"predev": "node -e \"try{require('child_process').execSync('npx kill-port 5173',{stdio:'ignore'})}catch{}\"",
 		"dev": "vite",
 		"predeploy": "npm run build",
 		"deploy": "gh-pages -d dist -r https://github.com/doradsoft/html-flip-book.git",

@@ -11,7 +11,6 @@
   contain: layout style paint;
   --inner-shadow-shadow: 0;
   --inner-shadow-highlight: 0;
-  --inner-shadow-lift: 0px;
   --inner-shadow-edge: right;
 }
 
@@ -22,16 +21,17 @@
   inset: 0;
   pointer-events: none;
   backface-visibility: hidden;
-  transform-style: preserve-3d;
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease;
-  will-change: opacity, transform;
+  transition: opacity 120ms ease;
+  will-change: opacity;
 }
 
 // Inner shadow: simulates shadow cast by lifted page onto the page below
 // - 0.35 opacity provides subtle but visible shadow
 // - 40% gradient stop creates a soft fade matching natural shadow falloff
+// NOTE: translateZ lift was removed because `contain: layout style paint`
+// on .page creates a flattened stacking context that suppresses preserve-3d,
+// making translateZ a no-op.  The gradient + opacity already produce the
+// visual shadow effect.
 .page::before {
   background: linear-gradient(
     to var(--inner-shadow-edge),
@@ -40,13 +40,11 @@
   );
   opacity: var(--inner-shadow-shadow);
   mix-blend-mode: multiply;
-  transform: translateZ(var(--inner-shadow-lift));
 }
 
 // Edge highlight: simulates light catching the lifted page edge
 // - 0.4 opacity balances visibility without washing out content
 // - 45% gradient stop slightly wider than shadow for realistic light spread
-// - 0.6 lift multiplier places highlight closer to page than shadow
 .page::after {
   background: linear-gradient(
     to var(--inner-shadow-edge),
@@ -54,13 +52,35 @@
     rgba(255, 255, 255, 0) 45%
   );
   opacity: var(--inner-shadow-highlight);
-  transform: translateZ(calc(var(--inner-shadow-lift) * 0.6));
 }
 
 /* Disable shadow when prop pageShadow={false} (e.g. flicker workaround, issue #167). */
 .flipbook--no-page-shadow .page::before,
 .flipbook--no-page-shadow .page::after {
   opacity: 0 !important;
+}
+
+// Applied during flip animation when snapshotDuringFlip is enabled.
+// The browser freezes the page rendering as a GPU texture; scrollbar chrome
+// and text selection are hidden so the snapshot looks clean.
+// overflow is NOT changed — scroll position is fully preserved.
+.page--flipping {
+  contain: strict;
+  user-select: none;
+
+  // Make scrollbar chrome invisible but PRESERVE gutter width.
+  // Using scrollbar-color:transparent keeps the scrollbar's space allocated
+  // so content doesn't reflow wider when the snapshot is taken.
+  // scrollbar-color is standard (Firefox, Chrome 121+, Edge 121+).
+  scrollbar-color: transparent transparent;
+  // Safari/older WebKit: overlay scrollbars don't occupy space, so display:none
+  // is safe — no content width shift on those platforms.
+  &::-webkit-scrollbar { display: none; }
+
+  * {
+    scrollbar-color: transparent transparent !important;
+    &::-webkit-scrollbar { display: none !important; }
+  }
 }
 
 .page > * {

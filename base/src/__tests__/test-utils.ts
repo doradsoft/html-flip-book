@@ -38,8 +38,8 @@ interface FlipBookTestableRaw {
 	currentOrTurningLeaves: [Leaf | undefined, Leaf | undefined];
 	fastDeltaThreshold: number;
 	onTurned: (newVisiblePageIndices: number[], oldVisiblePageIndices?: number[]) => void;
-	onDragStart: (event: { center: { x: number } }) => void;
-	onDragUpdate: (event: { center: { x: number } }) => void;
+	onDragStart: (event: { center: { x: number }; deltaX?: number; deltaY?: number }) => void;
+	onDragUpdate: (event: { center: { x: number }; deltaX?: number; deltaY?: number }) => void;
 	onDragEnd: (event: { velocityX: number }) => Promise<void>;
 }
 

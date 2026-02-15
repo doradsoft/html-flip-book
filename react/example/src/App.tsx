@@ -192,11 +192,11 @@ export const App: FC = () => {
 				</nav>
 				<section className="example-container" aria-live="polite">
 					{isLtr ? (
-						<div className="en-book-container">
+						<div className="en-book-container" key={selectedId}>
 							<EnBook config={getEnBookConfig(selectedId)} />
 						</div>
 					) : (
-						<div className="he-book-container">
+						<div className="he-book-container" key={selectedId}>
 							<HeBook config={getHeBookConfig(selectedId)} />
 						</div>
 					)}

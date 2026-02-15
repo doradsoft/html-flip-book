@@ -13,8 +13,6 @@ function scheduleFrame(cb: (timestamp: number) => void): number {
 const SHADOW_STRENGTH_MULTIPLIER = 1.1;
 /** Multiplier for highlight intensity (slightly weaker than base) */
 const HIGHLIGHT_STRENGTH_MULTIPLIER = 0.9;
-/** Maximum lift in pixels for the shadow effect */
-const SHADOW_LIFT_PX = 8;
 
 // number between 1 to infinity
 export type DegreesPerSecond = IntRange<1, typeof Infinity>;
@@ -26,6 +24,8 @@ export class Leaf {
 	private targetFlipPosition: FlipPosition | null = null;
 	private wrappedFlipPosition: number;
 	private hoverShadow = 0;
+	/** Ref-count for nested beginFlip/endFlip pairs (drag wrapping animation). */
+	private flipRefCount = 0;
 
 	constructor(
 		readonly index: number,
@@ -76,33 +76,37 @@ export class Leaf {
 		this.applyTransform(this.flipPosition);
 	}
 
-	/** Promote pages to their own compositor layer for smooth GPU-accelerated transforms. */
-	private promoteToGPULayer(): void {
+	/**
+	 * Signal that a flip interaction is starting (drag or animation).
+	 * Ref-counted: the snapshot class is added on the first call and
+	 * removed only when every `beginFlip` has a matching `endFlip`.
+	 * This keeps the GPU layer and scrollbar/selection lockdown stable
+	 * across the full drag→release→animation cycle.
+	 */
+	beginFlip(): void {
+		this.flipRefCount++;
+		if (this.flipRefCount !== 1) return; // already promoted
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "transform";
 			if (this.bookProperties.snapshotDuringFlip) {
-				// Lock down the page with strict containment so the browser
-				// operates on a cached GPU texture during the 3D animation.
-				page.style.contain = "strict";
-				// Hide overflow to prevent scrollbar artifacts in the snapshot.
-				page.style.overflow = "hidden";
-				// Disable text selection during the flip to avoid selection
-				// artefacts on the rotating snapshot.
-				page.style.userSelect = "none";
+				page.classList.add("page--flipping");
 			}
 		}
 	}
 
-	/** Release the compositor layer promotion after animation completes. */
-	private releaseGPULayer(): void {
+	/**
+	 * Signal that a flip interaction finished (drag or animation).
+	 * Only releases the GPU layer when every `beginFlip` is balanced.
+	 */
+	endFlip(): void {
+		this.flipRefCount = Math.max(0, this.flipRefCount - 1);
+		if (this.flipRefCount !== 0) return; // still active
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "";
 			if (this.bookProperties.snapshotDuringFlip) {
-				page.style.contain = "layout style paint";
-				page.style.overflow = "";
-				page.style.userSelect = "";
+				page.classList.remove("page--flipping");
 			}
 		}
 	}
@@ -125,7 +129,7 @@ export class Leaf {
 
 		this.targetFlipPosition = flipPosition;
 		// Promote to GPU layer before animation starts for smooth compositing
-		this.promoteToGPULayer();
+		this.beginFlip();
 
 		this.currentAnimation = new Promise<void>((resolve) => {
 			const currentFlipPosition = this.flipPosition;
@@ -158,7 +162,7 @@ export class Leaf {
 					this.currentAnimation = null;
 					this.targetFlipPosition = null;
 					// Release GPU layer after animation completes
-					this.releaseGPULayer();
+					this.endFlip();
 					resolve();
 				}
 			};
@@ -181,16 +185,14 @@ export class Leaf {
 		const { pageShadow } = this.bookProperties;
 
 		// Only compute shadow values when shadow is enabled — skipping these
-		// saves 4 CSS custom-property mutations per page per animation frame.
+		// saves CSS custom-property mutations per page per animation frame.
 		let shadowStrength = 0;
 		let highlightStrength = 0;
-		let lift = "0px";
 		if (pageShadow) {
 			const shadowFromFlip = Math.sin(clampedPosition * Math.PI);
 			const shadowProgress = Math.max(shadowFromFlip, this.hoverShadow);
 			shadowStrength = Math.min(1, shadowProgress * SHADOW_STRENGTH_MULTIPLIER);
 			highlightStrength = Math.min(1, shadowProgress * HIGHLIGHT_STRENGTH_MULTIPLIER);
-			lift = `${(shadowProgress * SHADOW_LIFT_PX).toFixed(3)}px`;
 		}
 
 		this.pages.forEach((page, index) => {
@@ -230,7 +232,6 @@ export class Leaf {
 				const edge = origin === "left" ? "right" : "left";
 				page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
 				page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
-				page.style.setProperty("--inner-shadow-lift", lift);
 				page.style.setProperty("--inner-shadow-edge", edge);
 			}
 		});

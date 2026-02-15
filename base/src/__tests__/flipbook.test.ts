@@ -11,8 +11,10 @@ vi.mock("hammerjs", () => {
 			on: vi.fn(),
 			off: vi.fn(),
 			destroy: vi.fn(),
+			get: vi.fn(() => ({ set: vi.fn() })),
 		};
 	}
+	MockHammer.DIRECTION_HORIZONTAL = 6;
 	return { default: MockHammer };
 });
 
@@ -1000,6 +1002,110 @@ describe("FlipBook", () => {
 			await getFlipBookInternals(flipBook).onDragEnd({ velocityX: 0 });
 
 			expect(spy).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("vertical scroll must not interfere with flip", () => {
+		/** Dispatch a touchstart on the container to set touchStartingPos and reset direction lock. */
+		function touchStart(target: HTMLElement, x: number, y: number) {
+			target.dispatchEvent(
+				new TouchEvent("touchstart", { touches: [{ pageX: x, pageY: y } as Touch] }),
+			);
+		}
+		/** Dispatch a touchmove on the container — triggers direction lock logic. */
+		function touchMove(target: HTMLElement, x: number, y: number) {
+			target.dispatchEvent(
+				new TouchEvent("touchmove", {
+					cancelable: true,
+					touches: [{ pageX: x, pageY: y } as Touch],
+				}),
+			);
+		}
+
+		it("should lock direction to vertical on first significant downward touch", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			touchStart(container, 400, 300);
+			// Move 50 px down, 2 px right — clearly vertical
+			touchMove(container, 402, 350);
+
+			expect(flipBook.touchDirectionLock).toBe("vertical");
+		});
+
+		it("should lock direction to horizontal on first significant sideways touch", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+
+			touchStart(container, 400, 300);
+			// Move 50 px left, 2 px down — clearly horizontal
+			touchMove(container, 350, 302);
+
+			expect(flipBook.touchDirectionLock).toBe("horizontal");
+		});
+
+		it("should reject onDragStart when touch is locked to vertical", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// Simulate vertical scroll via real touch events
+			touchStart(container, 400, 300);
+			touchMove(container, 402, 450); // vertical lock
+
+			// Hammer panstart fires due to horizontal jitter
+			internals.onDragStart({ center: { x: 402 } });
+
+			// isDragging should NOT have been set — the drag was rejected
+			expect((flipBook as unknown as { isDragging: boolean }).isDragging).toBe(false);
+		});
+
+		it("should reject onDragUpdate when touch is locked to vertical — no flip state created", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// Simulate vertical scroll
+			touchStart(container, 400, 300);
+			touchMove(container, 395, 500); // vertical lock
+
+			// Even if onDragStart slipped through (e.g. before lock was set)
+			internals.onDragStart({ center: { x: 400 } });
+			// panmove with small forward delta (400 → 395 = 5 px forward in LTR)
+			internals.onDragUpdate({ center: { x: 395 } });
+
+			// No flip state should have been created
+			expect(internals.activeFlips.size).toBe(0);
+			expect(internals.isDuringManualFlip).toBe(false);
+		});
+
+		it("should reset direction lock on new touchstart — allowing a subsequent flip", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// 1. Vertical scroll gesture
+			touchStart(container, 400, 300);
+			touchMove(container, 402, 500); // vertical lock
+			expect(flipBook.touchDirectionLock).toBe("vertical");
+
+			// 2. New gesture — touchstart resets the lock
+			touchStart(container, 700, 300);
+			touchMove(container, 600, 302); // horizontal lock
+			expect(flipBook.touchDirectionLock).toBe("horizontal");
+
+			// 3. Now Hammer fires panstart/panmove for horizontal flip
+			internals.onDragStart({ center: { x: 700 } });
+			internals.onDragUpdate({ center: { x: 400 } });
+
+			// The real flip should work
+			expect(internals.isDuringManualFlip).toBe(true);
+			expect(internals.flipDirection).toBe(FlipDirection.Forward);
 		});
 	});
 
