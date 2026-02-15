@@ -6,6 +6,9 @@
   // (e.g. cover interiors) would be transparent and the other side of the leaf
   // would bleed through mirrored via the 3D transform.
   background: #fff;
+  // Performance: isolate each page as an independent rendering island so the
+  // browser can skip re-layout/repaint of page internals during 3D transforms.
+  contain: layout style paint;
   --inner-shadow-shadow: 0;
   --inner-shadow-highlight: 0;
   --inner-shadow-lift: 0px;

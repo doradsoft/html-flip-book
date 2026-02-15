@@ -242,6 +242,42 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const ofRef = useRef(of);
 		ofRef.current = of;
 
+		// Debounce buffer-related re-renders during rapid consecutive page flips.
+		// When leavesBuffer is set, each onPageChanged triggers a React re-render
+		// that recalculates which pages to mount/unmount — expensive with complex
+		// content (e.g. Hebrew text, perushim).  By debouncing, rapid flips (>1 at
+		// a time) batch into a single re-render after settling.  The page indicator
+		// reads directly from the imperative handle (flipBook.current) and is not
+		// affected by this debounce.
+		const BUFFER_DEBOUNCE_MS = 80;
+		const pageChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+		const onPageChangedRef = useRef((index: number) => {
+			setPageIndexRef.current?.(index);
+		});
+		onPageChangedRef.current = (index: number) => {
+			if (pageChangedTimerRef.current != null) {
+				clearTimeout(pageChangedTimerRef.current);
+			}
+			if (leavesBuffer == null) {
+				// No buffer — update immediately; no expensive mount/unmount cycle.
+				setPageIndexRef.current?.(index);
+				return;
+			}
+			pageChangedTimerRef.current = setTimeout(() => {
+				pageChangedTimerRef.current = null;
+				setPageIndexRef.current?.(index);
+			}, BUFFER_DEBOUNCE_MS);
+		};
+
+		// Clean up debounce timer on unmount.
+		useEffect(() => {
+			return () => {
+				if (pageChangedTimerRef.current != null) {
+					clearTimeout(pageChangedTimerRef.current);
+				}
+			};
+		}, []);
+
 		const flipBook = useRef(
 			new FlipBookBase({
 				pageSemantics: pageSemantics,
@@ -253,7 +289,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				leafAspectRatio: leafAspectRatio,
 				coverAspectRatio: coverAspectRatio,
 				coverPageIndices: coverConfig?.coverIndices,
-				onPageChanged: (index: number) => setPageIndexRef.current?.(index),
+				onPageChanged: (index: number) => onPageChangedRef.current(index),
 				onPageFlipping: handlers?.onPageFlipping,
 				onPageFlipped: handlers?.onPageFlipped,
 				historyMapper,

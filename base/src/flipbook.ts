@@ -465,6 +465,10 @@ class FlipBook {
 			for (const page of leaf.pages) {
 				if (page) {
 					page.style.display = visible ? "" : "none";
+					// Use content-visibility to skip rendering of off-screen pages.
+					// "hidden" is more aggressive than display:none — the browser
+					// also skips layout/paint entirely, reducing memory pressure.
+					page.style.contentVisibility = visible ? "visible" : "hidden";
 				}
 			}
 		}

@@ -74,6 +74,20 @@ export class Leaf {
 		this.applyTransform(this.flipPosition);
 	}
 
+	/** Promote pages to their own compositor layer for smooth GPU-accelerated transforms. */
+	private promoteToGPULayer(): void {
+		for (const page of this.pages) {
+			if (page) page.style.willChange = "transform";
+		}
+	}
+
+	/** Release the compositor layer promotion after animation completes. */
+	private releaseGPULayer(): void {
+		for (const page of this.pages) {
+			if (page) page.style.willChange = "";
+		}
+	}
+
 	async flipToPosition(
 		flipPosition: FlipPosition,
 		velocity: DegreesPerSecond = 225 as DegreesPerSecond,
@@ -91,6 +105,8 @@ export class Leaf {
 		}
 
 		this.targetFlipPosition = flipPosition;
+		// Promote to GPU layer before animation starts for smooth compositing
+		this.promoteToGPULayer();
 
 		this.currentAnimation = new Promise<void>((resolve) => {
 			const currentFlipPosition = this.flipPosition;
@@ -116,16 +132,14 @@ export class Leaf {
 				if (this.flipPosition === 1 || this.flipPosition === 0) {
 					this.onTurned(this.flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward);
 				}
-				// Detailed log for debugging
-				// console.log(
-				//   `Timestamp: ${timestamp}, Elapsed: ${elapsed}, Progress: ${progress}, Current Position: ${currentFlipPosition}, Requested Position: ${flipPosition}, New Position: ${this.flipPosition}`
-				// );
 
 				if (progress < 1) {
 					scheduleFrame(step);
 				} else {
 					this.currentAnimation = null;
 					this.targetFlipPosition = null;
+					// Release GPU layer after animation completes
+					this.releaseGPULayer();
 					resolve();
 				}
 			};
