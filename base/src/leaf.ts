@@ -35,6 +35,8 @@ export class Leaf {
 			isLTR: boolean;
 			pagesCount: number;
 			leavesCount: number;
+			pageShadow: boolean;
+			snapshotDuringFlip: boolean;
 		},
 		private readonly onTurned: (direction: FlipDirection) => void,
 	) {
@@ -77,14 +79,25 @@ export class Leaf {
 	/** Promote pages to their own compositor layer for smooth GPU-accelerated transforms. */
 	private promoteToGPULayer(): void {
 		for (const page of this.pages) {
-			if (page) page.style.willChange = "transform";
+			if (!page) continue;
+			page.style.willChange = "transform";
+			// When snapshotDuringFlip is enabled, lock down the page with strict
+			// containment so the browser can use a cached GPU texture of the content
+			// and avoid re-layout/repaint of children during the 3D animation.
+			if (this.bookProperties.snapshotDuringFlip) {
+				page.style.contain = "strict";
+			}
 		}
 	}
 
 	/** Release the compositor layer promotion after animation completes. */
 	private releaseGPULayer(): void {
 		for (const page of this.pages) {
-			if (page) page.style.willChange = "";
+			if (!page) continue;
+			page.style.willChange = "";
+			if (this.bookProperties.snapshotDuringFlip) {
+				page.style.contain = "layout style paint";
+			}
 		}
 	}
 
@@ -159,11 +172,20 @@ export class Leaf {
 
 	applyTransform(position: number): void {
 		const clampedPosition = Math.max(0, Math.min(1, position));
-		const shadowFromFlip = Math.sin(clampedPosition * Math.PI);
-		const shadowProgress = Math.max(shadowFromFlip, this.hoverShadow);
-		const shadowStrength = Math.min(1, shadowProgress * SHADOW_STRENGTH_MULTIPLIER);
-		const highlightStrength = Math.min(1, shadowProgress * HIGHLIGHT_STRENGTH_MULTIPLIER);
-		const lift = `${(shadowProgress * SHADOW_LIFT_PX).toFixed(3)}px`;
+		const { pageShadow } = this.bookProperties;
+
+		// Only compute shadow values when shadow is enabled — skipping these
+		// saves 4 CSS custom-property mutations per page per animation frame.
+		let shadowStrength = 0;
+		let highlightStrength = 0;
+		let lift = "0px";
+		if (pageShadow) {
+			const shadowFromFlip = Math.sin(clampedPosition * Math.PI);
+			const shadowProgress = Math.max(shadowFromFlip, this.hoverShadow);
+			shadowStrength = Math.min(1, shadowProgress * SHADOW_STRENGTH_MULTIPLIER);
+			highlightStrength = Math.min(1, shadowProgress * HIGHLIGHT_STRENGTH_MULTIPLIER);
+			lift = `${(shadowProgress * SHADOW_LIFT_PX).toFixed(3)}px`;
+		}
 
 		this.pages.forEach((page, index) => {
 			const isLTR = this.bookProperties.isLTR;
@@ -189,7 +211,6 @@ export class Leaf {
 			const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : "0px"}`;
 			const scaleX = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
 			const origin = isOdd ? (isLTR ? "left" : "right") : isLTR ? "right" : "left";
-			const edge = origin === "left" ? "right" : "left";
 
 			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
 			page.style.transformOrigin = origin;
@@ -198,10 +219,14 @@ export class Leaf {
 					? page.dataset.pageIndex
 					: this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
 			}`;
-			page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
-			page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
-			page.style.setProperty("--inner-shadow-lift", lift);
-			page.style.setProperty("--inner-shadow-edge", edge);
+
+			if (pageShadow) {
+				const edge = origin === "left" ? "right" : "left";
+				page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
+				page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
+				page.style.setProperty("--inner-shadow-lift", lift);
+				page.style.setProperty("--inner-shadow-edge", edge);
+			}
 		});
 	}
 }

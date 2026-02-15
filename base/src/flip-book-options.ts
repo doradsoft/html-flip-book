@@ -125,4 +125,12 @@ export interface FlipBookOptions {
 	 * Default: true.
 	 */
 	pageShadow?: boolean;
+	/**
+	 * When true, uses aggressive containment (`contain: strict`) on pages
+	 * during flip animations so the browser can operate on a cached GPU
+	 * texture rather than re-rendering page content every frame. This
+	 * significantly reduces jank when flipping multiple pages rapidly.
+	 * Default: false.
+	 */
+	snapshotDuringFlip?: boolean;
 }

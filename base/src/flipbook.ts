@@ -80,6 +80,7 @@ class FlipBook {
 	private readonly coverPageIndices?: number[] | "auto";
 	private readonly downloadConfig: DownloadConfig | undefined;
 	private readonly pageShadow: boolean;
+	private readonly snapshotDuringFlip: boolean;
 	private leaves: Leaf[] = [];
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
@@ -199,6 +200,7 @@ class FlipBook {
 		this.coverPageIndices = options.coverPageIndices;
 		this.downloadConfig = options.enableDownload !== false ? options.downloadConfig : undefined;
 		this.pageShadow = options.pageShadow ?? true;
+		this.snapshotDuringFlip = options.snapshotDuringFlip ?? false;
 		setTocPageIndex(options.tocPageIndex ?? 4);
 	}
 
@@ -318,6 +320,8 @@ class FlipBook {
 						isLTR: this.isLTR,
 						leavesCount: leavesCount,
 						pagesCount: this.pagesCount,
+						pageShadow: this.pageShadow,
+						snapshotDuringFlip: this.snapshotDuringFlip,
 					},
 					(direction: FlipDirection) => {
 						const currentVisiblePageIndices: [number] | [number, number] =

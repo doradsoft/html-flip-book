@@ -165,6 +165,13 @@ export interface FlipBookProps {
 	 */
 	pageShadow?: boolean;
 	/**
+	 * When true, uses aggressive containment on pages during flip animations
+	 * so the browser can operate on a cached GPU texture rather than
+	 * re-rendering content every frame. Reduces jank when flipping rapidly.
+	 * Default: false.
+	 */
+	snapshotDuringFlip?: boolean;
+	/**
 	 * When false, history integration is disabled. When true or omitted, the provided historyMapper
 	 * is used; there is no default implementation. See base FlipBookOptions and issue #168.
 	 */
@@ -208,6 +215,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			fastDeltaThreshold,
 			leavesBuffer,
 			pageShadow = true,
+			snapshotDuringFlip = false,
 			enableHistory,
 			enableDownload,
 			coverConfig,
@@ -296,6 +304,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				tocPageIndex: tocPageIndex ?? 4,
 				downloadConfig,
 				pageShadow,
+				snapshotDuringFlip,
 				enableHistory,
 				enableDownload,
 			}),
