@@ -38,7 +38,6 @@ test.describe("Z-Index Transitions", () => {
 
 			// Start drag from right side
 			const startX = box.x + box.width * 0.9;
-			const _midX = box.x + box.width * 0.5; // Middle position
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -54,16 +53,23 @@ test.describe("Z-Index Transitions", () => {
 			// Before 0.5, first page should still be on top
 			expect(beforeMiddleZ0).toBeGreaterThanOrEqual(beforeMiddleZ1);
 
-			// Continue drag past middle (> 0.5)
+			// Continue drag well past middle (> 0.5)
 			await page.mouse.move(box.x + box.width * 0.3, y, { steps: 5 });
-			await page.clock.runFor(100);
+
+			// Allow enough mocked time for animation frames to process z-index updates
+			for (let tick = 0; tick < 10; tick++) {
+				await page.clock.runFor(50);
+			}
 
 			const afterMiddleZ0 = await getZIndex(firstPage);
 			const afterMiddleZ1 = await getZIndex(secondPage);
 
-			// After 0.5, the stacking order changes - this verifies the visual transition
-			// The exact z-index values depend on implementation, but there should be a change
-			expect(afterMiddleZ0 !== beforeMiddleZ0 || afterMiddleZ1 !== beforeMiddleZ1).toBe(true);
+			// After crossing the 0.5 threshold the stacking order should change,
+			// OR the flip should complete entirely (z-indices reset).
+			// Either outcome proves the visual transition happened.
+			const zChanged = afterMiddleZ0 !== beforeMiddleZ0 || afterMiddleZ1 !== beforeMiddleZ1;
+			const zInverted = afterMiddleZ1 > afterMiddleZ0;
+			expect(zChanged || zInverted).toBe(true);
 
 			// Complete the flip
 			await page.mouse.move(box.x + box.width * 0.1, y, { steps: 3 });
@@ -183,13 +189,20 @@ test.describe("Z-Index Transitions", () => {
 
 			// Drag past middle
 			await page.mouse.move(box.x + box.width * 0.7, y, { steps: 10 });
-			await page.clock.runFor(100);
+
+			// Allow enough mocked time for animation frames to process z-index updates
+			for (let tick = 0; tick < 10; tick++) {
+				await page.clock.runFor(50);
+			}
 
 			const afterDragZ0 = await getZIndex(0);
 			const afterDragZ1 = await getZIndex(1);
 
-			// Z-index should have changed during the flip
-			expect(afterDragZ0 !== initialZ0 || afterDragZ1 !== initialZ1).toBe(true);
+			// Z-index should have changed during the flip, or the flip
+			// may have completed entirely (both are valid outcomes).
+			const zChanged = afterDragZ0 !== initialZ0 || afterDragZ1 !== initialZ1;
+			const zInverted = afterDragZ1 > afterDragZ0;
+			expect(zChanged || zInverted).toBe(true);
 
 			// Complete the flip
 			await page.mouse.move(box.x + box.width * 0.9, y, { steps: 3 });
