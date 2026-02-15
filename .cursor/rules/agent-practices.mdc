@@ -1,0 +1,20 @@
+---
+description: General agent behavior rules for html-flip-book
+alwaysApply: true
+---
+
+# Agent Practices
+
+## Own Your Work
+
+- Never refer to code you wrote as "pre-existing" or "already there." You implemented it; own it.
+- When something you built breaks, acknowledge it and fix it. Do not blame external factors for your own code.
+
+## Execution
+
+- Run commands yourself: build, tests, installs, dev server. Do not instruct the user to "run this in your terminal."
+- **NEVER** tell the user to run commands. You execute all commands yourself using the shell tool.
+
+## Consumers
+
+- `bible-on-site` is the primary consumer of this library. When making type or API changes, be aware that `bible-on-site` CI depends on the **published** npm package. The published version must be updated before `bible-on-site` CI can pass.

@@ -1,0 +1,25 @@
+---
+description: html-flip-book CI/CD pipeline — fully automated publishing
+globs: .github/workflows/*,base/package.json,react/package.json
+alwaysApply: false
+---
+
+# CI/CD Pipeline — Fully Automated
+
+**Never run `npm publish` manually. Never create GitHub Releases manually.**
+
+## Flow
+
+1. **CI** (`ci.yml`): On every push to master, after lint/build/tests pass, the **Release** job auto-creates a GitHub Release (tag from `base/package.json` version). Uses `BOT_PAT` so the release event triggers downstream workflows.
+2. **CD** (`cd.yml`): Triggered by the release event. Publishes both `html-flip-book-vanilla` and `html-flip-book-react` to npm via OIDC trusted publishing.
+3. **Auto Bump** (`auto-bump-version.yml`): After release, bumps the patch version in all `package.json` files and commits `[skip ci]` to master.
+
+## To publish a new version
+
+Just merge to master. Everything else is automatic.
+
+## Versioning
+
+- Versions follow semver. Pre-release tags use `0.0.0-alpha.N`.
+- The auto-bump workflow increments the patch segment after each release.
+- The version in `base/package.json` is the source of truth for the release tag.
