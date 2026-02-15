@@ -34,8 +34,9 @@ export interface PageFlipParams {
  * When provided, the flip-book will pushState when the user flips and restore the page on back/forward.
  */
 export interface HistoryMapper {
-	/** Build a route string from the current page (and optional semantic). Used for pushState/replaceState. */
-	pageToRoute: (pageIndex: number, semantic: FlipPageSemantic | undefined) => string;
+	/** Build a route string from the current page (and optional semantic). Used for pushState/replaceState.
+	 * Return null to skip the history update for this page (e.g. cover, TOC, or other non-navigable pages). */
+	pageToRoute: (pageIndex: number, semantic: FlipPageSemantic | undefined) => string | null;
 	/** Parse a route string (e.g. from popstate) and return the page index, or null if invalid. */
 	routeToPage: (route: string) => number | null;
 }

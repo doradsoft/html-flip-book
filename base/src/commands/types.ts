@@ -17,6 +17,8 @@ export interface FlipBookHandleLike {
 	isLastPage: () => boolean;
 	/** Download configuration for the book. Undefined when no download is configured. */
 	getDownloadConfig?: () => import("../download/types").DownloadConfig | undefined;
+	/** Get the configured table of contents page index. */
+	getTocPageIndex?: () => number;
 }
 
 /**

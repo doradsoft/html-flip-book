@@ -144,6 +144,10 @@ class FlipBook {
 		if (this.onPageFlipped) this.onPageFlipped(params);
 		if (typeof window !== "undefined" && this.historyMapper && !this._isRestoringFromHistory) {
 			const route = this.historyMapper.pageToRoute(pageIndex, semantic);
+			// When pageToRoute returns null the consumer signals "this page has
+			// no meaningful URL" (e.g. cover, TOC).  Skip the pushState entirely
+			// to avoid framework-level routing side-effects.
+			if (route == null) return;
 			const state = { route };
 			const url = route.startsWith("#")
 				? `${window.location.pathname}${window.location.search}${route}`
@@ -217,7 +221,16 @@ class FlipBook {
 		this.downloadConfig = options.enableDownload !== false ? options.downloadConfig : undefined;
 		this.pageShadow = options.pageShadow ?? true;
 		this.snapshotDuringFlip = options.snapshotDuringFlip ?? true;
-		setTocPageIndex(options.tocPageIndex ?? 4);
+		this._tocPageIndex = options.tocPageIndex ?? 4;
+		// Keep the module-level store in sync for backward-compat
+		setTocPageIndex(this._tocPageIndex);
+	}
+
+	private _tocPageIndex = 4;
+
+	/** Get the configured table of contents page index. */
+	getTocPageIndex(): number {
+		return this._tocPageIndex;
 	}
 
 	/** Download config (handlers and filename hints). Used by toolbar. */

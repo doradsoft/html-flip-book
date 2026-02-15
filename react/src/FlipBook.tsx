@@ -42,6 +42,8 @@ export interface FlipBookHandle {
 	isLastPage: () => boolean;
 	/** Get download configuration for the book. Undefined when no download is configured. */
 	getDownloadConfig: () => DownloadConfig | undefined;
+	/** Get the configured table of contents page index. */
+	getTocPageIndex: () => number;
 }
 
 /**
@@ -330,6 +332,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				isFirstPage: () => flipBook.current.isFirstPage,
 				isLastPage: () => flipBook.current.isLastPage,
 				getDownloadConfig: () => flipBook.current.getDownloadConfig(),
+				getTocPageIndex: () => flipBook.current.getTocPageIndex(),
 			}),
 			[className],
 		);
