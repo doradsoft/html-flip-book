@@ -7,6 +7,7 @@
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
+	padding: 8% 6%;
 }
 
 /* Inner area: vertical scroll only; no horizontal scroll */
