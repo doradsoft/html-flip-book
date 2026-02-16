@@ -1,5 +1,5 @@
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { SemanticPageInfo } from "../download/types";
 import { isRtl, t } from "../i18n";
 import { DownloadIcon } from "../icons";
@@ -25,7 +25,8 @@ function triggerDownload(result: { ext: string; data: string }, filenameBase: st
 	}
 }
 
-/** Collect pages that have a semantic name (or use index as fallback) for range selector options */
+/** Collect pages that have a semantic name for range selector options.
+ *  Pages without a semantic name (covers, blanks, TOC) are excluded. */
 function getSelectablePages(
 	totalPages: number,
 	pageSemantics?: {
@@ -35,9 +36,22 @@ function getSelectablePages(
 ): SemanticPageInfo[] {
 	const list: SemanticPageInfo[] = [];
 	for (let i = 0; i < totalPages; i++) {
-		const semanticName = pageSemantics?.indexToSemanticName(i) ?? String(i + 1);
-		const title = pageSemantics?.indexToTitle(i) ?? `Page ${i + 1}`;
-		list.push({ pageIndex: i, semanticName, title });
+		const semanticName = pageSemantics?.indexToSemanticName(i) ?? "";
+		const title = pageSemantics?.indexToTitle(i) ?? "";
+		// Only include pages with a real semantic identity
+		if (!semanticName && !title) {
+			// No semantics at all — fall back to 1-based index only when
+			// no pageSemantics provider exists (plain book without metadata).
+			if (!pageSemantics) {
+				list.push({ pageIndex: i, semanticName: String(i + 1), title: `Page ${i + 1}` });
+			}
+			continue;
+		}
+		list.push({
+			pageIndex: i,
+			semanticName: semanticName || String(i + 1),
+			title: title || semanticName,
+		});
 	}
 	return list;
 }
@@ -78,21 +92,26 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
 
-	const selectablePages = getSelectablePages(totalPages, pageSemantics);
+	const selectablePages = useMemo(
+		() => getSelectablePages(totalPages, pageSemantics),
+		[totalPages, pageSemantics],
+	);
 
 	const hasSefer = Boolean(downloadConfig?.onDownloadSefer);
 	const hasRange = Boolean(downloadConfig?.onDownloadPageRange);
 	const showDropdown = hasSefer || hasRange;
 
-	// When opening, default mode to "entire" if available, else "range"; init range from flipbook ref (source of truth)
+	// Pre-compute primitive values from the memoised list so the effect deps stay stable
+	const firstSelectablePage = selectablePages[0]?.pageIndex ?? 0;
+	const lastSelectablePage = selectablePages[selectablePages.length - 1]?.pageIndex ?? 0;
+
+	// When opening, default mode to "entire" if available, else "range"; init range to first/last selectable page
 	useEffect(() => {
-		if (open) {
-			setDownloadMode(hasSefer ? "entire" : "range");
-			const total = flipBookRef.current?.getTotalPages?.() ?? totalPages;
-			setFromIndex(0);
-			setToIndex(Math.max(0, total - 1));
-		}
-	}, [open, hasSefer, totalPages, flipBookRef]);
+		if (!open) return;
+		setDownloadMode(hasSefer ? "entire" : "range");
+		setFromIndex(firstSelectablePage);
+		setToIndex(lastSelectablePage);
+	}, [open, hasSefer, firstSelectablePage, lastSelectablePage]);
 
 	const closeDropdown = useCallback(() => {
 		setOpen(false);

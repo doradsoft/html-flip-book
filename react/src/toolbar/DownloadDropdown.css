@@ -12,10 +12,12 @@
 .flipbook-toolbar-download-menu {
 	position: absolute;
 	top: 100%;
-	inset-inline-start: 0;
-	inset-inline-end: auto;
+	inset-inline-end: 0;
+	inset-inline-start: auto;
 	margin-top: 6px;
-	min-width: 240px;
+	min-width: min(320px, 90vw);
+	width: max-content;
+	max-width: min(400px, 95vw);
 	max-height: min(70vh, 480px);
 	overflow-y: auto;
 	padding: 8px 0;
@@ -24,7 +26,7 @@
 	box-shadow:
 		0 8px 30px rgba(0, 0, 0, 0.35),
 		0 1px 3px rgba(0, 0, 0, 0.15);
-	z-index: 100;
+	z-index: 10000;
 	backdrop-filter: blur(12px);
 }
 
@@ -44,6 +46,7 @@
 	padding: 4px 8px;
 	border: none;
 	margin: 0;
+	min-width: 0;
 }
 
 .flipbook-toolbar-download-radio-label {
@@ -58,6 +61,14 @@
 	transition: background-color 0.15s ease;
 	-webkit-tap-highlight-color: transparent;
 	user-select: none;
+	min-width: 0;
+}
+
+.flipbook-toolbar-download-radio-label span {
+	flex: 0 1 auto;
+	min-width: min-content;
+	overflow: visible;
+	white-space: nowrap;
 }
 
 .flipbook-toolbar-download-radio-label:hover {
@@ -124,6 +135,12 @@
 
 .flipbook-toolbar-download-range-select:focus {
 	border-color: rgba(110, 168, 254, 0.6);
+}
+
+/* Native <option> elements use OS chrome — force readable colors */
+.flipbook-toolbar-download-range-select option {
+	color: #000;
+	background: #fff;
 }
 
 /* ── Download action button ── */
