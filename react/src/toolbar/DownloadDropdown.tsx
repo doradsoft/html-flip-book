@@ -168,7 +168,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 			const semanticPages: SemanticPageInfo[] = [];
 			for (let i = from; i <= to; i++) {
 				pages.push(i);
-				const info = selectablePages[i];
+				const info = selectablePages.find((sp) => sp.pageIndex === i);
 				if (info) semanticPages.push(info);
 			}
 			setLoading("range");

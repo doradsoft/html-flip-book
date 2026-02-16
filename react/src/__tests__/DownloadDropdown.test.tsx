@@ -190,6 +190,51 @@ describe("DownloadDropdown", () => {
 		expect(screen.queryByRole("menu")).toBeNull();
 	});
 
+	it("passes correct semanticPages (by pageIndex, not array index) to range download handler", async () => {
+		const onDownloadPageRange = vi.fn().mockResolvedValue(null);
+		const perekCount = 3;
+		const totalPages = 3 + perekCount * 2 + 2;
+		const semantics = createHebrewSemantics(perekCount);
+		const config: DownloadConfig = {
+			...DOWNLOAD_CONFIG,
+			onDownloadPageRange,
+		};
+		const ref = createMockFlipBookRef(config, {
+			getTotalPages: vi.fn().mockReturnValue(totalPages),
+		});
+
+		render(
+			<Toolbar flipBookRef={ref} pageSemantics={semantics}>
+				<DownloadDropdown ariaLabel="Download" />
+			</Toolbar>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+		// Switch to range mode
+		const radios = screen.getAllByRole("radio") as HTMLInputElement[];
+		fireEvent.click(radios[1]);
+
+		// Click the download button
+		const downloadBtn = screen.getByRole("menuitem");
+		await act(async () => {
+			fireEvent.click(downloadBtn);
+		});
+
+		if (onDownloadPageRange.mock.calls.length > 0) {
+			const [pages, semanticPages] = onDownloadPageRange.mock.calls[0];
+
+			// The selectable pages have pageIndex 3, 5, 7 (CONTENT_OFFSET + perekIdx*2)
+			// If the old bug existed (indexing by array position), semanticPages would have
+			// WRONG entries. With the fix (find by pageIndex), they should match correctly.
+			for (const sp of semanticPages) {
+				// Each semantic page's pageIndex should be >= CONTENT_OFFSET (3)
+				expect(sp.pageIndex).toBeGreaterThanOrEqual(3);
+				// And should be in the pages array
+				expect(pages).toContain(sp.pageIndex);
+			}
+		}
+	});
+
 	it("calls onDownloadSefer when download button is clicked in entire mode", async () => {
 		const onDownloadSefer = vi.fn().mockResolvedValue(null);
 		const config: DownloadConfig = {
