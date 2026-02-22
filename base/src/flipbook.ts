@@ -389,25 +389,31 @@ class FlipBook {
 			}
 		});
 
-		// Set initial visible page indices based on initially turned leaves
-		const firstVisibleLeafIndex =
-			this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0;
-		const firstVisiblePageIndex = firstVisibleLeafIndex * 2;
+		// Set initial visible page indices based on initially turned leaves.
+		// Must match the post-flip model: the visible spread is the back of
+		// the last turned leaf (odd page) and the front of the next un-turned
+		// leaf (even page) → [lastTurnedLeaf*2+1, lastTurnedLeaf*2+2].
+		const lastTurnedLeafIndex =
+			this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) : -1;
 
-		// Handle edge case where all leaves are turned (showing last page only)
-		if (firstVisiblePageIndex >= this.pagesCount) {
-			// All leaves are turned - show the last page(s)
-			const lastLeafIndex = Math.ceil(this.pagesCount / 2) - 1;
-			const lastLeafFirstPage = lastLeafIndex * 2;
-			this.prevVisiblePageIndices =
-				lastLeafFirstPage + 1 < this.pagesCount
-					? [lastLeafFirstPage, lastLeafFirstPage + 1]
-					: [lastLeafFirstPage];
+		if (lastTurnedLeafIndex < 0) {
+			this.prevVisiblePageIndices = 1 < this.pagesCount ? [0, 1] : [0];
 		} else {
-			this.prevVisiblePageIndices =
-				firstVisiblePageIndex + 1 < this.pagesCount
-					? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
-					: [firstVisiblePageIndex];
+			const firstVisiblePageIndex = lastTurnedLeafIndex * 2 + 1;
+			if (firstVisiblePageIndex >= this.pagesCount) {
+				// All leaves are turned — show the last page(s)
+				const lastLeafIndex = Math.ceil(this.pagesCount / 2) - 1;
+				const lastLeafFirstPage = lastLeafIndex * 2;
+				this.prevVisiblePageIndices =
+					lastLeafFirstPage + 1 < this.pagesCount
+						? [lastLeafFirstPage, lastLeafFirstPage + 1]
+						: [lastLeafFirstPage];
+			} else {
+				this.prevVisiblePageIndices =
+					firstVisiblePageIndex + 1 < this.pagesCount
+						? [firstVisiblePageIndex, firstVisiblePageIndex + 1]
+						: [firstVisiblePageIndex];
+			}
 		}
 
 		// Observe container size changes and re-layout automatically.
@@ -1008,21 +1014,24 @@ class FlipBook {
 			return;
 		}
 
-		const targetLeafIndex = Math.floor(pageIndex / 2);
-		const currentLeafIndex = Math.floor(this.currentPageIndex / 2);
+		// Compute the last-turned-leaf index that makes pageIndex visible,
+		// using the same formula as jumpToPage.
+		const targetLastTurned = pageIndex <= 0 ? -1 : Math.floor((pageIndex - 1) / 2);
+		const currentLastTurned =
+			this.currentPageIndex <= 0 ? -1 : Math.floor((this.currentPageIndex - 1) / 2);
 
-		if (targetLeafIndex === currentLeafIndex) {
-			return; // Already at the target page
+		if (targetLastTurned === currentLastTurned) {
+			return; // Already at the target spread
 		}
 
-		if (targetLeafIndex > currentLeafIndex) {
-			// Flip forward
-			for (let i = currentLeafIndex; i < targetLeafIndex; i++) {
+		if (targetLastTurned > currentLastTurned) {
+			const steps = targetLastTurned - currentLastTurned;
+			for (let i = 0; i < steps; i++) {
 				await this.flipNext();
 			}
 		} else {
-			// Flip backward
-			for (let i = currentLeafIndex; i > targetLeafIndex; i--) {
+			const steps = currentLastTurned - targetLastTurned;
+			for (let i = 0; i < steps; i++) {
 				await this.flipPrev();
 			}
 		}

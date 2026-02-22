@@ -6,6 +6,11 @@ import { DownloadIcon } from "../icons";
 import { useToolbar } from "./ToolbarContext";
 import "./DownloadDropdown.css";
 
+/** Strip Hebrew punctuation (geresh, gershaim) from a name for use in filenames. */
+function sanitizeForFilename(name: string): string {
+	return name.replace(/[׳'״"]/g, "");
+}
+
 function triggerDownload(result: { ext: string; data: string }, filenameBase: string): void {
 	try {
 		const binary = atob(result.data);
@@ -179,8 +184,10 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 					config.downloadContext,
 				);
 				if (result) {
-					const fromName = semanticPages[0]?.semanticName ?? String(from);
-					const toName = semanticPages[semanticPages.length - 1]?.semanticName ?? String(to);
+					const fromName = sanitizeForFilename(semanticPages[0]?.semanticName ?? String(from));
+					const toName = sanitizeForFilename(
+						semanticPages[semanticPages.length - 1]?.semanticName ?? String(to),
+					);
 					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${fromName}-${toName}`);
 				}
 				closeDropdown();

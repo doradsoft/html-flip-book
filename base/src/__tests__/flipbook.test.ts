@@ -1341,7 +1341,27 @@ describe("FlipBook", () => {
 			});
 			flipBook.render(".flipbook-container");
 
-			expect(flipBook.currentPageIndex).toBe(4); // leaf 2, page 4
+			// With leaves [0,1] turned, visible spread is:
+			//   back of leaf 1 (page 3) + front of leaf 2 (page 4)
+			// currentPageIndex should be the leftmost visible page.
+			expect(flipBook.currentPageIndex).toBe(3);
+		});
+
+		it("currentPageIndex matches post-flip model for initialTurnedLeaves", () => {
+			// Regression: init used to report [2K, 2K+1] instead of
+			// [(K-1)*2+1, (K-1)*2+2] causing the page indicator to be
+			// off-by-one from the actual visible spread.
+			createPages(72); // like a 34-chapter Sefer: cover(0), interior(1), toc(2), 34×2 content+blank, backCover
+			const turnedCount = 31; // want to see page 61 (chapter 30 content)
+			const initialTurnedLeaves = Array.from({ length: turnedCount }, (_, i) => i);
+			const flipBook = new FlipBook({
+				pagesCount: 72,
+				initialTurnedLeaves,
+			});
+			flipBook.render(".flipbook-container");
+
+			// Visible spread: back of leaf 30 (page 61) + front of leaf 31 (page 62)
+			expect(flipBook.currentPageIndex).toBe(61);
 		});
 
 		it("totalPages returns correct count", () => {
@@ -1451,7 +1471,8 @@ describe("FlipBook", () => {
 			});
 			flipBook.render(".flipbook-container");
 
-			expect(flipBook.currentPageIndex).toBe(2);
+			// With [0] turned: visible spread is [1, 2], currentPageIndex = 1
+			expect(flipBook.currentPageIndex).toBe(1);
 
 			await flipBook.flipPrev();
 
@@ -1550,8 +1571,9 @@ describe("FlipBook", () => {
 			});
 			flipBook.render(".flipbook-container");
 
-			// Starting at page 8, go to page 2 (leaf 1)
-			// After unflipping leaves 3, 2, visible pages should be [1, 2]
+			// Init: [0,1,2,3] turned → spread [7,8], currentPageIndex = 7
+			// flipToPage(2): target lastTurned = 0, so unflip 3 leaves (3,2,1)
+			// Result: spread [1,2], currentPageIndex = 1
 			await flipBook.flipToPage(2);
 			// Wait for event loop to process callbacks
 			await new Promise((resolve) => setTimeout(resolve, 50));

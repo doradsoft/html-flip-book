@@ -235,11 +235,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			// Derive the initial page index from initialTurnedLeaves so the
 			// leavesBuffer renders around the correct page on the very first
 			// render — before the base flipbook's useEffect fires.
+			// Must match the base flipbook's model: visible spread starts at
+			// lastTurnedLeaf * 2 + 1 (back of the last turned leaf).
 			if (initialTurnedLeaves && initialTurnedLeaves.length > 0) {
-				const firstVisibleLeaf = Math.max(...initialTurnedLeaves) + 1;
-				const firstVisiblePage = firstVisibleLeaf * 2;
+				const lastTurnedLeaf = Math.max(...initialTurnedLeaves);
+				const firstVisiblePage = lastTurnedLeaf * 2 + 1;
 				if (firstVisiblePage >= pages.length) {
-					// All leaves turned – show last leaf
 					const lastLeaf = Math.ceil(pages.length / 2) - 1;
 					return lastLeaf * 2;
 				}
