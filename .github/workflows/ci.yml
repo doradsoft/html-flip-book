@@ -310,7 +310,7 @@ jobs:
           retention-days: 15
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
   # ============================================================================
   # Release Job - Create tag and GitHub release on master
