@@ -151,7 +151,14 @@ class FlipBook {
 			// no meaningful URL" (e.g. cover, TOC).  Skip the pushState entirely
 			// to avoid framework-level routing side-effects.
 			if (route == null) return;
-			const state = { route };
+			// Keep the current entry's framework state when writing a book route.
+			// Next.js, for example, marks SPA entries in history.state and reloads
+			// the document on Back if that marker is missing.
+			const currentState = window.history.state;
+			const state =
+				currentState !== null && typeof currentState === "object" && !Array.isArray(currentState)
+					? { ...currentState, route }
+					: { route };
 			const url = route.startsWith("#")
 				? `${window.location.pathname}${window.location.search}${route}`
 				: route;

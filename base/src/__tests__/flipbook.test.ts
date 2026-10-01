@@ -99,6 +99,34 @@ describe("FlipBook", () => {
 	});
 
 	describe("render", () => {
+		it("preserves SPA framework history state on initial and later page routes", () => {
+			createPages(6);
+			const originalState = window.history.state;
+			const originalUrl = window.location.href;
+			const frameworkState = {
+				__NA: true,
+				__PRIVATE_NEXTJS_INTERNALS_TREE: ["book"],
+				custom: "keep me",
+			};
+			History.prototype.replaceState.call(window.history, frameworkState, "", "/book/start");
+			const book = new FlipBook({
+				pagesCount: 6,
+				historyMapper: {
+					pageToRoute: (pageIndex) => `/book/${pageIndex}`,
+					routeToPage: (route) => Number(route.split("/").at(-1)),
+				},
+			});
+			try {
+				book.render(".flipbook-container");
+				expect(window.history.state).toMatchObject({ ...frameworkState, route: "/book/0" });
+				book.jumpToPage(3);
+				expect(window.history.state).toMatchObject({ ...frameworkState, route: "/book/3" });
+			} finally {
+				book.destroy();
+				History.prototype.replaceState.call(window.history, originalState, "", originalUrl);
+			}
+		});
+
 		it("switches mouse selection without changing touch or default mouse dragging", () => {
 			const pages = createPages(4);
 			const text = document.createElement("span");
