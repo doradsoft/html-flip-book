@@ -127,6 +127,46 @@ describe("FlipBook", () => {
 			}
 		});
 
+		it("restores its own history entries before a SPA router can remount the book", () => {
+			createPages(6);
+			const originalState = window.history.state;
+			const originalUrl = window.location.href;
+			const frameworkPopstate = vi.fn();
+			window.addEventListener("popstate", frameworkPopstate);
+			const book = new FlipBook({
+				pagesCount: 6,
+				historyMapper: {
+					pageToRoute: (pageIndex) => `/book/${pageIndex}`,
+					routeToPage: (route) => {
+						const index = Number(route.split("/").at(-1));
+						return Number.isNaN(index) ? null : index;
+					},
+				},
+			});
+			try {
+				book.render(".flipbook-container");
+				const firstEntry = window.history.state;
+				book.jumpToPage(3);
+				const laterEntry = window.history.state;
+				History.prototype.replaceState.call(window.history, firstEntry, "", "/book/0");
+				window.dispatchEvent(new PopStateEvent("popstate", { state: firstEntry }));
+				expect(book.currentPageIndex).toBe(0);
+				expect(frameworkPopstate).not.toHaveBeenCalled();
+				expect(window.location.pathname).toBe("/book/0");
+
+				// Unrelated entries still reach the application's router.
+				History.prototype.replaceState.call(window.history, { route: "/book/3" }, "", "/book/3");
+				window.dispatchEvent(new PopStateEvent("popstate", { state: { route: "/book/3" } }));
+				expect(frameworkPopstate).toHaveBeenCalledOnce();
+				expect(book.currentPageIndex).toBe(0);
+				expect(laterEntry.__flipBookOwner).toBe(firstEntry.__flipBookOwner);
+			} finally {
+				book.destroy();
+				window.removeEventListener("popstate", frameworkPopstate);
+				History.prototype.replaceState.call(window.history, originalState, "", originalUrl);
+			}
+		});
+
 		it("switches mouse selection without changing touch or default mouse dragging", () => {
 			const pages = createPages(4);
 			const text = document.createElement("span");
