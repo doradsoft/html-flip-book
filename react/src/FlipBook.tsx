@@ -30,6 +30,8 @@ export interface FlipBookHandle {
 	flipToPage: (pageIndex: number) => Promise<void>;
 	/** Jump to a specific page instantly without animation */
 	jumpToPage: (pageIndex: number) => void;
+	/** Show a router-selected page without adding a browser history entry. */
+	restorePage: (pageIndex: number) => void;
 	/** Toggle debug toolbar visibility (when debug mode is enabled). Bound to Ctrl+Alt+D by default. */
 	toggleDebugBar?: () => void;
 	/** Get the current (leftmost visible) page index */
@@ -334,6 +336,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				flipPrev: () => flipBook.current.flipPrev(),
 				flipToPage: (pageIndex: number) => flipBook.current.flipToPage(pageIndex),
 				jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
+				restorePage: (pageIndex: number) => flipBook.current.restorePage(pageIndex),
 				toggleDebugBar: () => {
 					const selectorClass = className.split(/\s+/)[0];
 					const root = document.querySelector(`.${selectorClass}`);
