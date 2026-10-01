@@ -8,45 +8,60 @@ jobs:
   bump-version:
     name: Bump Version
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
     steps:
-      - name: Checkout
+      - name: Checkout master
         uses: actions/checkout@v4
         with:
           ref: master
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.BOT_PAT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: package.json
+          cache: npm
 
-      - name: Bump patch version
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compute the next version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          cd base
-          npm version patch --no-git-tag-version
-          NEW_VERSION=$(node -e "console.log(require('./package.json').version)")
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          NEXT_VERSION=$(node -e 'const semver = require("semver"); const released = process.env.RELEASE_TAG.replace(/^v/, ""); const next = semver.inc(released, semver.prerelease(released) ? "prerelease" : "patch"); if (!next) process.exit(1); process.stdout.write(next)')
+          echo "NEXT_VERSION=$NEXT_VERSION" >> "$GITHUB_ENV"
 
-      - name: Update root package version
-        run: npm version ${{ env.NEW_VERSION }} --no-git-tag-version
-
-      - name: Update react package version and dependency
+      - name: Update manifests and lockfiles
         run: |
-          cd react
-          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
-          npm pkg set dependencies.html-flip-book-vanilla=${{ env.NEW_VERSION }}
+          for package_dir in . base react react/example; do
+            (cd "$package_dir" && npm version "$NEXT_VERSION" --no-git-tag-version --ignore-scripts)
+          done
+          node -e 'const fs = require("fs"); const path = "react/package-lock.json"; const lock = JSON.parse(fs.readFileSync(path, "utf8")); lock.packages["../base"].version = process.env.NEXT_VERSION; fs.writeFileSync(path, `${JSON.stringify(lock, null, "\t")}\n`);'
 
-      - name: Update example package version
+      - name: Open a checked version-bump pull request
+        env:
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
         run: |
-          cd react/example
-          npm version ${{ env.NEW_VERSION }} --no-git-tag-version
-
-      - name: Commit and push
-        run: |
+          BRANCH="codex/bump-version-$NEXT_VERSION"
+          git switch -c "$BRANCH"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json base/package.json react/package.json react/example/package.json
-          git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
-          git push
+          git add package.json package-lock.json base/package.json base/package-lock.json react/package.json react/package-lock.json react/example/package.json react/example/package-lock.json
+          git commit -m "chore: prepare version $NEXT_VERSION"
+          git push --set-upstream origin "$BRANCH"
+          PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master.")
+          echo "Created $PR_URL"
+          for attempt in {1..30}; do
+            BUILD_CHECKS=$(gh pr view "$PR_URL" --json statusCheckRollup --jq '[.statusCheckRollup[] | select(.name == "Build")] | length')
+            if [ "$BUILD_CHECKS" -gt 0 ]; then break; fi
+            sleep 10
+          done
+          if [ "$BUILD_CHECKS" -eq 0 ]; then
+            echo "Build check did not start for $PR_URL" >&2
+            exit 1
+          fi
+          gh pr checks "$PR_URL" --watch --fail-fast
+          gh pr merge "$PR_URL" --squash --delete-branch
