@@ -23,6 +23,8 @@ const enUS: LocaleConfig = {
 		"command.toggleDebug": "Toggle debug toolbar",
 		"command.toggleDebugDesc": "Show or hide the debug toolbar (Ctrl+Alt+D)",
 		"toolbarItem.goToPage": "Go to page",
+		"toolbarItem.selectText": "Select text with mouse",
+		"toolbarItem.selectionLetters": "Aa",
 	},
 };
 

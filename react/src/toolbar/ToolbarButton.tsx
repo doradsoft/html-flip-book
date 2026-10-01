@@ -5,6 +5,8 @@ interface ToolbarButtonProps {
 	onClick: () => void;
 	/** Accessible label for the button */
 	ariaLabel: string;
+	/** Toggle state for mode buttons. */
+	ariaPressed?: boolean;
 	/** Whether the button is disabled */
 	disabled?: boolean;
 	/** Button content (icon or text) */
@@ -21,6 +23,7 @@ interface ToolbarButtonProps {
 const ToolbarButton: React.FC<ToolbarButtonProps> = ({
 	onClick,
 	ariaLabel,
+	ariaPressed,
 	disabled = false,
 	children,
 	className = "",
@@ -31,6 +34,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
 			type="button"
 			onClick={onClick}
 			aria-label={ariaLabel}
+			aria-pressed={ariaPressed}
 			disabled={disabled}
 			title={title ?? ariaLabel}
 			className={`flipbook-toolbar-button ${className}`.trim()}

@@ -1,9 +1,11 @@
 import {
 	FlipBook as FlipBookBase,
 	type HistoryMapper,
+	type MouseMode,
 	type PageFlipParams,
 	type PageSemantics,
 } from "html-flip-book-vanilla";
+import "../../base/src/mouse-mode.scss";
 import type { DownloadConfig } from "html-flip-book-vanilla/download";
 import type React from "react";
 import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
@@ -44,6 +46,10 @@ export interface FlipBookHandle {
 	getDownloadConfig: () => DownloadConfig | undefined;
 	/** Get the configured table of contents page index. */
 	getTocPageIndex: () => number;
+	/** Current mouse interaction mode. Touch gestures are unaffected. */
+	getMouseMode: () => MouseMode;
+	/** Switch between continuous page turning and native text selection. */
+	setMouseMode: (mode: MouseMode) => void;
 }
 
 /**
@@ -112,6 +118,10 @@ export interface FlipBookProps {
 	debug?: boolean;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left) */
 	direction?: "rtl" | "ltr";
+	/** Initial mouse interaction mode. Default: 'turn'. */
+	mouseMode?: MouseMode;
+	/** Optional localStorage key used to remember the user's mouse mode. */
+	mouseModeStorageKey?: string;
 	/** Indices of leaves that should start in the turned (flipped) state */
 	initialTurnedLeaves?: number[];
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
@@ -212,6 +222,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			className,
 			debug = false,
 			direction = "ltr",
+			mouseMode = "turn",
+			mouseModeStorageKey,
 			pageSemantics = undefined,
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
@@ -294,6 +306,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				pageSemantics: pageSemantics,
 				pagesCount: pages.length,
 				direction: direction,
+				mouseMode,
 				initialTurnedLeaves: initialTurnedLeaves,
 				fastDeltaThreshold: fastDeltaThreshold,
 				leavesBuffer: leavesBuffer,
@@ -334,21 +347,41 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				isLastPage: () => flipBook.current.isLastPage,
 				getDownloadConfig: () => flipBook.current.getDownloadConfig(),
 				getTocPageIndex: () => flipBook.current.getTocPageIndex(),
+				getMouseMode: () => flipBook.current.getMouseMode(),
+				setMouseMode: (mode: MouseMode) => {
+					flipBook.current.setMouseMode(mode);
+					if (mouseModeStorageKey) {
+						try {
+							localStorage.setItem(mouseModeStorageKey, mode);
+						} catch {
+							// Private browsing may deny storage; the mode still works this session.
+						}
+					}
+				},
 			}),
-			[className],
+			[className, mouseModeStorageKey],
 		);
 
 		useEffect(() => {
 			const currentFlipBook = flipBook.current;
 			const selectorClass = className.split(/\s+/)[0];
 			currentFlipBook.render(`.${selectorClass}`, debug);
+			if (mouseModeStorageKey) {
+				try {
+					const savedMode = localStorage.getItem(mouseModeStorageKey);
+					if (savedMode === "turn" || savedMode === "select")
+						currentFlipBook.setMouseMode(savedMode);
+				} catch {
+					// Storage is optional.
+				}
+			}
 			setCurrentPageIndex(currentFlipBook.currentPageIndex);
 
 			// Cleanup function to destroy Hammer instance and event listeners
 			return () => {
 				currentFlipBook.destroy();
 			};
-		}, [className, debug]);
+		}, [className, debug, mouseModeStorageKey]);
 
 		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
 		useEffect(() => {
@@ -491,6 +524,7 @@ export { FlipBookReact as FlipBook };
 export type {
 	FlipPageSemantic,
 	HistoryMapper,
+	MouseMode,
 	PageFlipParams,
 	PageSemantics,
 } from "html-flip-book-vanilla";

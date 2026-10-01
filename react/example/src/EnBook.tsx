@@ -12,6 +12,7 @@ import {
 	FirstPageButton,
 	FullscreenButton,
 	LastPageButton,
+	MouseModeButton,
 	NextButton,
 	PageIndicator,
 	PrevButton,
@@ -308,6 +309,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 			<FlipBook
 				ref={flipBookRef}
 				className="en-book"
+				mouseModeStorageKey="demo-en-mouse-mode"
 				pageShadow={config?.showPageShadow ?? true}
 				snapshotDuringFlip={config?.snapshotDuringFlip}
 				pages={enPages}
@@ -334,6 +336,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
 					<TocButton />
+					<MouseModeButton />
 				</div>
 				<div className="flipbook-toolbar-nav-cluster">
 					<FirstPageButton />

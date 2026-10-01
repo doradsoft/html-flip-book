@@ -13,6 +13,7 @@ import {
 	FirstPageButton,
 	FullscreenButton,
 	LastPageButton,
+	MouseModeButton,
 	NextButton,
 	PageIndicator,
 	PrevButton,
@@ -302,6 +303,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 			<FlipBook
 				ref={flipBookRef}
 				className="he-book"
+				mouseModeStorageKey="demo-he-mouse-mode"
 				pageShadow={config?.showPageShadow ?? true}
 				pages={hePages}
 				direction="rtl"
@@ -330,6 +332,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
 					<TocButton />
+					<MouseModeButton />
 				</div>
 				<div className="flipbook-toolbar-nav-cluster">
 					<FirstPageButton />

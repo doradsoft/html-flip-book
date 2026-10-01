@@ -1,5 +1,6 @@
 import "./pages.scss";
 import "./flipbook.scss";
+import "./mouse-mode.scss";
 import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
@@ -8,6 +9,7 @@ import type {
 	FlipBookOptions,
 	FlipPageSemantic,
 	HistoryMapper,
+	MouseMode,
 	PageFlipDirection,
 	PageFlipParams,
 } from "./flip-book-options";
@@ -65,6 +67,7 @@ class FlipBook {
 		height: 3.15,
 	};
 	private readonly direction: "rtl" | "ltr" = "ltr";
+	private mouseMode: MouseMode = "turn";
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
@@ -209,6 +212,7 @@ class FlipBook {
 		this.leafAspectRatio = options.leafAspectRatio || this.leafAspectRatio;
 		this.coverAspectRatio = options.coverAspectRatio || this.coverAspectRatio;
 		this.direction = options.direction || this.direction;
+		this.mouseMode = options.mouseMode ?? "turn";
 		this.fastDeltaThreshold = options.fastDeltaThreshold ?? this.fastDeltaThreshold;
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
 		this.pageSemantics = options.pageSemantics;
@@ -232,6 +236,27 @@ class FlipBook {
 	getTocPageIndex(): number {
 		return this._tocPageIndex;
 	}
+
+	getMouseMode(): MouseMode {
+		return this.mouseMode;
+	}
+
+	setMouseMode(mode: MouseMode): void {
+		this.mouseMode = mode;
+		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
+	}
+
+	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
+	private handlePageMouseDown = (event: Event): void => {
+		if (
+			this.mouseMode === "select" &&
+			event instanceof MouseEvent &&
+			event.button === 0 &&
+			(event.type !== "pointerdown" || (event as PointerEvent).pointerType === "mouse")
+		) {
+			event.stopPropagation();
+		}
+	};
 
 	/** Download config (handlers and filename hints). Used by toolbar. */
 	getDownloadConfig(): DownloadConfig | undefined {
@@ -288,6 +313,7 @@ class FlipBook {
 			throw new Error(`Couldn't find container with selector: ${selector}`);
 		}
 		this.bookElement = bookElement as HTMLElement;
+		this.setMouseMode(this.mouseMode);
 		if (!this.bookElement.classList.contains("flipbook")) {
 			this.bookElement.classList.add("flipbook");
 		}
@@ -300,6 +326,10 @@ class FlipBook {
 			throw new Error("No pages found in flipbook");
 		}
 		this.pageElements = Array.from(pageElements) as HTMLElement[];
+		for (const page of this.pageElements) {
+			page.addEventListener("pointerdown", this.handlePageMouseDown);
+			page.addEventListener("mousedown", this.handlePageMouseDown);
+		}
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
 
@@ -1144,6 +1174,10 @@ class FlipBook {
 			this.hammer = undefined;
 		}
 		if (this.bookElement) {
+			for (const page of this.pageElements) {
+				page.removeEventListener("pointerdown", this.handlePageMouseDown);
+				page.removeEventListener("mousedown", this.handlePageMouseDown);
+			}
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);
 			this.bookElement.removeEventListener(
@@ -1164,6 +1198,7 @@ export { FlipBook, type PageSemantics };
 export type {
 	FlipPageSemantic,
 	HistoryMapper,
+	MouseMode,
 	PageFlipDirection,
 	PageFlipParams,
 } from "./flip-book-options";

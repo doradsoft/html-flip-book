@@ -99,6 +99,34 @@ describe("FlipBook", () => {
 	});
 
 	describe("render", () => {
+		it("switches mouse selection without changing touch or default mouse dragging", () => {
+			const pages = createPages(4);
+			const text = document.createElement("span");
+			text.textContent = "Select this text";
+			pages[0].appendChild(text);
+			const bookDown = vi.fn();
+			container.addEventListener("mousedown", bookDown);
+			container.addEventListener("pointerdown", bookDown);
+			container.addEventListener("touchstart", bookDown);
+			const book = new FlipBook({ pagesCount: 4 });
+			book.render(".flipbook-container");
+			text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+			expect(bookDown).toHaveBeenCalledTimes(1);
+			book.setMouseMode("select");
+			expect(book.getMouseMode()).toBe("select");
+			expect(container.classList.contains("flipbook--select-text")).toBe(true);
+			text.dispatchEvent(
+				new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }),
+			);
+			text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+			expect(bookDown).toHaveBeenCalledTimes(1);
+			text.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+			expect(bookDown).toHaveBeenCalledTimes(2);
+			book.setMouseMode("turn");
+			text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+			expect(bookDown).toHaveBeenCalledTimes(3);
+			book.destroy();
+		});
 		it("should throw error if container not found", () => {
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			expect(() => flipBook.render(".non-existent")).toThrow(

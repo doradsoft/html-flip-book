@@ -45,6 +45,8 @@ export type { FullscreenButtonProps } from "./FullscreenButton";
 export { FullscreenButton } from "./FullscreenButton";
 export type { LastPageButtonProps } from "./LastPageButton";
 export { LastPageButton } from "./LastPageButton";
+export type { MouseModeButtonProps } from "./MouseModeButton";
+export { MouseModeButton } from "./MouseModeButton";
 export type { NextButtonProps } from "./NextButton";
 export { NextButton } from "./NextButton";
 /** @deprecated Use PageIndicatorProps instead */
