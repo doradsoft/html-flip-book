@@ -75,6 +75,8 @@ test("selection icon follows Hebrew locale and keeps caret ahead of letters", as
 	const button = page.getByRole("button", { name: "בחירת טקסט עם העכבר" });
 	await expect(button).toBeVisible();
 	await expect(button.locator(".flipbook-toolbar-mouse-mode-icon")).toContainText("אב");
-	await expect(button.locator(".flipbook-toolbar-mouse-mode-caret")).toBeVisible();
+	const caret = button.locator(".flipbook-toolbar-mouse-mode-caret");
+	await expect(caret).toBeVisible();
+	await expect(caret).toHaveCSS("mask-image", /text-caret\.png/);
 	await expect(button.locator(".flipbook-toolbar-mouse-mode-icon")).toHaveCSS("transform", "none");
 });
