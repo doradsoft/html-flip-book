@@ -204,6 +204,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 					onNavigate={(pageIndex) => flipBookRef.current?.jumpToPage(pageIndex)}
 					totalPages={totalPages}
 					pageSemantics={semantics}
+					getHref={(entry) => `#page/${entry.semanticName || entry.pageIndex}`}
 					heading="תוכן העניינים"
 					direction="rtl"
 					filter={(entry) => entry.pageIndex > 2 && entry.title.length > 0}
