@@ -127,6 +127,35 @@ describe("FlipBook", () => {
 			}
 		});
 
+		it("restores a router-selected page without adding a history entry", () => {
+			createPages(6);
+			const originalState = window.history.state;
+			const originalUrl = window.location.href;
+			const onPageChanged = vi.fn();
+			const book = new FlipBook({
+				pagesCount: 6,
+				onPageChanged,
+				historyMapper: {
+					pageToRoute: (pageIndex) => `/book/${pageIndex}`,
+					routeToPage: (route) => Number(route.split("/").at(-1)),
+				},
+			});
+			try {
+				book.render(".flipbook-container");
+				const originalBookState = window.history.state;
+				book.restorePage(3);
+				expect(book.currentPageIndex).toBe(3);
+				expect(onPageChanged).toHaveBeenCalledWith(3);
+				expect(window.history.state).toEqual(originalBookState);
+				expect(window.location.pathname).toBe("/book/0");
+				book.jumpToPage(5);
+				expect(window.location.pathname).toBe("/book/5");
+			} finally {
+				book.destroy();
+				History.prototype.replaceState.call(window.history, originalState, "", originalUrl);
+			}
+		});
+
 		it("restores its own history entries before a SPA router can remount the book", () => {
 			createPages(6);
 			const originalState = window.history.state;

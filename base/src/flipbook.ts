@@ -193,12 +193,7 @@ class FlipBook {
 		const pageIndex = this.historyMapper.routeToPage(route);
 		if (pageIndex !== null && pageIndex >= 0 && pageIndex < this.pagesCount) {
 			event.stopImmediatePropagation();
-			this._isRestoringFromHistory = true;
-			try {
-				this.jumpToPage(pageIndex);
-			} finally {
-				this._isRestoringFromHistory = false;
-			}
+			this.restorePage(pageIndex);
 		}
 	};
 
@@ -1161,6 +1156,20 @@ class FlipBook {
 
 		// Notify callback and sync history
 		this.syncHistoryAndNotifyFlipped(false);
+	}
+
+	/**
+	 * Show a page selected by an external router or browser history entry without
+	 * adding another history entry. Page-change callbacks still run.
+	 */
+	restorePage(pageIndex: number): void {
+		const wasRestoring = this._isRestoringFromHistory;
+		this._isRestoringFromHistory = true;
+		try {
+			this.jumpToPage(pageIndex);
+		} finally {
+			this._isRestoringFromHistory = wasRestoring;
+		}
 	}
 
 	/**
