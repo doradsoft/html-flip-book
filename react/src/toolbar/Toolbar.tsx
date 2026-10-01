@@ -57,6 +57,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	const [of, setOf] = useState<string | number>(0);
 	const [isFirstPage, setIsFirstPage] = useState(true);
 	const [isLastPage, setIsLastPage] = useState(false);
+	const [mouseMode, setMouseMode] = useState<"turn" | "select">("turn");
 
 	const mergedCommandOptions: Record<string, CommandOptions> = {
 		...(fullscreenTargetRef
@@ -88,6 +89,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			setOf(fb.getOf());
 			setIsFirstPage(fb.isFirstPage());
 			setIsLastPage(fb.isLastPage());
+			setMouseMode(fb.getMouseMode?.() ?? "turn");
 		}
 	}, [flipBookRef]);
 
@@ -111,6 +113,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 				of,
 				isFirstPage,
 				isLastPage,
+				mouseMode,
 				openDownloadMenuRef,
 				downloadExecutorRef,
 				fullscreenTargetRef,

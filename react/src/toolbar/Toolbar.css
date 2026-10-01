@@ -41,6 +41,11 @@
 	transform: scaleX(-1);
 }
 
+/* Text and its caret keep their writing direction in RTL toolbars. */
+.flipbook-toolbar--rtl .flipbook-toolbar-mouse-mode > * {
+	transform: none;
+}
+
 /* Right section: first, last (spread at end) */
 .flipbook-toolbar-end {
 	display: flex;
@@ -85,6 +90,44 @@
 .flipbook-toolbar-button:disabled {
 	opacity: 0.4;
 	cursor: not-allowed;
+}
+
+.flipbook-toolbar-mouse-mode[aria-pressed="true"] {
+	background-color: rgba(255, 255, 255, 0.25);
+}
+
+.flipbook-toolbar-mouse-mode-icon {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.flipbook-toolbar-mouse-mode-caret {
+	position: relative;
+	display: inline-block;
+	width: 1.5px;
+	height: 18px;
+	background: currentColor;
+}
+
+.flipbook-toolbar-mouse-mode-caret::before,
+.flipbook-toolbar-mouse-mode-caret::after {
+	content: "";
+	position: absolute;
+	left: -3px;
+	width: 7px;
+	height: 1.5px;
+	background: currentColor;
+}
+
+.flipbook-toolbar-mouse-mode-caret::before {
+	top: 0;
+}
+.flipbook-toolbar-mouse-mode-caret::after {
+	bottom: 0;
 }
 
 /* Navigation buttons - slightly larger icons */

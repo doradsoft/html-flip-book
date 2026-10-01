@@ -14,6 +14,9 @@ export interface FlipPageSemantic {
 /** Direction of the flip for callback params. */
 export type PageFlipDirection = "forward" | "backward";
 
+/** Mouse interaction on page content. Touch always turns pages. */
+export type MouseMode = "turn" | "select";
+
 /**
  * Params passed to onPageFlipping and onPageFlipped.
  * Describes the spread (target for flipping, current for flipped): leaf index, page indices, semantics, direction.
@@ -62,6 +65,8 @@ export interface FlipBookOptions {
 	coverAspectRatio?: AspectRatio;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left). Default: 'ltr' */
 	direction?: "rtl" | "ltr";
+	/** Initial mouse interaction mode. Default: 'turn'. */
+	mouseMode?: MouseMode;
 	/** Padding around the book */
 	padding?: number;
 	/** Define which pages are covers for special styling */

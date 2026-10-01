@@ -12,6 +12,7 @@ import {
 	FullscreenButton,
 	MaximizeIcon,
 	MinimizeIcon,
+	MouseModeButton,
 	TableOfContentsIcon,
 	TocButton,
 	Toolbar,
@@ -31,6 +32,8 @@ const createMockFlipBookRef = (overrides: Partial<FlipBookHandle> = {}) => ({
 		isFirstPage: vi.fn().mockReturnValue(false),
 		isLastPage: vi.fn().mockReturnValue(false),
 		getDownloadConfig: vi.fn().mockReturnValue(undefined),
+		getMouseMode: vi.fn().mockReturnValue("turn"),
+		setMouseMode: vi.fn(),
 		...overrides,
 	} as FlipBookHandle,
 });
@@ -87,6 +90,23 @@ describe("Icons", () => {
 		const { container } = render(<ChevronLeftIcon className="custom-class" />);
 		const svg = container.querySelector("svg");
 		expect(svg?.classList.contains("custom-class")).toBe(true);
+	});
+});
+
+describe("MouseModeButton", () => {
+	it("uses locale letters and switches the flipbook's mouse mode", () => {
+		const mockRef = createMockFlipBookRef();
+		render(
+			<Toolbar flipBookRef={mockRef} locale="he-IL">
+				<MouseModeButton />
+			</Toolbar>,
+		);
+		const button = screen.getByRole("button", { name: "בחירת טקסט עם העכבר" });
+		expect(button.getAttribute("aria-pressed")).toBe("false");
+		expect(button.textContent).toBe("אב");
+		expect(button.querySelector(".flipbook-toolbar-mouse-mode-caret")).toBeTruthy();
+		fireEvent.click(button);
+		expect(mockRef.current.setMouseMode).toHaveBeenCalledWith("select");
 	});
 });
 

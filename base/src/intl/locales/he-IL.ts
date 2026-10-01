@@ -23,6 +23,8 @@ const heIL: LocaleConfig = {
 		"command.toggleDebug": "סרגל כלים לדיבוג",
 		"command.toggleDebugDesc": "הצג או הסתר סרגל הדיבוג (Ctrl+Alt+D)",
 		"toolbarItem.goToPage": "מעבר לעמוד",
+		"toolbarItem.selectText": "בחירת טקסט עם העכבר",
+		"toolbarItem.selectionLetters": "אב",
 	},
 };
 

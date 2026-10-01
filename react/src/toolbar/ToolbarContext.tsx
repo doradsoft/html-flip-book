@@ -1,6 +1,6 @@
 import type React from "react";
 import { createContext, useContext } from "react";
-import type { FlipBookHandle, PageSemantics } from "../FlipBook";
+import type { FlipBookHandle, MouseMode, PageSemantics } from "../FlipBook";
 import type { Locale } from "../i18n";
 
 interface ToolbarContextValue {
@@ -15,6 +15,7 @@ interface ToolbarContextValue {
 	of: string | number;
 	isFirstPage: boolean;
 	isLastPage: boolean;
+	mouseMode: MouseMode;
 	/** Ref used by openDownloadMenu command (Ctrl+S) to open the download dropdown. DownloadDropdown sets this. */
 	openDownloadMenuRef: React.MutableRefObject<(() => void) | null>;
 	/** Ref set by DownloadDropdown: (from?, to?) => void to run download (entire book or range). Used by download command. */

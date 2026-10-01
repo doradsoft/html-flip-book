@@ -4,6 +4,11 @@
   // rendering shouldnt cause any overflow, so this is mostly for during flipping
   overflow: hidden;
 }
+
+.flipbook--select-text .page:not(.page--flipping) {
+  -webkit-user-select: text;
+  user-select: text;
+}
 .flipbook-debug-bar {
   position: absolute;
   bottom: 0;
