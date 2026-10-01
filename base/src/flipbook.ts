@@ -1,5 +1,6 @@
 import "./pages.scss";
 import "./flipbook.scss";
+import "./mouse-mode.scss";
 import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";

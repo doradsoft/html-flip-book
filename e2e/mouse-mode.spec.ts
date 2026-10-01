@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 
 test("mouse mode selects real page text, then restores continuous page turning", async ({
 	page,
+	isMobile,
 }) => {
+	test.skip(isMobile, "Mouse dragging is covered on desktop; mobile uses touch gestures.");
 	await page.goto("/?example=ltr-comprehensive&test-initialTurnedLeaves=0,1");
 	const book = page.locator(".en-book.flipbook");
 	const button = page.getByRole("button", { name: "Select text with mouse" });
@@ -14,17 +16,27 @@ test("mouse mode selects real page text, then restores continuous page turning",
 	await expect(button).toHaveAttribute("aria-pressed", "true");
 	await expect(book).toHaveClass(/flipbook--select-text/);
 	await expect(paragraph).toHaveCSS("user-select", "text");
-	const textBox = await paragraph.boundingBox();
-	if (!textBox) throw new Error("Paragraph missing");
-	await page.mouse.move(textBox.x + 12, textBox.y + 12);
+	const word = await paragraph.evaluate((element) => {
+		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+		let node = walker.nextNode();
+		while (node && (node.textContent?.trim().length ?? 0) < 12) node = walker.nextNode();
+		if (!node) throw new Error("No selectable paragraph text found");
+		const start = node.textContent?.search(/\S/) ?? 0;
+		const range = document.createRange();
+		range.setStart(node, start);
+		range.setEnd(node, start + 8);
+		const rect = range.getBoundingClientRect();
+		return { left: rect.left, right: rect.right, y: rect.top + rect.height / 2 };
+	});
+	await page.mouse.move(word.left + 1, word.y);
 	await page.mouse.down();
-	await page.mouse.move(textBox.x + Math.min(textBox.width - 12, 160), textBox.y + 12, {
+	await page.mouse.move(word.right - 1, word.y, {
 		steps: 12,
 	});
 	await page.mouse.up();
-	expect(await page.evaluate(() => window.getSelection()?.toString().length ?? 0)).toBeGreaterThan(
-		0,
-	);
+	await expect
+		.poll(() => page.evaluate(() => window.getSelection()?.toString().length ?? 0))
+		.toBeGreaterThan(0);
 	await expect(book.locator('.page[data-page-index="3"]')).toHaveClass(/current-page/);
 	await page.reload();
 	await expect(button).toHaveAttribute("aria-pressed", "true");

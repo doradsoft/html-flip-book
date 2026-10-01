@@ -1,0 +1,5 @@
+// Bundled by both vanilla and React so consumers get selection styles from either package.
+.flipbook--select-text .page:not(.page--flipping) {
+  -webkit-user-select: text;
+  user-select: text;
+}

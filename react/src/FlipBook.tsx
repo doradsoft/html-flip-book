@@ -5,6 +5,7 @@ import {
 	type PageFlipParams,
 	type PageSemantics,
 } from "html-flip-book-vanilla";
+import "../../base/src/mouse-mode.scss";
 import type { DownloadConfig } from "html-flip-book-vanilla/download";
 import type React from "react";
 import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
