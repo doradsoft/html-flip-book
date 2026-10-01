@@ -28,6 +28,8 @@ const EDGE_ZONE_RATIO = 0.18;
 const HOVER_STRENGTH_MAX = 0.12;
 /** Throttle interval for mouse move handler in ms */
 const MOUSE_MOVE_THROTTLE_MS = 16;
+const historyOwnerEpoch = Date.now().toString(36);
+let nextHistoryOwner = 0;
 
 /** State for a single flip operation - enables concurrent page flipping */
 interface FlipState {
@@ -77,7 +79,8 @@ class FlipBook {
 	private lastFlipParams: PageFlipParams | undefined;
 	private _historyInitialized = false;
 	private _isRestoringFromHistory = false;
-	private _boundPopstate: (() => void) | undefined;
+	private _boundPopstate: ((event: PopStateEvent) => void) | undefined;
+	private readonly _historyOwner = `${historyOwnerEpoch}-${++nextHistoryOwner}`;
 	private readonly pageSemantics: PageSemantics | undefined;
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
@@ -157,8 +160,8 @@ class FlipBook {
 			const currentState = window.history.state;
 			const state =
 				currentState !== null && typeof currentState === "object" && !Array.isArray(currentState)
-					? { ...currentState, route }
-					: { route };
+					? { ...currentState, route, __flipBookOwner: this._historyOwner }
+					: { route, __flipBookOwner: this._historyOwner };
 			const url = route.startsWith("#")
 				? `${window.location.pathname}${window.location.search}${route}`
 				: route;
@@ -178,13 +181,18 @@ class FlipBook {
 		}
 	}
 
-	private handlePopstate = (): void => {
+	private handlePopstate = (event: PopStateEvent): void => {
 		if (!this.historyMapper || typeof window === "undefined") return;
+		// Framework routers also observe popstate. A route written by this book
+		// already has its page restored below; letting a router traverse it again
+		// can remount the entire book despite the navigation being same-document.
+		if (event.state?.__flipBookOwner !== this._historyOwner) return;
 		const route =
 			(typeof window.history.state === "object" && window.history.state?.route) ||
 			window.location.pathname + window.location.search + window.location.hash;
 		const pageIndex = this.historyMapper.routeToPage(route);
 		if (pageIndex !== null && pageIndex >= 0 && pageIndex < this.pagesCount) {
+			event.stopImmediatePropagation();
 			this._isRestoringFromHistory = true;
 			try {
 				this.jumpToPage(pageIndex);
@@ -497,7 +505,7 @@ class FlipBook {
 		if (typeof window !== "undefined" && this.historyMapper) {
 			this.syncHistoryAndNotifyFlipped(true);
 			this._boundPopstate = this.handlePopstate.bind(this);
-			window.addEventListener("popstate", this._boundPopstate);
+			window.addEventListener("popstate", this._boundPopstate, true);
 		}
 	}
 
@@ -1169,7 +1177,7 @@ class FlipBook {
 	 */
 	destroy() {
 		if (typeof window !== "undefined" && this._boundPopstate) {
-			window.removeEventListener("popstate", this._boundPopstate);
+			window.removeEventListener("popstate", this._boundPopstate, true);
 			this._boundPopstate = undefined;
 		}
 		if (this.resizeObserver) {
