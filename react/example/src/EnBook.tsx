@@ -234,6 +234,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 					onNavigate={(pageIndex: number) => flipBookRef.current?.jumpToPage(pageIndex)}
 					totalPages={totalPages}
 					pageSemantics={semantics}
+					getHref={(entry) => `#page/${entry.semanticName || entry.pageIndex}`}
 					heading="Table of Contents"
 					direction="ltr"
 					filter={(entry: { pageIndex: number; title: string }) =>

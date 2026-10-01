@@ -35,11 +35,13 @@ export interface TocPageProps {
 	 * By default, only pages with a title are included.
 	 */
 	filter?: (entry: TocEntry, pageIndex: number) => boolean;
+	/** URL for an entry. When provided, modified clicks use native browser navigation. */
+	getHref?: (entry: TocEntry) => string | null | undefined;
 	/**
 	 * Custom render function for TOC entries.
 	 * If not provided, uses default rendering.
 	 */
-	renderEntry?: (entry: TocEntry, onClick: () => void) => React.ReactNode;
+	renderEntry?: (entry: TocEntry, onClick: () => void, href?: string) => React.ReactNode;
 }
 
 /**
@@ -73,6 +75,7 @@ const TocPage: React.FC<TocPageProps> = ({
 	className,
 	direction = "ltr",
 	filter = defaultFilter,
+	getHref,
 	renderEntry,
 }) => {
 	// Generate TOC entries for all pages
@@ -87,18 +90,45 @@ const TocPage: React.FC<TocPageProps> = ({
 		}
 	}
 
-	const renderDefaultEntry = (entry: TocEntry, onClick: () => void) => {
+	const renderDefaultEntry = (entry: TocEntry, onClick: () => void, href?: string) => {
 		// Title on one side (left in LTR, right in RTL); semantic name or page index on the other
 		const title = entry.title || entry.semanticName || `Page ${entry.pageIndex + 1}`;
 		const pageOrSemantic = entry.semanticName || String(entry.pageIndex + 1);
 
+		const content = (
+			<>
+				<span className="toc-title">{title}</span>
+				<span className="toc-dots" aria-hidden />
+				<span className="toc-page-num">{pageOrSemantic}</span>
+			</>
+		);
+
 		return (
 			<li key={entry.pageIndex}>
-				<button type="button" className="toc-link" onClick={onClick}>
-					<span className="toc-title">{title}</span>
-					<span className="toc-dots" aria-hidden />
-					<span className="toc-page-num">{pageOrSemantic}</span>
-				</button>
+				{href ? (
+					<a
+						href={href}
+						className="toc-link"
+						onClick={(event) => {
+							if (
+								event.button !== 0 ||
+								event.ctrlKey ||
+								event.metaKey ||
+								event.shiftKey ||
+								event.altKey
+							)
+								return;
+							event.preventDefault();
+							onClick();
+						}}
+					>
+						{content}
+					</a>
+				) : (
+					<button type="button" className="toc-link" onClick={onClick}>
+						{content}
+					</button>
+				)}
 			</li>
 		);
 	};
@@ -113,7 +143,10 @@ const TocPage: React.FC<TocPageProps> = ({
 				<ul className="toc-list">
 					{entries.map((entry) => {
 						const onClick = () => onNavigate(entry.pageIndex);
-						return renderEntry ? renderEntry(entry, onClick) : renderDefaultEntry(entry, onClick);
+						const href = getHref?.(entry) ?? undefined;
+						return renderEntry
+							? renderEntry(entry, onClick, href)
+							: renderDefaultEntry(entry, onClick, href);
 					})}
 				</ul>
 			</div>
