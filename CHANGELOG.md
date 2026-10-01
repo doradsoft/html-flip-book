@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- None
+- `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
 
 ### Fixed
 
