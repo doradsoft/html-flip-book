@@ -50,9 +50,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json base/package.json base/package-lock.json react/package.json react/package-lock.json react/example/package.json react/example/package-lock.json
-          git commit -m "chore: prepare version $NEXT_VERSION"
+          HUSKY=0 git commit -m "chore: prepare version $NEXT_VERSION"
           git push --set-upstream origin "$BRANCH"
-          PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master.")
+          PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION [skip ci]" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master. The squash commit skips master CI so this bump does not create another release.")
           echo "Created $PR_URL"
           for attempt in {1..30}; do
             BUILD_CHECKS=$(gh pr view "$PR_URL" --json statusCheckRollup --jq '[.statusCheckRollup[] | select(.name == "Build")] | length')
@@ -64,4 +64,4 @@ jobs:
             exit 1
           fi
           gh pr checks "$PR_URL" --watch --fail-fast
-          gh pr merge "$PR_URL" --squash --delete-branch
+          gh pr merge "$PR_URL" --squash --subject "chore: prepare version $NEXT_VERSION [skip ci]" --delete-branch
