@@ -54,5 +54,14 @@ jobs:
           git push --set-upstream origin "$BRANCH"
           PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master.")
           echo "Created $PR_URL"
+          for attempt in {1..30}; do
+            BUILD_CHECKS=$(gh pr view "$PR_URL" --json statusCheckRollup --jq '[.statusCheckRollup[] | select(.name == "Build")] | length')
+            if [ "$BUILD_CHECKS" -gt 0 ]; then break; fi
+            sleep 10
+          done
+          if [ "$BUILD_CHECKS" -eq 0 ]; then
+            echo "Build check did not start for $PR_URL" >&2
+            exit 1
+          fi
           gh pr checks "$PR_URL" --watch --fail-fast
           gh pr merge "$PR_URL" --squash --delete-branch
