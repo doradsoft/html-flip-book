@@ -28,6 +28,8 @@ const EDGE_ZONE_RATIO = 0.18;
 const HOVER_STRENGTH_MAX = 0.12;
 /** Throttle interval for mouse move handler in ms */
 const MOUSE_MOVE_THROTTLE_MS = 16;
+const historyOwnerEpoch = Date.now().toString(36);
+let nextHistoryOwner = 0;
 
 /** State for a single flip operation - enables concurrent page flipping */
 interface FlipState {
@@ -78,7 +80,7 @@ class FlipBook {
 	private _historyInitialized = false;
 	private _isRestoringFromHistory = false;
 	private _boundPopstate: ((event: PopStateEvent) => void) | undefined;
-	private readonly _historyOwner = Math.random().toString(36).slice(2);
+	private readonly _historyOwner = `${historyOwnerEpoch}-${++nextHistoryOwner}`;
 	private readonly pageSemantics: PageSemantics | undefined;
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
