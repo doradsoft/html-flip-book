@@ -435,6 +435,26 @@ describe("FlipBook", () => {
 			expect(preventDefaultSpy).toHaveBeenCalled();
 		});
 
+		it("releases touch interception when the book is destroyed", () => {
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			const startPosition = { ...flipBook.touchStartingPos };
+			flipBook.destroy();
+			container.dispatchEvent(
+				new TouchEvent("touchstart", {
+					touches: [{ pageX: 100, pageY: 200 } as Touch],
+				}),
+			);
+			const move = new TouchEvent("touchmove", {
+				cancelable: true,
+				touches: [{ pageX: 200, pageY: 210 } as Touch],
+			});
+			container.dispatchEvent(move);
+			expect(flipBook.touchStartingPos).toEqual(startPosition);
+			expect(move.defaultPrevented).toBe(false);
+		});
+
 		it("should not prevent default for vertical swipe", () => {
 			createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -2180,6 +2200,32 @@ describe("FlipBook", () => {
 	});
 
 	describe("click suppression after drag", () => {
+		it.each([
+			"pointerdown",
+			"mousedown",
+			"touchstart",
+		])("allows the first click from a new %s gesture when the drag emitted no click", (downEvent) => {
+			const pages = createPages(6);
+			const button = document.createElement("button");
+			pages[2].appendChild(button);
+			const click = vi.fn();
+			button.addEventListener("click", click);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 500 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 350 }));
+			internals.onDragEnd(createDragEvent("end", { velocityX: -0.5 }));
+			const start = new Event(downEvent, { bubbles: true });
+			if (downEvent === "touchstart") {
+				Object.defineProperty(start, "touches", { value: [{ pageX: 350, pageY: 250 }] });
+			}
+			button.dispatchEvent(start);
+			button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+			expect(click).toHaveBeenCalledTimes(1);
+			flipBook.destroy();
+		});
+
 		it("should suppress click events on child elements after a drag gesture", () => {
 			const pages = createPages(6);
 			// Add a button inside page 2 (simulates a TOC entry or any interactive element)

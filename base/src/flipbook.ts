@@ -258,6 +258,9 @@ class FlipBook {
 
 	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
 	private handlePageMouseDown = (event: Event): void => {
+		// A swipe may emit no click. A fresh press must not inherit suppression
+		// intended only for the previous gesture's synthetic click.
+		this._suppressNextClick = false;
 		if (
 			this.mouseMode === "select" &&
 			event instanceof MouseEvent &&
@@ -473,10 +476,10 @@ class FlipBook {
 		this.hammer.on("panstart", this.onDragStart.bind(this));
 		this.hammer.on("panmove", this.onDragUpdate.bind(this));
 		this.hammer.on("panend", this.onDragEnd.bind(this));
-		this.bookElement.addEventListener("touchstart", this.handleTouchStart.bind(this), {
+		this.bookElement.addEventListener("touchstart", this.handleTouchStart, {
 			passive: false,
 		});
-		this.bookElement.addEventListener("touchmove", this.handleTouchMove.bind(this), {
+		this.bookElement.addEventListener("touchmove", this.handleTouchMove, {
 			passive: false,
 		});
 		this.bookElement.addEventListener(
@@ -804,6 +807,7 @@ class FlipBook {
 	}
 
 	private handleTouchStart = (e: TouchEvent) => {
+		this._suppressNextClick = false;
 		if (e.touches.length > 1) {
 			return;
 		}
