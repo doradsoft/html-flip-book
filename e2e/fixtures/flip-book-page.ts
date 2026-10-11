@@ -82,6 +82,16 @@ export class FlipBookPage {
 		return this.page.locator(`${this.containerSelector} .page[data-page-index="${index}"]`);
 	}
 
+	/** Physical page width, unaffected by its current transform. */
+	async getPageWidth(index: number): Promise<number> {
+		const width = await this.getPage(index).evaluate((element) =>
+			Number.parseFloat((element as HTMLElement).style.width),
+		);
+		if (!Number.isFinite(width) || width <= 0)
+			throw new Error(`Page ${index} has no physical width`);
+		return width;
+	}
+
 	/** Get the center coordinates of the flipbook */
 	async getCenter(): Promise<{ x: number; y: number }> {
 		const box = await this.container.boundingBox();
@@ -141,7 +151,12 @@ export class FlipBookPage {
 		const box = await this.container.boundingBox();
 		if (!box) throw new Error("Container not found");
 
-		const dragDistance = box.width * dropPosition * 0.4; // 40% of width per full flip
+		const pageIndex = await this.container
+			.locator(".page.current-page.odd")
+			.last()
+			.getAttribute("data-page-index");
+		if (pageIndex === null) throw new Error("Current forward page not found");
+		const dragDistance = (await this.getPageWidth(Number(pageIndex))) * 2 * dropPosition;
 		const startX = this.options.direction === "ltr" ? box.width * 0.3 : -box.width * 0.3;
 		const endX = this.options.direction === "ltr" ? startX - dragDistance : startX + dragDistance;
 
@@ -159,7 +174,12 @@ export class FlipBookPage {
 		const box = await this.container.boundingBox();
 		if (!box) throw new Error("Container not found");
 
-		const dragDistance = box.width * dropPosition * 0.4;
+		const pageIndex = await this.container
+			.locator(".page.current-page.even")
+			.first()
+			.getAttribute("data-page-index");
+		if (pageIndex === null) throw new Error("Current backward page not found");
+		const dragDistance = (await this.getPageWidth(Number(pageIndex))) * 2 * dropPosition;
 		const startX = this.options.direction === "ltr" ? -box.width * 0.3 : box.width * 0.3;
 		const endX = this.options.direction === "ltr" ? startX + dragDistance : startX - dragDistance;
 

@@ -45,13 +45,9 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 	const container = await flipBookPage.container.boundingBox();
 	if (!container) throw new Error("Container not found");
 
-	// dropPosition is 0-1 representing flip progress (0 = start, 1 = complete)
-	// The flipbook calculates position as: flipDelta / bookWidth
-	// For forward: pos = flipDelta / bookWidth, so we need flipDelta = pos * bookWidth
-	// For backward: posBackward = 1 - |flipDelta| / bookWidth, so |flipDelta| = (1 - posBackward) * bookWidth
-	// With posBackward = 1 - dropPosition, we get |flipDelta| = dropPosition * bookWidth
-	// So dragDistance = dropPosition * containerWidth for both directions
-	const dragDistance = container.width * tc.dropPosition;
+	// One physical page width reaches the spine; two widths complete the turn.
+	const surfaceIndex = targetPageIndex + (tc.flipDir === "backward" ? 1 : 0);
+	const dragDistance = (await flipBookPage.getPageWidth(surfaceIndex)) * 2 * tc.dropPosition;
 
 	// Calculate start and end positions based on direction and flip direction
 	let startX: number;
@@ -162,7 +158,10 @@ test.describe("Hold & Drag - Critical Cases", () => {
 
 		// Drag to exactly 50% position
 		const startX = box.x + box.width * 0.75;
-		const endX = box.x + box.width * 0.5; // 50% position
+		const pageWidth = await firstPage.evaluate((element) =>
+			Number.parseFloat((element as HTMLElement).style.width),
+		);
+		const endX = startX - pageWidth;
 		const y = box.y + box.height / 2;
 
 		await page.mouse.move(startX, y);
@@ -204,7 +203,10 @@ test.describe("Hold & Drag - Critical Cases", () => {
 
 		// Start a flip
 		const startX = box.x + box.width * 0.75;
-		const midX = box.x + box.width * 0.5;
+		const pageWidth = await pages
+			.first()
+			.evaluate((element) => Number.parseFloat((element as HTMLElement).style.width));
+		const midX = startX - pageWidth;
 		const y = box.y + box.height / 2;
 
 		await page.mouse.move(startX, y);

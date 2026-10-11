@@ -491,6 +491,46 @@ describe("Leaf", () => {
 		});
 
 		it.each([
+			0, 1,
+		])("does not report stale manual settlement after an instant endpoint %s assignment", async (endpoint) => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.25, y: 0.4 });
+			leaf.flipPosition = endpoint;
+			leaf.applyTransform(endpoint);
+
+			await leaf.flipToPosition(endpoint as FlipPosition);
+
+			expect(leaf.flipPosition).toBe(endpoint);
+			expect(onTurnedMock).not.toHaveBeenCalled();
+			expect(mockPage1.style.clipPath).toBe("");
+			expect(mockPage2.style.clipPath).toBe("");
+		});
+
+		it.each([
+			0, 1,
+		])("reports an actual held corner reaching endpoint %s only once on release", async (endpoint) => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.beginFlip();
+			leaf.setManualFold({ x: 0.25, y: 0.4 });
+			leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
+			leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
+			leaf.applyTransform(leaf.flipPosition);
+			expect(onTurnedMock).not.toHaveBeenCalled();
+
+			await leaf.flipToPosition(endpoint as FlipPosition);
+			leaf.endFlip();
+			await leaf.flipToPosition(endpoint as FlipPosition);
+
+			expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
+				endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
+			);
+			expect(mockPage1.classList.contains("page--flipping")).toBe(false);
+			expect(mockPage1.style.willChange).toBe("");
+		});
+
+		it.each([
 			[true, "top", 0],
 			[true, "top", 1],
 			[true, "bottom", 0],

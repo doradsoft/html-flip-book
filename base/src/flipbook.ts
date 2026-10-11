@@ -96,6 +96,7 @@ class FlipBook {
 	private pendingFlipStartingY: number | undefined;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
+	private gestureStartedInNoFlipZone = false;
 	/** Set after a drag ends; the next click event is suppressed so child buttons/links don't fire. */
 	private _suppressNextClick = false;
 	private hoveredLeaf: Leaf | undefined;
@@ -257,6 +258,7 @@ class FlipBook {
 	setMouseMode(mode: MouseMode): void {
 		this.mouseMode = mode;
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
+		if (mode === "select") this.clearHoverShadow();
 	}
 
 	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
@@ -264,6 +266,10 @@ class FlipBook {
 		// A swipe may emit no click. A fresh press must not inherit suppression
 		// intended only for the previous gesture's synthetic click.
 		this._suppressNextClick = false;
+		if (event.type === "mousedown" || (event as PointerEvent).pointerType === "mouse") {
+			this.gestureStartedInNoFlipZone = this.isInsideNoFlipZone(event.target);
+			if (this.gestureStartedInNoFlipZone) this.clearHoverShadow();
+		}
 		if (
 			this.mouseMode === "select" &&
 			event instanceof MouseEvent &&
@@ -646,7 +652,11 @@ class FlipBook {
 			return;
 		}
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
-		if (this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) {
+		if (
+			this.gestureStartedInNoFlipZone ||
+			this.isInsideNoFlipZone(event.srcEvent?.target ?? null)
+		) {
+			this.gestureStartedInNoFlipZone = true;
 			return;
 		}
 		// Allow starting a new flip even if others are in auto-flip mode
@@ -674,6 +684,7 @@ class FlipBook {
 	}
 
 	private onDragUpdate(event: HammerInput) {
+		if (this.gestureStartedInNoFlipZone) return;
 		// Reject pan events that belong to a touch gesture locked to vertical.
 		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
 			return;
@@ -804,6 +815,7 @@ class FlipBook {
 	}
 
 	private onDragEnd(event: HammerInput, cancelled = false) {
+		this.gestureStartedInNoFlipZone = false;
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
 
@@ -885,6 +897,7 @@ class FlipBook {
 		const touch = e.touches[0];
 		this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
 		this.touchStartedInNoFlipZone = this.isInsideNoFlipZone(e.target);
+		this.gestureStartedInNoFlipZone = this.touchStartedInNoFlipZone;
 		this.touchDirectionLock = "none";
 	};
 
@@ -920,7 +933,13 @@ class FlipBook {
 
 	private handleMouseMove = throttle(MOUSE_MOVE_THROTTLE_MS, (event: MouseEvent) => {
 		if (!this.bookElement) return;
-		if (this.isDragging || this.currentManualFlip || this.activeFlips.size > 0) {
+		if (
+			this.mouseMode === "select" ||
+			event.buttons !== 0 ||
+			this.isDragging ||
+			this.currentManualFlip ||
+			this.activeFlips.size > 0
+		) {
 			this.clearHoverShadow();
 			return;
 		}

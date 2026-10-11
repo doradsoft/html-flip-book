@@ -732,6 +732,131 @@ describe("FlipBook", () => {
 
 	describe("drag handling", () => {
 		it.each([
+			"pointerdown",
+			"mousedown",
+		])("keeps a %s origin in a no-flip child excluded after leaving it", async (pressType) => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("button");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[1].appendChild(excluded);
+				const onPageChanged = vi.fn();
+				const flipBook = new FlipBook({ pagesCount: 6, initialTurnedLeaves: [0], onPageChanged });
+				flipBook.render(".flipbook-container");
+				const internals = getFlipBookInternals(flipBook);
+				excluded.dispatchEvent(
+					new PointerEvent(pressType, {
+						bubbles: true,
+						button: 0,
+						pointerType: "mouse",
+						clientX: 100,
+						clientY: 200,
+					}),
+				);
+				const outside = new MouseEvent("mousemove", { bubbles: true, clientX: 500, clientY: 200 });
+				pages[2].dispatchEvent(outside);
+				const recognized = {
+					...createDragEvent("start", { x: 500, y: 200 }),
+					deltaX: 400,
+					deltaY: 0,
+					pointerType: "mouse",
+					srcEvent: outside,
+				};
+				internals.onDragStart(recognized);
+				internals.onDragUpdate({ ...recognized, center: { x: 700, y: 200 } });
+
+				expect(internals.activeFlips.size).toBe(0);
+				expect(internals.leaves[0].flipPosition).toBe(1);
+				expect(onPageChanged).not.toHaveBeenCalled();
+				internals.onDragEnd(createDragEvent("end", { velocityX: 1 }));
+
+				pages[1].dispatchEvent(
+					new PointerEvent(pressType, {
+						bubbles: true,
+						button: 0,
+						pointerType: "mouse",
+						clientX: 100,
+						clientY: 200,
+					}),
+				);
+				const permitted = new MouseEvent("mousemove", {
+					bubbles: true,
+					clientX: 140,
+					clientY: 200,
+				});
+				pages[1].dispatchEvent(permitted);
+				internals.onDragStart({
+					...createDragEvent("start", { x: 140, y: 200 }),
+					deltaX: 40,
+					deltaY: 0,
+					pointerType: "mouse",
+					srcEvent: permitted,
+				});
+				expect(internals.activeFlips.size).toBe(1);
+				expect(internals.leaves[0].flipPosition).toBeLessThan(1);
+				internals.onDragEnd(createDragEvent("end"));
+				await vi.runAllTimersAsync();
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it("preserves a touch no-flip origin while allowing a later touch to turn", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("div");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[2].appendChild(excluded);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				const internals = getFlipBookInternals(flipBook);
+				excluded.dispatchEvent(
+					new TouchEvent("touchstart", {
+						bubbles: true,
+						touches: [{ pageX: 700, pageY: 200 } as Touch],
+					}),
+				);
+				const outside = new PointerEvent("pointermove", { bubbles: true, pointerType: "touch" });
+				pages[0].dispatchEvent(outside);
+				const recognized = {
+					...createDragEvent("start", { x: 650, y: 200 }),
+					deltaX: -50,
+					deltaY: 0,
+					pointerType: "touch",
+					srcEvent: outside,
+				};
+				internals.onDragStart(recognized);
+				internals.onDragUpdate({ ...recognized, center: { x: 400, y: 200 } });
+				const movement = new TouchEvent("touchmove", {
+					bubbles: true,
+					cancelable: true,
+					touches: [{ pageX: 400, pageY: 200 } as Touch],
+				});
+				excluded.dispatchEvent(movement);
+				expect(movement.defaultPrevented).toBe(false);
+				expect(internals.activeFlips.size).toBe(0);
+				internals.onDragEnd(createDragEvent("end"));
+
+				pages[0].dispatchEvent(
+					new TouchEvent("touchstart", {
+						bubbles: true,
+						touches: [{ pageX: 700, pageY: 200 } as Touch],
+					}),
+				);
+				internals.onDragStart(recognized);
+				expect(internals.activeFlips.size).toBe(1);
+				internals.onDragEnd(createDragEvent("end"));
+				await vi.runAllTimersAsync();
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it.each([
 			{ direction: "ltr" as const, backward: false },
 			{ direction: "rtl" as const, backward: false },
 			{ direction: "ltr" as const, backward: true },
@@ -2199,6 +2324,93 @@ describe("FlipBook", () => {
 			// biome-ignore lint/style/noNonNullAssertion: assertion above ensures defined
 			return flipBook.bookElement!;
 		}
+
+		it("keeps an excluded mouse press flat and resumes idle preview without a pan event", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("button");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[0].appendChild(excluded);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+					left: 0,
+					top: 0,
+					width: 800,
+				} as DOMRect);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+
+				excluded.dispatchEvent(
+					new MouseEvent("mousedown", { bubbles: true, button: 0, buttons: 1 }),
+				);
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				container.dispatchEvent(
+					new MouseEvent("mousemove", { buttons: 1, clientX: 790, clientY: 200 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
+
+				excluded.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0, buttons: 0 }));
+				container.dispatchEvent(
+					new MouseEvent("mousemove", { buttons: 0, clientX: 790, clientY: 200 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				expect(getFlipBookInternals(flipBook).leaves[0].flipPosition).toBe(0);
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it("clears a corner preview and keeps text stationary while selecting", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const text = document.createElement("span");
+				text.textContent = "Select this text";
+				pages[0].appendChild(text);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+					left: 0,
+					top: 0,
+					width: 800,
+				} as DOMRect);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+
+				flipBook.setMouseMode("select");
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				const restingTransform = pages[0].style.transform;
+				text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+				text.dispatchEvent(
+					new MouseEvent("mousemove", { bubbles: true, buttons: 1, clientX: 790, clientY: 300 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+
+				expect(pages[0].style.transform).toBe(restingTransform);
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
+
+				flipBook.setMouseMode("turn");
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
 
 		it.each([
 			{ method: "flipNext" as const, backward: false, expectedPage: 1 },

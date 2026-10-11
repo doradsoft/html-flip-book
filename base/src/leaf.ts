@@ -51,7 +51,7 @@ export class Leaf {
 	setManualPosition(position: number): void {
 		this.manualFoldPoint = undefined;
 		const previous = this.flipPosition;
-		this.flipPosition = position;
+		this.updatePosition(position);
 		this.manualNeedsSettlement ||= previous !== this.flipPosition;
 		this.applyTransform(this.flipPosition);
 	}
@@ -75,7 +75,7 @@ export class Leaf {
 			x: fold.destination.x / size.width,
 			y: fold.destination.y / size.height,
 		};
-		this.flipPosition = (1 - constrainedPoint.x) / 2;
+		this.updatePosition((1 - constrainedPoint.x) / 2);
 		this.manualFoldPoint =
 			this.flipPosition === 0 || this.flipPosition === 1 ? undefined : constrainedPoint;
 		this.manualNeedsSettlement ||=
@@ -120,6 +120,12 @@ export class Leaf {
 		return this.index === this.bookProperties.leavesCount - 1;
 	}
 	set flipPosition(value: number) {
+		this.updatePosition(value);
+		if (this.flipPosition === 0 || this.flipPosition === 1) {
+			this.manualNeedsSettlement = false;
+		}
+	}
+	private updatePosition(value: number): void {
 		this.wrappedFlipPosition = Math.max(0, Math.min(1, value)) as FlipPosition;
 		if (this.wrappedFlipPosition === 0 || this.wrappedFlipPosition === 1) {
 			this.manualFoldPoint = undefined;
@@ -288,7 +294,7 @@ export class Leaf {
 				this.foldOrigin < 0.5 ? "top" : "bottom",
 			);
 			this.manualFoldPoint = { x: fold.destination.x / width, y: fold.destination.y / height };
-			this.flipPosition = (1 - this.manualFoldPoint.x) / 2;
+			this.updatePosition((1 - this.manualFoldPoint.x) / 2);
 			if (this.flipPosition > 0 && this.flipPosition < 1) {
 				this.applyPaperFold(width, height, this.flipPosition, fold);
 				return;
