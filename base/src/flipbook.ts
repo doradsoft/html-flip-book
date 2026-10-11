@@ -318,6 +318,9 @@ class FlipBook {
 				`${(containerWidth - 2 * pageSize.width) / 2}px`;
 			pageElement.style.top = `${(containerHeight - pageSize.height) / 2}px`;
 		}
+		for (const leaf of this.leaves) {
+			leaf.applyTransform(leaf.flipPosition);
+		}
 	}
 
 	render(selector: string, debug = false) {
@@ -476,6 +479,7 @@ class FlipBook {
 		this.hammer.on("panstart", this.onDragStart.bind(this));
 		this.hammer.on("panmove", this.onDragUpdate.bind(this));
 		this.hammer.on("panend", this.onDragEnd.bind(this));
+		this.hammer.on("pancancel", (event) => this.onDragEnd(event, true));
 		this.bookElement.addEventListener("touchstart", this.handleTouchStart, {
 			passive: false,
 		});
@@ -661,6 +665,7 @@ class FlipBook {
 
 		const currentPos = event.center.x;
 		const bookWidth = this.bookElement?.clientWidth ?? 0;
+		if (bookWidth <= 0) return;
 
 		// Calculate delta
 		let delta = this.isLTR
@@ -703,6 +708,7 @@ class FlipBook {
 			// endFlip() is deferred until the release animation completes
 			// in onDragEnd, so the snapshot/scrollbar lockdown stays stable.
 			leaf.beginFlip();
+			leaf.setFoldOrigin(this.getFoldPointerY(leaf, direction, event.center.y));
 
 			// Snap the starting position to the current finger position so
 			// the first rendered frame has delta ≈ 0 and the page begins at
@@ -723,25 +729,41 @@ class FlipBook {
 
 		// Update delta
 		flipState.delta = delta;
+		flipState.leaf.setFoldPointer(
+			this.getFoldPointerY(flipState.leaf, flipState.direction, event.center.y),
+		);
 
 		// Calculate and apply flip position
 		switch (flipState.direction) {
 			case FlipDirection.Forward: {
 				const posForward = (delta / bookWidth) as FlipPosition;
 				if (posForward > 1 || delta < 0) return;
-				flipState.leaf.efficientFlipToPosition(posForward);
+				flipState.leaf.setManualPosition(posForward);
 				break;
 			}
 			case FlipDirection.Backward: {
 				const posBackward = (1 - Math.abs(delta) / bookWidth) as FlipPosition;
 				if (posBackward < 0 || delta > 0) return;
-				flipState.leaf.efficientFlipToPosition(posBackward);
+				flipState.leaf.setManualPosition(posBackward);
 				break;
 			}
 		}
 	}
 
-	private onDragEnd(event: HammerInput) {
+	private getFoldPointerY(leaf: Leaf, direction: FlipDirection, pointerY: number): number {
+		const page =
+			direction === FlipDirection.Backward ? (leaf.pages[1] ?? leaf.pages[0]) : leaf.pages[0];
+		const height = Number.parseFloat(page.style.height);
+		const top = Number.parseFloat(page.style.top);
+		if (!Number.isFinite(pointerY) || !Number.isFinite(height) || height <= 0) return 0.75;
+		const bookTop = this.bookElement?.getBoundingClientRect().top ?? 0;
+		return Math.max(
+			0,
+			Math.min(1, (pointerY - bookTop - (Number.isFinite(top) ? top : 0)) / height),
+		);
+	}
+
+	private onDragEnd(event: HammerInput, cancelled = false) {
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
 
@@ -760,8 +782,9 @@ class FlipBook {
 		switch (flipState.direction) {
 			case FlipDirection.Forward:
 				if (
-					(this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
-					flipState.leaf.flipPosition >= 0.5
+					!cancelled &&
+					((this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
+						flipState.leaf.flipPosition >= 0.5)
 				) {
 					flipTo = 1;
 				} else {
@@ -770,8 +793,9 @@ class FlipBook {
 				break;
 			case FlipDirection.Backward:
 				if (
-					(this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
-					flipState.leaf.flipPosition <= 0.5
+					!cancelled &&
+					((this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
+						flipState.leaf.flipPosition <= 0.5)
 				) {
 					flipTo = 0;
 				} else {
@@ -781,6 +805,10 @@ class FlipBook {
 			default:
 				// Safety: release the drag-level flip lock if direction is unexpected.
 				flipState.leaf.endFlip();
+				this.activeFlips.delete(flipState.leaf.index);
+				this.pendingFlipDirection = FlipDirection.None;
+				this.pendingFlipStartingPos = 0;
+				this.isDragging = false;
 				return;
 		}
 
@@ -888,6 +916,9 @@ class FlipBook {
 		if (this.hoveredLeaf && this.hoveredLeaf !== leaf) {
 			this.hoveredLeaf.setHoverShadow(0);
 		}
+		if (this.hoveredLeaf !== leaf) {
+			leaf.setFoldOrigin(this.getFoldPointerY(leaf, direction, event.clientY));
+		}
 		this.hoveredLeaf = leaf;
 		leaf.setHoverShadow(hoverStrength);
 	});
@@ -992,6 +1023,7 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
 		if (!leaf) return;
+		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,
@@ -1024,6 +1056,7 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Backward);
 		if (!leaf) return;
+		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,

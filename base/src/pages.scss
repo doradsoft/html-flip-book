@@ -60,6 +60,20 @@
   opacity: 0 !important;
 }
 
+// Paper surfaces share a moving crease; shading stays in page coordinates
+// so it follows the clipped fold without moving or cloning page content.
+.page--folded::before {
+  background: var(--fold-shading, none);
+  opacity: 1;
+  transition: none;
+  mix-blend-mode: normal;
+}
+
+.page--folded::after {
+  opacity: 0;
+  transition: none;
+}
+
 // Applied during flip animation when snapshotDuringFlip is enabled.
 // The browser freezes the page rendering as a GPU texture; scrollbar chrome
 // and text selection are hidden so the snapshot looks clean.
