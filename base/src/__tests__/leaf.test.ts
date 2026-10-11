@@ -387,6 +387,206 @@ describe("Leaf", () => {
 				onTurnedMock,
 			);
 		};
+		const liftedCorner = (leaf: Leaf, isLTR: boolean, corner: "top" | "bottom") => {
+			const width = Number.parseFloat(leaf.pages[0].style.width);
+			const height = Number.parseFloat(leaf.pages[0].style.height);
+			const [a, b, c, d, tx, ty] =
+				leaf.pages[1]?.style.transform
+					.match(/^matrix\((.+)\)$/)?.[1]
+					.split(",")
+					.map(Number) ?? [];
+			const x = isLTR ? 0 : width;
+			const y = corner === "top" ? 0 : height;
+			const reflectedX = a * x + c * y + tx;
+			return {
+				x: (isLTR ? reflectedX - width : -reflectedX) / width,
+				y: (b * x + d * y + ty) / height,
+			};
+		};
+
+		it.each([
+			[true, "top"],
+			[true, "bottom"],
+			[false, "top"],
+			[false, "bottom"],
+		] as const)("reflects the %s %s corner to its held point", (isLTR, corner) => {
+			const leaf = createPaperLeaf(isLTR);
+			const point = { x: 0.35, y: corner === "top" ? 0.3 : 0.7 };
+			leaf.setFoldOrigin(corner === "top" ? 0.1 : 0.9);
+			leaf.setManualFold(point);
+
+			const actual = liftedCorner(leaf, isLTR, corner);
+			expect(actual.x).toBeCloseTo(point.x, 8);
+			expect(actual.y).toBeCloseTo(point.y, 8);
+			expect(leaf.flipPosition).toBeCloseTo((1 - point.x) / 2, 8);
+			expect(mockPage1.classList.contains("page--folded")).toBe(true);
+			expect(mockPage2.classList.contains("page--folded")).toBe(true);
+			expect(onTurnedMock).not.toHaveBeenCalled();
+		});
+
+		it("follows vertical movement independently while holding the same horizontal position", () => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.2, y: 0.2 });
+			const initialClip = mockPage1.style.clipPath;
+			const initialTransform = mockPage2.style.transform;
+			const initialPosition = leaf.flipPosition;
+
+			leaf.setManualFold({ x: 0.2, y: 0.4 });
+
+			const actual = liftedCorner(leaf, true, "top");
+			expect(actual.x).toBeCloseTo(0.2, 8);
+			expect(actual.y).toBeCloseTo(0.4, 8);
+			expect(leaf.flipPosition).toBeCloseTo(initialPosition, 8);
+			expect(mockPage1.style.clipPath).not.toBe(initialClip);
+			expect(mockPage2.style.transform).not.toBe(initialTransform);
+		});
+
+		it("renders the constrained corner when a held point lies beyond the page", () => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 2, y: 0.25 });
+
+			const actual = liftedCorner(leaf, true, "top");
+			expect(actual.x).toBeLessThan(1);
+			expect(actual.y).toBeGreaterThan(0);
+			expect(Math.hypot(actual.x * 320, actual.y * 480)).toBeLessThanOrEqual(320 + 1e-8);
+			expect(leaf.flipPosition).toBeCloseTo((1 - actual.x) / 2, 8);
+			expect(mockPage1.style.clipPath).not.toMatch(/NaN|Infinity/);
+			expect(mockPage2.style.transform).not.toMatch(/NaN|Infinity/);
+		});
+
+		it("keeps the held corner normalized across resize and repeated redraws", () => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.25, y: 0.4 });
+			const initialTransform = mockPage2.style.transform;
+			for (const page of [mockPage1, mockPage2]) {
+				page.style.width = "480px";
+				page.style.height = "720px";
+			}
+
+			leaf.applyTransform(leaf.flipPosition);
+			leaf.applyTransform(leaf.flipPosition);
+
+			const actual = liftedCorner(leaf, true, "top");
+			expect(actual.x).toBeCloseTo(0.25, 8);
+			expect(actual.y).toBeCloseTo(0.4, 8);
+			expect(leaf.flipPosition).toBeCloseTo(0.375, 8);
+			expect(mockPage2.style.transform).not.toBe(initialTransform);
+		});
+
+		it("clears a held fold when an instant endpoint is assigned", () => {
+			const leaf = createPaperLeaf();
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.25, y: 0.4 });
+
+			leaf.flipPosition = 1;
+			leaf.applyTransform(leaf.flipPosition);
+
+			expect(mockPage1.style.clipPath).toBe("");
+			expect(mockPage2.style.clipPath).toBe("");
+			expect(mockPage1.classList.contains("page--folded")).toBe(false);
+			expect(mockPage2.style.transform).toContain("rotateY(0deg)");
+		});
+
+		it.each([
+			[true, "top", 0],
+			[true, "top", 1],
+			[true, "bottom", 0],
+			[true, "bottom", 1],
+			[false, "top", 0],
+			[false, "top", 1],
+			[false, "bottom", 0],
+			[false, "bottom", 1],
+		] as const)("releases isLTR=%s %s corner continuously toward endpoint %s", async (isLTR, corner, endpoint) => {
+			const leaf = createPaperLeaf(isLTR);
+			const frames: FrameRequestCallback[] = [];
+			vi.spyOn(performance, "now").mockReturnValue(0);
+			vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+				frames.push(callback);
+				return frames.length;
+			});
+			const point = { x: 0.2, y: corner === "top" ? 0.3 : 0.7 };
+			const cornerY = corner === "top" ? 0 : 1;
+			leaf.setFoldOrigin(corner === "top" ? 0.1 : 0.9);
+			leaf.beginFlip();
+			leaf.setManualFold(point);
+			const initialClips = leaf.pages.map((page) => page?.style.clipPath);
+			const initialTransform = mockPage2.style.transform;
+			const initialPosition = leaf.flipPosition;
+			const duration = Math.abs(endpoint - initialPosition) * 1000;
+			const release = leaf.flipToPosition(endpoint as FlipPosition, 180 as never);
+			leaf.endFlip();
+
+			frames.shift()?.(0);
+			expect(leaf.pages.map((page) => page?.style.clipPath)).toEqual(initialClips);
+			expect(mockPage2.style.transform).toBe(initialTransform);
+			frames.shift()?.(duration / 2);
+			const halfway = liftedCorner(leaf, isLTR, corner);
+			expect(halfway.x).toBeCloseTo((point.x + 1 - 2 * endpoint) / 2, 8);
+			expect(halfway.y).toBeCloseTo((point.y + cornerY) / 2, 8);
+			expect(mockPage1.classList.contains("page--flipping")).toBe(true);
+			expect(onTurnedMock).not.toHaveBeenCalled();
+			frames.shift()?.(duration);
+			await release;
+
+			expect(leaf.flipPosition).toBe(endpoint);
+			expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
+				endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
+			);
+			for (const page of leaf.pages) {
+				expect(page?.style.clipPath).toBe("");
+				expect(page?.classList.contains("page--folded")).toBe(false);
+				expect(page?.classList.contains("page--flipping")).toBe(false);
+				expect(page?.style.willChange).toBe("");
+			}
+			leaf.applyTransform(endpoint);
+			expect(mockPage1.style.clipPath).toBe("");
+		});
+
+		it("preserves a held intermediate release after its interaction ends", async () => {
+			const leaf = createPaperLeaf();
+			const frames: FrameRequestCallback[] = [];
+			vi.spyOn(performance, "now").mockReturnValue(0);
+			vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+				frames.push(callback);
+				return frames.length;
+			});
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.2, y: 0.3 });
+			const release = leaf.flipToPosition(0.3 as FlipPosition, 180 as never);
+			frames.shift()?.(1000);
+			await release;
+			const settledTransform = mockPage2.style.transform;
+
+			leaf.applyTransform(leaf.flipPosition);
+
+			const actual = liftedCorner(leaf, true, "top");
+			expect(actual.x).toBeCloseTo(0.4, 8);
+			expect(actual.y).toBeCloseTo(0, 8);
+			expect(leaf.flipPosition).toBeCloseTo(0.3, 8);
+			expect(mockPage2.style.transform).toBe(settledTransform);
+			expect(onTurnedMock).not.toHaveBeenCalled();
+		});
+
+		it.each([
+			"cover",
+			"missing-size",
+			"single-sided",
+		])("uses a rigid manual position for %s pages", (kind) => {
+			const leaf = createPaperLeaf();
+			if (kind === "cover") mockPage1.dataset.isCoverPage = "1";
+			if (kind === "missing-size") mockPage1.style.width = "";
+			if (kind === "single-sided") leaf.pages[1] = undefined;
+
+			leaf.setManualFold({ x: 0.2, y: 0.3 });
+
+			expect(leaf.flipPosition).toBeCloseTo(0.4, 8);
+			expect(mockPage1.style.transform).toContain("rotateY");
+			expect(mockPage1.style.clipPath).toBe("");
+			expect(mockPage1.classList.contains("page--folded")).toBe(false);
+		});
 
 		it.each([
 			true,

@@ -28,17 +28,48 @@ async function holdDrag(
 	turn: TurnDirection,
 	corner: "top" | "bottom",
 ) {
-	const box = await book.boundingBox();
-	if (!box) throw new Error("Book bounds unavailable");
+	const sourceIndex = await book
+		.locator(".current-page")
+		.evaluateAll(
+			(pages, side) =>
+				pages
+					.find((element) => Number((element as HTMLElement).dataset.pageIndex) % 2 === side)
+					?.getAttribute("data-page-index"),
+			turn === "forward" ? 0 : 1,
+		);
+	const box = await book.locator(`.page[data-page-index="${sourceIndex}"]`).boundingBox();
+	if (!box) throw new Error("Page bounds unavailable");
 	const fromRight = (direction === "ltr") === (turn === "forward");
 	const movement = fromRight ? -1 : 1;
-	const start = box.x + box.width * (fromRight ? 0.83 : 0.17);
-	const y = box.y + box.height * (corner === "top" ? 0.23 : 0.77);
+	const start = box.x + box.width * (fromRight ? 0.92 : 0.08);
+	const y = box.y + box.height * (corner === "top" ? 0.1 : 0.9);
 	await page.mouse.move(start, y);
 	await page.mouse.down();
-	// The recognizer acquires the leaf first, then subsequent movement bends it.
-	await page.mouse.move(start + movement * box.width * 0.05, y, { steps: 3 });
-	await page.mouse.move(start + movement * box.width * 0.19, y, { steps: 5 });
+	await page.mouse.move(
+		start + movement * box.width * 0.3,
+		y + (corner === "top" ? 1 : -1) * box.height * 0.12,
+		{ steps: 8 },
+	);
+}
+
+async function liftedCorner(book: Locator, backIndex: number, direction: ReadingDirection) {
+	return book.locator(`.page[data-page-index="${backIndex}"]`).evaluate((element, isLTR) => {
+		const surface = element as HTMLElement;
+		const book = surface.closest<HTMLElement>(".flipbook");
+		if (!book) throw new Error("Book unavailable");
+		const rect = book.getBoundingClientRect();
+		const width = Number.parseFloat(surface.style.width);
+		const height = Number.parseFloat(surface.style.height);
+		const matrix = new DOMMatrix(getComputedStyle(surface).transform);
+		const point = matrix.transformPoint(new DOMPoint(isLTR ? 0 : width, height));
+		const left = isLTR
+			? Number.parseFloat(surface.style.left)
+			: book.clientWidth - Number.parseFloat(surface.style.right) - width;
+		return {
+			x: rect.left + left + point.x,
+			y: rect.top + Number.parseFloat(surface.style.top) + point.y,
+		};
+	}, direction === "ltr");
 }
 
 async function expectFlat(book: Locator) {
@@ -56,6 +87,53 @@ async function expectFlat(book: Locator) {
 test.describe("Paper fold rendering", () => {
 	for (const direction of ["ltr", "rtl"] as const) {
 		for (const turn of ["forward", "backward"] as const) {
+			test(`${direction} ${turn}: corner follows a full page-width pull and free vertical motion`, async ({
+				page,
+			}, testInfo) => {
+				const book = await openBook(page, direction);
+				const sourceIndex = turn === "forward" ? 6 : 5;
+				const backIndex = turn === "forward" ? 7 : 5;
+				const box = await book.locator(`.page[data-page-index="${sourceIndex}"]`).boundingBox();
+				const bookBox = await book.boundingBox();
+				if (!box || !bookBox) throw new Error("Page bounds unavailable");
+				const fromRight = (direction === "ltr") === (turn === "forward");
+				const movement = fromRight ? -1 : 1;
+				const startX = box.x + box.width * (fromRight ? 0.92 : 0.08);
+				const startY = box.y + box.height * 0.92;
+				const heldX = startX + movement * box.width;
+				const spineX = bookBox.x + bookBox.width / 2;
+				const cornerY = box.y + box.height;
+				await page.mouse.move(startX, startY);
+				await page.mouse.down();
+				await page.mouse.move(heldX, startY, { steps: 12 });
+				await expect(book.locator(".page--folded")).toHaveCount(2);
+				let corner = await liftedCorner(book, backIndex, direction);
+				expect(Math.abs(corner.x - spineX)).toBeLessThan(1);
+				expect(Math.abs(corner.y - cornerY)).toBeLessThan(1);
+
+				await page.mouse.move(heldX, startY - box.height * 0.28, { steps: 8 });
+				corner = await liftedCorner(book, backIndex, direction);
+				expect(Math.abs(corner.x - spineX)).toBeLessThan(1);
+				expect(Math.abs(corner.y - (cornerY - box.height * 0.28))).toBeLessThan(1);
+				if (
+					process.env.FOLD_SCREENSHOT_DIR &&
+					testInfo.project.name === "chromium" &&
+					direction === "ltr" &&
+					turn === "backward"
+				) {
+					await page.screenshot({ path: `${process.env.FOLD_SCREENSHOT_DIR}/fold-free-drag.png` });
+				}
+
+				await page.mouse.move(heldX, startY + box.height * 0.1, { steps: 8 });
+				corner = await liftedCorner(book, backIndex, direction);
+				expect(Math.abs(corner.x - spineX)).toBeLessThan(1);
+				expect(Math.abs(corner.y - (cornerY + box.height * 0.1))).toBeLessThan(1);
+				await page.mouse.move(startX + movement * box.width * 0.8, startY, { steps: 5 });
+				await page.mouse.up();
+				await page.mouse.move(0, 0);
+				await expectFlat(book);
+				await expect(book.locator('.page[data-page-index="6"]')).toHaveClass(/current-page/);
+			});
 			for (const corner of ["top", "bottom"] as const) {
 				test(`${direction} ${turn} ${corner}: preserves content and clears each settled fold`, async ({
 					page,

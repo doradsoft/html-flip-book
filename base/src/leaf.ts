@@ -1,7 +1,13 @@
 import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
-import { computePageFold, easePageTurn, type Point } from "./page-fold";
+import {
+	computePageFold,
+	computePageFoldFromPoint,
+	easePageTurn,
+	type PageFold,
+	type Point,
+} from "./page-fold";
 
 /** Schedule a frame callback; fallback for test envs where requestAnimationFrame is missing. Called at invoke time so test mocks apply. */
 function scheduleFrame(cb: (timestamp: number) => void): number {
@@ -30,6 +36,7 @@ export class Leaf {
 	private foldOrigin = 0.75;
 	private foldPointer = 0.75;
 	private manualNeedsSettlement = false;
+	private manualFoldPoint: Point | undefined;
 
 	setFoldOrigin(normalizedY: number): void {
 		this.foldOrigin = Math.max(0, Math.min(1, normalizedY));
@@ -42,9 +49,38 @@ export class Leaf {
 
 	/** Follow a held pointer without queuing animations or reporting a completed turn. */
 	setManualPosition(position: number): void {
+		this.manualFoldPoint = undefined;
 		const previous = this.flipPosition;
 		this.flipPosition = position;
 		this.manualNeedsSettlement ||= previous !== this.flipPosition;
+		this.applyTransform(this.flipPosition);
+	}
+
+	/** Track the lifted corner in page coordinates, including movement beyond the page edges. */
+	setManualFold(point: Point): void {
+		const size = this.getPaperSize();
+		if (!size) {
+			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
+			return;
+		}
+		const previousPosition = this.flipPosition;
+		const previousPoint = this.manualFoldPoint;
+		const fold = computePageFoldFromPoint(
+			size.width,
+			size.height,
+			{ x: point.x * size.width, y: point.y * size.height },
+			this.foldOrigin < 0.5 ? "top" : "bottom",
+		);
+		const constrainedPoint = {
+			x: fold.destination.x / size.width,
+			y: fold.destination.y / size.height,
+		};
+		this.flipPosition = (1 - constrainedPoint.x) / 2;
+		this.manualFoldPoint =
+			this.flipPosition === 0 || this.flipPosition === 1 ? undefined : constrainedPoint;
+		this.manualNeedsSettlement ||=
+			previousPosition !== this.flipPosition ||
+			(previousPoint !== undefined && previousPoint.y !== constrainedPoint.y);
 		this.applyTransform(this.flipPosition);
 	}
 
@@ -85,6 +121,9 @@ export class Leaf {
 	}
 	set flipPosition(value: number) {
 		this.wrappedFlipPosition = Math.max(0, Math.min(1, value)) as FlipPosition;
+		if (this.wrappedFlipPosition === 0 || this.wrappedFlipPosition === 1) {
+			this.manualFoldPoint = undefined;
+		}
 	}
 	get flipPosition(): number {
 		return this.wrappedFlipPosition;
@@ -123,8 +162,11 @@ export class Leaf {
 	endFlip(): void {
 		this.flipRefCount = Math.max(0, this.flipRefCount - 1);
 		if (this.flipRefCount !== 0) return; // still active
-		this.foldOrigin = 0.75;
-		this.foldPointer = this.foldOrigin;
+		if (!this.manualFoldPoint || this.flipPosition === 0 || this.flipPosition === 1) {
+			this.manualFoldPoint = undefined;
+			this.foldOrigin = 0.75;
+			this.foldPointer = this.foldOrigin;
+		}
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "";
@@ -143,6 +185,10 @@ export class Leaf {
 		}
 
 		if (this.flipPosition === flipPosition) {
+			if (flipPosition === 0 || flipPosition === 1) {
+				this.manualFoldPoint = undefined;
+				this.applyTransform(flipPosition);
+			}
 			if (this.manualNeedsSettlement && (flipPosition === 0 || flipPosition === 1)) {
 				this.manualNeedsSettlement = false;
 				this.onTurned(flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward);
@@ -160,6 +206,11 @@ export class Leaf {
 
 		this.currentAnimation = new Promise<void>((resolve) => {
 			const currentFlipPosition = this.flipPosition;
+			const startingFoldPoint = this.manualFoldPoint && { ...this.manualFoldPoint };
+			const targetFoldPoint = {
+				x: 1 - 2 * flipPosition,
+				y: this.foldOrigin < 0.5 ? 0 : 1,
+			};
 			const distance = Math.abs(flipPosition - currentFlipPosition);
 			const duration = ((distance * 180) / velocity) * 1000; // duration in milliseconds
 
@@ -173,13 +224,22 @@ export class Leaf {
 				}
 
 				const progress = Math.min(elapsed / duration, 1);
+				const easedProgress = easePageTurn(progress);
 				const newPosition =
-					currentFlipPosition + easePageTurn(progress) * (flipPosition - currentFlipPosition);
-
-				this.applyTransform(newPosition);
+					currentFlipPosition + easedProgress * (flipPosition - currentFlipPosition);
+				if (startingFoldPoint) {
+					this.manualFoldPoint = {
+						x: startingFoldPoint.x + easedProgress * (targetFoldPoint.x - startingFoldPoint.x),
+						y: startingFoldPoint.y + easedProgress * (targetFoldPoint.y - startingFoldPoint.y),
+					};
+					if (progress === 1 && (flipPosition === 0 || flipPosition === 1)) {
+						this.manualFoldPoint = undefined;
+					}
+				}
 
 				// Ensure the new position is within valid bounds [0, 1]
 				this.flipPosition = Math.max(0, Math.min(1, newPosition)) as FlipPosition;
+				this.applyTransform(newPosition);
 				if (progress < 1) {
 					scheduleFrame(step);
 				} else {
@@ -219,14 +279,22 @@ export class Leaf {
 					: clampedPosition;
 		const width = Number.parseFloat(this.pages[0].style.width);
 		const height = Number.parseFloat(this.pages[0].style.height);
-		const hasRigidCover = this.pages.some((page) => page?.dataset.isCoverPage === "1");
-		const usePaperFold =
-			!hasRigidCover &&
-			this.pages[1] &&
-			width > 0 &&
-			height > 0 &&
-			previewPosition > 0 &&
-			previewPosition < 1;
+		const paperSize = this.getPaperSize();
+		if (paperSize && this.manualFoldPoint) {
+			const fold = computePageFoldFromPoint(
+				width,
+				height,
+				{ x: this.manualFoldPoint.x * width, y: this.manualFoldPoint.y * height },
+				this.foldOrigin < 0.5 ? "top" : "bottom",
+			);
+			this.manualFoldPoint = { x: fold.destination.x / width, y: fold.destination.y / height };
+			this.flipPosition = (1 - this.manualFoldPoint.x) / 2;
+			if (this.flipPosition > 0 && this.flipPosition < 1) {
+				this.applyPaperFold(width, height, this.flipPosition, fold);
+				return;
+			}
+		}
+		const usePaperFold = paperSize && previewPosition > 0 && previewPosition < 1;
 		if (usePaperFold) {
 			this.applyPaperFold(width, height, previewPosition);
 			return;
@@ -284,6 +352,22 @@ export class Leaf {
 		});
 	}
 
+	private getPaperSize(): { width: number; height: number } | undefined {
+		const width = Number.parseFloat(this.pages[0].style.width);
+		const height = Number.parseFloat(this.pages[0].style.height);
+		if (
+			!this.pages[1] ||
+			this.pages.some((page) => page?.dataset.isCoverPage === "1") ||
+			!Number.isFinite(width) ||
+			!Number.isFinite(height) ||
+			width <= 0 ||
+			height <= 0
+		) {
+			return undefined;
+		}
+		return { width, height };
+	}
+
 	private getSurfaceZIndex(
 		page: HTMLElement,
 		position: number,
@@ -305,14 +389,21 @@ export class Leaf {
 		return `${this.bookProperties.pagesCount * 2 + leafOrder + faceOrder}`;
 	}
 
-	private applyPaperFold(width: number, height: number, position: number): void {
-		const fold = computePageFold(
-			width,
-			height,
-			position,
-			this.foldOrigin < 0.5 ? "top" : "bottom",
-			this.foldPointer - this.foldOrigin,
-		);
+	private applyPaperFold(
+		width: number,
+		height: number,
+		position: number,
+		manualFold?: PageFold,
+	): void {
+		const fold =
+			manualFold ??
+			computePageFold(
+				width,
+				height,
+				position,
+				this.foldOrigin < 0.5 ? "top" : "bottom",
+				this.foldPointer - this.foldOrigin,
+			);
 		const [a, b, c, d, tx, ty] = fold.reflection;
 		const isLTR = this.bookProperties.isLTR;
 		for (let side = 0; side < this.pages.length; side++) {

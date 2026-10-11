@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computePageFold, easePageTurn, type Point } from "../page-fold";
+import {
+	computePageFold,
+	computePageFoldFromPoint,
+	easePageTurn,
+	getPageFoldDestination,
+	type Point,
+} from "../page-fold";
 
 function area(polygon: Point[]): number {
 	return (
@@ -137,6 +143,180 @@ describe("computePageFold", () => {
 			expect(Math.hypot(fold.normal.x, fold.normal.y)).toBeCloseTo(1, 10);
 			expect(fold.strength).toBeGreaterThanOrEqual(0);
 			expect(fold.strength).toBeLessThanOrEqual(1);
+		}
+	});
+});
+
+describe("computePageFoldFromPoint", () => {
+	it("keeps feasible points exact, including either vertical pull direction", () => {
+		for (const corner of ["top", "bottom"] as const) {
+			for (const point of [
+				{ x: 180, y: 40 },
+				{ x: 120, y: -40 },
+				{ x: 0, y: 140 },
+				{ x: -120, y: -40 },
+				{ x: -180, y: 40 },
+			]) {
+				const destination = { x: point.x, y: corner === "top" ? point.y : 400 - point.y };
+				const fold = computePageFoldFromPoint(240, 400, destination, corner);
+				expect(fold.destination).toEqual(destination);
+			}
+		}
+	});
+
+	it("puts the lifted corner at the spine after a one-leaf-width horizontal pull", () => {
+		for (const corner of ["top", "bottom"] as const) {
+			const cornerY = corner === "top" ? 0 : 400;
+			const fold = computePageFoldFromPoint(240, 400, { x: 0, y: cornerY }, corner);
+			expect(fold.destination).toEqual({ x: 0, y: cornerY });
+			expect(reflected({ x: 240, y: cornerY }, fold.reflection)).toEqual({ x: 0, y: cornerY });
+			expect(area(fold.front)).toBe(240 * 400 * 0.5);
+			expect(area(fold.folded)).toBe(240 * 400 * 0.5);
+			expect(fold.strength).toBe(1);
+		}
+	});
+
+	it("preserves both signs of vertical-only pulls at either resting edge", () => {
+		for (const corner of ["top", "bottom"] as const) {
+			const cornerY = corner === "top" ? 0 : 400;
+			for (const x of [-240, 240]) {
+				for (const dy of [-60, 60]) {
+					const fold = computePageFoldFromPoint(240, 400, { x, y: cornerY + dy }, corner);
+					expect(Math.sign(fold.destination.y - cornerY)).toBe(Math.sign(dy));
+					expect(Math.abs(fold.destination.x)).toBeLessThan(240);
+					expect(area(fold.front)).toBeGreaterThan(0);
+					expect(area(fold.folded)).toBeGreaterThan(0);
+				}
+			}
+		}
+	});
+
+	it("projects to the nearest admissible circle arc or their intersection", () => {
+		const oppositeRadius = Math.hypot(200, 300);
+		const straightUp = computePageFoldFromPoint(200, 300, { x: 0, y: -500 }, "top");
+		expect(straightUp.destination.x).toBe(0);
+		expect(straightUp.destination.y).toBeCloseTo(300 - oppositeRadius, 12);
+		const outward = computePageFoldFromPoint(200, 300, { x: 300, y: -100 }, "top");
+		expect(outward.destination).toEqual({ x: 200, y: 0 });
+		const down = computePageFoldFromPoint(200, 300, { x: 300, y: 100 }, "top");
+		const radialLength = Math.hypot(300, 100);
+		expect(down.destination.x).toBeCloseTo((200 * 300) / radialLength, 12);
+		expect(down.destination.y).toBeCloseTo((200 * 100) / radialLength, 12);
+	});
+
+	it("does not invert the sheet for rounding-sized pulls beyond the resting edge", () => {
+		const fold = computePageFoldFromPoint(240, 400, { x: 240 + Number.EPSILON * 240, y: 0 }, "top");
+		expect(fold.destination).toEqual({ x: 240, y: 0 });
+		expect(fold.folded).toEqual([]);
+		expect(area(fold.front)).toBe(240 * 400);
+	});
+
+	it("keeps both spine endpoints outside the lifted region for far-outside requests", () => {
+		for (const corner of ["top", "bottom"] as const) {
+			const cornerY = corner === "top" ? 0 : 400;
+			for (const target of [
+				{ x: 800, y: -900 },
+				{ x: -800, y: 1200 },
+				{ x: 120, y: -300 },
+				{ x: -120, y: 800 },
+				{ x: 240, y: 70 },
+				{ x: -240, y: -70 },
+			]) {
+				const fold = computePageFoldFromPoint(240, 400, target, corner);
+				expect(Math.hypot(fold.destination.x, fold.destination.y - cornerY)).toBeLessThanOrEqual(
+					240 + 1e-10,
+				);
+				expect(
+					Math.hypot(fold.destination.x, fold.destination.y - (400 - cornerY)),
+				).toBeLessThanOrEqual(Math.hypot(240, 400) + 1e-10);
+				for (const spineY of [0, 400]) {
+					const distance =
+						-fold.midpoint.x * fold.normal.x + (spineY - fold.midpoint.y) * fold.normal.y;
+					expect(distance).toBeLessThanOrEqual(1e-10);
+				}
+				const actual = reflected({ x: 240, y: cornerY }, fold.reflection);
+				expect(actual.x).toBeCloseTo(fold.destination.x, 10);
+				expect(actual.y).toBeCloseTo(fold.destination.y, 10);
+				expect(area(fold.front) + area(fold.folded)).toBeCloseTo(240 * 400, 8);
+			}
+		}
+	});
+
+	it("mirrors top and bottom geometry for the same two-dimensional pull", () => {
+		for (const target of [
+			{ x: 210, y: -80 },
+			{ x: 100, y: 90 },
+			{ x: -210, y: 60 },
+			{ x: -400, y: -500 },
+		]) {
+			const top = computePageFoldFromPoint(240, 400, target, "top");
+			const bottom = computePageFoldFromPoint(
+				240,
+				400,
+				{ x: target.x, y: 400 - target.y },
+				"bottom",
+			);
+			expect(top.destination.x).toBeCloseTo(bottom.destination.x, 10);
+			expect(top.destination.y).toBeCloseTo(400 - bottom.destination.y, 10);
+			expect(top.normal.x).toBeCloseTo(bottom.normal.x, 10);
+			expect(top.normal.y).toBeCloseTo(-bottom.normal.y, 10);
+			expect(area(top.folded)).toBeCloseTo(area(bottom.folded), 8);
+		}
+	});
+
+	it("keeps release interpolation inside the feasible region and retains its first frame", () => {
+		const initial = computePageFoldFromPoint(240, 400, { x: -70, y: -35 }, "top");
+		for (const targetX of [-240, 240]) {
+			for (let index = 0; index <= 10; index++) {
+				const amount = easePageTurn(index / 10);
+				const destination = {
+					x: initial.destination.x + (targetX - initial.destination.x) * amount,
+					y: initial.destination.y * (1 - amount),
+				};
+				const fold = computePageFoldFromPoint(240, 400, destination, "top");
+				expect(fold.destination).toEqual(destination);
+				if (index === 0) expect(fold.reflection).toEqual(initial.reflection);
+			}
+		}
+	});
+
+	it("returns finite geometry for invalid and very large destinations", () => {
+		for (const target of [
+			{ x: Number.NaN, y: Number.POSITIVE_INFINITY },
+			{ x: Number.MAX_VALUE, y: Number.MAX_VALUE },
+			{ x: -Number.MAX_VALUE, y: -Number.MAX_VALUE },
+		]) {
+			const fold = computePageFoldFromPoint(240, 400, target, "bottom");
+			const values = [
+				fold.destination.x,
+				fold.destination.y,
+				...fold.reflection,
+				fold.normal.x,
+				fold.normal.y,
+				fold.midpoint.x,
+				fold.midpoint.y,
+				fold.strength,
+			];
+			expect(values.every(Number.isFinite)).toBe(true);
+		}
+	});
+});
+
+describe("getPageFoldDestination", () => {
+	it("matches the automatic renderer and provides exact resting endpoints", () => {
+		for (const corner of ["top", "bottom"] as const) {
+			const cornerY = corner === "top" ? 0 : 400;
+			expect(getPageFoldDestination(240, 400, 0, corner)).toEqual({ x: 240, y: cornerY });
+			expect(getPageFoldDestination(240, 400, 1, corner)).toEqual({ x: -240, y: cornerY });
+			for (const position of [0.05, 0.25, 0.5, 0.75, 0.95]) {
+				const destination = getPageFoldDestination(240, 400, position, corner, 0.15);
+				const automatic = computePageFold(240, 400, position, corner, 0.15);
+				const direct = computePageFoldFromPoint(240, 400, destination, corner);
+				expect(automatic.destination).toEqual(destination);
+				expect(automatic.reflection).toEqual(direct.reflection);
+				expect(automatic.front).toEqual(direct.front);
+				expect(automatic.folded).toEqual(direct.folded);
+			}
 		}
 	});
 });
