@@ -4,6 +4,7 @@
 	line-height: 1.6;
 	height: 100%;
 	box-sizing: border-box;
+	container-type: inline-size;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -13,6 +14,7 @@
 /* Inner area: vertical scroll only; no horizontal scroll */
 .toc-page__scroll {
 	flex: 1;
+	min-width: 0;
 	min-height: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -20,6 +22,7 @@
 
 .toc-heading {
 	text-align: center;
+	overflow-wrap: anywhere;
 	margin-bottom: 24px;
 	color: #2c1810;
 	font-size: 1.4rem;
@@ -41,6 +44,7 @@
 	flex-direction: row;
 	align-items: baseline;
 	width: 100%;
+	box-sizing: border-box;
 	padding: 8px 4px;
 	background: none;
 	border: none;
@@ -62,14 +66,11 @@
 	outline-offset: 2px;
 }
 
-/* Limit title length and show ellipsis when truncated */
+/* Wrap long titles while leaving room for the leader and page number. */
 .toc-title {
 	flex: 0 1 auto;
 	min-width: 0;
-	max-width: 85%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	overflow-wrap: anywhere;
 }
 
 .toc-dots {
@@ -81,6 +82,23 @@
 
 .toc-page-num {
 	flex-shrink: 0;
+	white-space: nowrap;
 	font-weight: 600;
 	color: #1a3a5c;
+}
+
+@container (max-width: 160px) {
+	.toc-link {
+		flex-wrap: wrap;
+	}
+
+	.toc-title {
+		flex-basis: 100%;
+	}
+
+	.toc-dots {
+		min-width: 0;
+		margin: 0;
+		margin-inline-end: 8px;
+	}
 }

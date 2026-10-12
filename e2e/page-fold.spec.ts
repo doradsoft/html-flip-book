@@ -27,7 +27,7 @@ type PageContent = {
 
 async function openBook(page: Page, direction: ReadingDirection, interior = true) {
 	const params = new URLSearchParams({
-		example: `${direction}-shadow`,
+		example: `${direction}-buffer`,
 		[TEST_PARAM_FAST_DELTA_THRESHOLD]: "1000000",
 	});
 	if (interior) params.set(TEST_PARAM_INITIAL_TURNED_LEAVES, "0,1,2");

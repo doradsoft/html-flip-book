@@ -124,7 +124,7 @@ function useTestParams() {
 export interface HeBookConfig {
 	leavesBuffer?: number;
 	debug?: boolean;
-	/** When true, show page shadow (e.g. Comprehensive example). */
+	/** Page shadows are enabled unless explicitly disabled. */
 	showPageShadow?: boolean;
 	/** When false, omit history mapper (default true when config absent). */
 	enableHistory?: boolean;
