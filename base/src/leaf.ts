@@ -63,24 +63,26 @@ export class Leaf {
 			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
 			return;
 		}
-		const previousPosition = this.flipPosition;
-		const previousPoint = this.manualFoldPoint;
 		const fold = computePageFoldFromPoint(
 			size.width,
 			size.height,
 			{ x: point.x * size.width, y: point.y * size.height },
 			this.foldOrigin < 0.5 ? "top" : "bottom",
 		);
-		const constrainedPoint = {
+		this.updateManualFold({
 			x: fold.destination.x / size.width,
 			y: fold.destination.y / size.height,
-		};
-		this.updatePosition((1 - constrainedPoint.x) / 2);
-		this.manualFoldPoint =
-			this.flipPosition === 0 || this.flipPosition === 1 ? undefined : constrainedPoint;
+		});
+	}
+
+	private updateManualFold(point: Point): void {
+		const previousPosition = this.flipPosition;
+		const previousPoint = this.manualFoldPoint;
+		this.updatePosition((1 - point.x) / 2);
+		this.manualFoldPoint = this.flipPosition === 0 || this.flipPosition === 1 ? undefined : point;
 		this.manualNeedsSettlement ||=
 			previousPosition !== this.flipPosition ||
-			(previousPoint !== undefined && previousPoint.y !== constrainedPoint.y);
+			(previousPoint !== undefined && previousPoint.y !== point.y);
 		this.applyTransform(this.flipPosition);
 	}
 

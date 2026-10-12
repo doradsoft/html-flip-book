@@ -731,6 +731,27 @@ describe("FlipBook", () => {
 	});
 
 	describe("drag handling", () => {
+		function dispatchMousePress(target: HTMLElement, pressType: string) {
+			target.dispatchEvent(
+				new PointerEvent(pressType, {
+					bubbles: true,
+					button: 0,
+					pointerType: "mouse",
+					clientX: 100,
+					clientY: 200,
+				}),
+			);
+		}
+
+		function dispatchTouchPress(target: HTMLElement) {
+			target.dispatchEvent(
+				new TouchEvent("touchstart", {
+					bubbles: true,
+					touches: [{ pageX: 700, pageY: 200 } as Touch],
+				}),
+			);
+		}
+
 		it.each([
 			"pointerdown",
 			"mousedown",
@@ -745,15 +766,7 @@ describe("FlipBook", () => {
 				const flipBook = new FlipBook({ pagesCount: 6, initialTurnedLeaves: [0], onPageChanged });
 				flipBook.render(".flipbook-container");
 				const internals = getFlipBookInternals(flipBook);
-				excluded.dispatchEvent(
-					new PointerEvent(pressType, {
-						bubbles: true,
-						button: 0,
-						pointerType: "mouse",
-						clientX: 100,
-						clientY: 200,
-					}),
-				);
+				dispatchMousePress(excluded, pressType);
 				const outside = new MouseEvent("mousemove", { bubbles: true, clientX: 500, clientY: 200 });
 				pages[2].dispatchEvent(outside);
 				const recognized = {
@@ -771,15 +784,7 @@ describe("FlipBook", () => {
 				expect(onPageChanged).not.toHaveBeenCalled();
 				internals.onDragEnd(createDragEvent("end", { velocityX: 1 }));
 
-				pages[1].dispatchEvent(
-					new PointerEvent(pressType, {
-						bubbles: true,
-						button: 0,
-						pointerType: "mouse",
-						clientX: 100,
-						clientY: 200,
-					}),
-				);
+				dispatchMousePress(pages[1], pressType);
 				const permitted = new MouseEvent("mousemove", {
 					bubbles: true,
 					clientX: 140,
@@ -813,12 +818,7 @@ describe("FlipBook", () => {
 				const flipBook = new FlipBook({ pagesCount: 6 });
 				flipBook.render(".flipbook-container");
 				const internals = getFlipBookInternals(flipBook);
-				excluded.dispatchEvent(
-					new TouchEvent("touchstart", {
-						bubbles: true,
-						touches: [{ pageX: 700, pageY: 200 } as Touch],
-					}),
-				);
+				dispatchTouchPress(excluded);
 				const outside = new PointerEvent("pointermove", { bubbles: true, pointerType: "touch" });
 				pages[0].dispatchEvent(outside);
 				const recognized = {
@@ -840,12 +840,7 @@ describe("FlipBook", () => {
 				expect(internals.activeFlips.size).toBe(0);
 				internals.onDragEnd(createDragEvent("end"));
 
-				pages[0].dispatchEvent(
-					new TouchEvent("touchstart", {
-						bubbles: true,
-						touches: [{ pageX: 700, pageY: 200 } as Touch],
-					}),
-				);
+				dispatchTouchPress(pages[0]);
 				internals.onDragStart(recognized);
 				expect(internals.activeFlips.size).toBe(1);
 				internals.onDragEnd(createDragEvent("end"));

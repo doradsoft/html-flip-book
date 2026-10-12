@@ -390,11 +390,9 @@ describe("Leaf", () => {
 		const liftedCorner = (leaf: Leaf, isLTR: boolean, corner: "top" | "bottom") => {
 			const width = Number.parseFloat(leaf.pages[0].style.width);
 			const height = Number.parseFloat(leaf.pages[0].style.height);
-			const [a, b, c, d, tx, ty] =
-				leaf.pages[1]?.style.transform
-					.match(/^matrix\((.+)\)$/)?.[1]
-					.split(",")
-					.map(Number) ?? [];
+			const matrix = leaf.pages[1]?.style.transform.match(/^matrix\((.+)\)$/);
+			if (!matrix) throw new Error("Fold matrix unavailable");
+			const [a, b, c, d, tx, ty] = matrix[1].split(",").map(Number);
 			const x = isLTR ? 0 : width;
 			const y = corner === "top" ? 0 : height;
 			const reflectedX = a * x + c * y + tx;

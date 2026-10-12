@@ -1,4 +1,11 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import {
+	expect,
+	type JSHandle,
+	type Locator,
+	type Page,
+	type TestInfo,
+	test,
+} from "@playwright/test";
 import {
 	TEST_PARAM_FAST_DELTA_THRESHOLD,
 	TEST_PARAM_INITIAL_TURNED_LEAVES,
@@ -6,6 +13,17 @@ import {
 
 type ReadingDirection = "ltr" | "rtl";
 type TurnDirection = "forward" | "backward";
+type FoldCorner = "top" | "bottom";
+
+type PageContent = {
+	book: HTMLElement | SVGElement;
+	pages: HTMLElement[];
+	children: HTMLElement[];
+	elements: Element[];
+	leafElements: Element[];
+	scrollIndex: number;
+	scrollTop: number;
+};
 
 async function openBook(page: Page, direction: ReadingDirection, interior = true) {
 	const params = new URLSearchParams({
@@ -13,7 +31,7 @@ async function openBook(page: Page, direction: ReadingDirection, interior = true
 		[TEST_PARAM_FAST_DELTA_THRESHOLD]: "1000000",
 	});
 	if (interior) params.set(TEST_PARAM_INITIAL_TURNED_LEAVES, "0,1,2");
-	await page.goto(`/?${params}`);
+	await page.goto(`/?${params.toString()}`);
 	const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
 	await expect(book.locator(`.page[data-page-index="${interior ? 6 : 0}"]`)).toBeVisible();
 	await expect(book).toBeVisible();
@@ -84,6 +102,143 @@ async function expectFlat(book: Locator) {
 	).toBe(true);
 }
 
+async function startPageWidthPull(
+	page: Page,
+	book: Locator,
+	direction: ReadingDirection,
+	turn: TurnDirection,
+) {
+	const sourceIndex = turn === "forward" ? 6 : 5;
+	const box = await book.locator(`.page[data-page-index="${sourceIndex}"]`).boundingBox();
+	const bookBox = await book.boundingBox();
+	if (!box || !bookBox) throw new Error("Page bounds unavailable");
+	const fromRight = (direction === "ltr") === (turn === "forward");
+	const movement = fromRight ? -1 : 1;
+	const startX = box.x + box.width * (fromRight ? 0.92 : 0.08);
+	const startY = box.y + box.height * 0.92;
+	const heldX = startX + movement * box.width;
+	await page.mouse.move(startX, startY);
+	await page.mouse.down();
+	await page.mouse.move(heldX, startY, { steps: 12 });
+	return {
+		box,
+		startX,
+		startY,
+		heldX,
+		movement,
+		spineX: bookBox.x + bookBox.width / 2,
+		cornerY: box.y + box.height,
+		backIndex: turn === "forward" ? 7 : 5,
+	};
+}
+
+async function saveFoldScreenshot(page: Page, testInfo: TestInfo, name: string, selected: boolean) {
+	const directory = process.env.FOLD_SCREENSHOT_DIR;
+	if (!directory || testInfo.project.name !== "chromium" || !selected) return;
+	await page.screenshot({ path: `${directory}/${name}.png` });
+}
+
+function isScreenshotCorner(direction: ReadingDirection, turn: TurnDirection, corner: FoldCorner) {
+	return (
+		turn === "forward" &&
+		((direction === "ltr" && corner === "bottom") || (direction === "rtl" && corner === "top"))
+	);
+}
+
+async function prepareScrollablePage(surface: Locator) {
+	await surface.evaluate((page) => {
+		const content = page.firstElementChild as HTMLElement;
+		const spacer = document.createElement("div");
+		spacer.style.height = "2000px";
+		spacer.setAttribute("aria-hidden", "true");
+		content.append(spacer);
+		content.scrollTop = 37;
+	});
+}
+
+async function capturePageContent(
+	book: Locator,
+	first: number,
+	scrollIndex: number,
+): Promise<JSHandle<PageContent>> {
+	return book.evaluateHandle(
+		(element, { first, scrollIndex }) => {
+			const pages = [first, first + 1].map((index) => {
+				const surface = element.querySelector<HTMLElement>(`.page[data-page-index="${index}"]`);
+				if (!surface) throw new Error(`Missing page ${index}`);
+				return surface;
+			});
+			return {
+				book: element,
+				pages,
+				children: pages.map((page) => page.firstElementChild as HTMLElement),
+				elements: Array.from(element.querySelectorAll("*")),
+				leafElements: pages.flatMap((page) => Array.from(page.querySelectorAll("*"))),
+				scrollIndex,
+				scrollTop: (pages[scrollIndex].firstElementChild as HTMLElement).scrollTop,
+			};
+		},
+		{ first, scrollIndex },
+	);
+}
+
+function readPageContent(snapshot: JSHandle<PageContent>) {
+	return snapshot.evaluate((state) => {
+		const current = Array.from(state.book.querySelectorAll("*"));
+		const currentLeaf = state.pages.flatMap((page) => Array.from(page.querySelectorAll("*")));
+		return {
+			originalElements:
+				current.length === state.elements.length &&
+				current.every((element, index) => element === state.elements[index]),
+			originalContents: state.pages.every(
+				(page, index) => page.firstElementChild === state.children[index],
+			),
+			originalLeafElements:
+				currentLeaf.length === state.leafElements.length &&
+				currentLeaf.every((element, index) => element === state.leafElements[index]),
+			scrollTop: state.children[state.scrollIndex].scrollTop,
+		};
+	});
+}
+
+async function expectFoldGeometry(
+	surfaces: Locator,
+	direction: ReadingDirection,
+	corner: FoldCorner,
+) {
+	for (const surface of await surfaces.all()) {
+		await expect(surface).toHaveClass(/page--folded/);
+		const geometry = await surface.evaluate((element) => {
+			const matrix = new DOMMatrix(getComputedStyle(element).transform);
+			const polygon = (element as HTMLElement).style.clipPath;
+			return {
+				finite: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(Number.isFinite),
+				polygon,
+				coordinates: polygon.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [],
+			};
+		});
+		expect(geometry.finite).toBe(true);
+		expect(geometry.polygon).toMatch(/^polygon\(/);
+		expect(geometry.coordinates.length).toBeGreaterThanOrEqual(6);
+		expect(geometry.coordinates.every(Number.isFinite)).toBe(true);
+	}
+	const back = await surfaces.last().evaluate((element) => {
+		const matrix = new DOMMatrix(getComputedStyle(element).transform);
+		return { determinant: matrix.a * matrix.d - matrix.b * matrix.c, slope: matrix.b };
+	});
+	expect(back.determinant).toBeCloseTo(1, 5);
+	expect(
+		back.slope * (corner === "bottom" ? 1 : -1) * (direction === "ltr" ? 1 : -1),
+	).toBeGreaterThan(0);
+}
+
+async function navigateBook(page: Page, turn: TurnDirection, testInfo: TestInfo) {
+	const navigation = page.locator(`.flipbook-toolbar-${turn === "forward" ? "next" : "prev"}`);
+	// The demo sidebar overlaps the RTL toolbar on narrow viewports.
+	if (testInfo.project.name === "mobile") await navigation.press("Enter");
+	else await navigation.click();
+}
+
 test.describe("Paper fold rendering", () => {
 	for (const direction of ["ltr", "rtl"] as const) {
 		for (const turn of ["forward", "backward"] as const) {
@@ -91,21 +246,8 @@ test.describe("Paper fold rendering", () => {
 				page,
 			}, testInfo) => {
 				const book = await openBook(page, direction);
-				const sourceIndex = turn === "forward" ? 6 : 5;
-				const backIndex = turn === "forward" ? 7 : 5;
-				const box = await book.locator(`.page[data-page-index="${sourceIndex}"]`).boundingBox();
-				const bookBox = await book.boundingBox();
-				if (!box || !bookBox) throw new Error("Page bounds unavailable");
-				const fromRight = (direction === "ltr") === (turn === "forward");
-				const movement = fromRight ? -1 : 1;
-				const startX = box.x + box.width * (fromRight ? 0.92 : 0.08);
-				const startY = box.y + box.height * 0.92;
-				const heldX = startX + movement * box.width;
-				const spineX = bookBox.x + bookBox.width / 2;
-				const cornerY = box.y + box.height;
-				await page.mouse.move(startX, startY);
-				await page.mouse.down();
-				await page.mouse.move(heldX, startY, { steps: 12 });
+				const { box, startX, startY, heldX, movement, spineX, cornerY, backIndex } =
+					await startPageWidthPull(page, book, direction, turn);
 				await expect(book.locator(".page--folded")).toHaveCount(2);
 				let corner = await liftedCorner(book, backIndex, direction);
 				expect(Math.abs(corner.x - spineX)).toBeLessThan(1);
@@ -115,14 +257,12 @@ test.describe("Paper fold rendering", () => {
 				corner = await liftedCorner(book, backIndex, direction);
 				expect(Math.abs(corner.x - spineX)).toBeLessThan(1);
 				expect(Math.abs(corner.y - (cornerY - box.height * 0.28))).toBeLessThan(1);
-				if (
-					process.env.FOLD_SCREENSHOT_DIR &&
-					testInfo.project.name === "chromium" &&
-					direction === "ltr" &&
-					turn === "backward"
-				) {
-					await page.screenshot({ path: `${process.env.FOLD_SCREENSHOT_DIR}/fold-free-drag.png` });
-				}
+				await saveFoldScreenshot(
+					page,
+					testInfo,
+					"fold-free-drag",
+					direction === "ltr" && turn === "backward",
+				);
 
 				await page.mouse.move(heldX, startY + box.height * 0.1, { steps: 8 });
 				corner = await liftedCorner(book, backIndex, direction);
@@ -147,83 +287,13 @@ test.describe("Paper fold rendering", () => {
 						.locator(".current-page")
 						.evaluateAll((pages) => pages.map((page) => (page as HTMLElement).dataset.pageIndex));
 					const scrollIndex = turn === "forward" ? 0 : 1;
-					await surfaces.nth(scrollIndex).evaluate((page) => {
-						const content = page.firstElementChild as HTMLElement;
-						const spacer = document.createElement("div");
-						spacer.style.height = "2000px";
-						spacer.setAttribute("aria-hidden", "true");
-						content.append(spacer);
-						content.scrollTop = 37;
-					});
-					const snapshot = await book.evaluateHandle(
-						(element, { first, scrollIndex }) => {
-							const pages = [first, first + 1].map((index) => {
-								const surface = element.querySelector<HTMLElement>(
-									`.page[data-page-index="${index}"]`,
-								);
-								if (!surface) throw new Error(`Missing page ${index}`);
-								return surface;
-							});
-							return {
-								book: element,
-								pages,
-								children: pages.map((page) => page.firstElementChild as HTMLElement),
-								elements: Array.from(element.querySelectorAll("*")),
-								leafElements: pages.flatMap((page) => Array.from(page.querySelectorAll("*"))),
-								scrollIndex,
-								scrollTop: (pages[scrollIndex].firstElementChild as HTMLElement).scrollTop,
-							};
-						},
-						{ first: firstIndex, scrollIndex },
-					);
+					await prepareScrollablePage(surfaces.nth(scrollIndex));
+					const snapshot = await capturePageContent(book, firstIndex, scrollIndex);
 					expect(await snapshot.evaluate((state) => state.scrollTop)).toBe(37);
 					await holdDrag(page, book, direction, turn, corner);
 					await expect(book.locator(".page--folded")).toHaveCount(2);
-					for (const surface of await surfaces.all()) {
-						await expect(surface).toHaveClass(/page--folded/);
-						const geometry = await surface.evaluate((element) => {
-							const matrix = new DOMMatrix(getComputedStyle(element).transform);
-							const polygon = (element as HTMLElement).style.clipPath;
-							return {
-								finite: [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(
-									Number.isFinite,
-								),
-								polygon,
-								coordinates: polygon.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [],
-							};
-						});
-						expect(geometry.finite).toBe(true);
-						expect(geometry.polygon).toMatch(/^polygon\(/);
-						expect(geometry.coordinates.length).toBeGreaterThanOrEqual(6);
-						expect(geometry.coordinates.every(Number.isFinite)).toBe(true);
-					}
-					const back = await surfaces.last().evaluate((element) => {
-						const matrix = new DOMMatrix(getComputedStyle(element).transform);
-						return { determinant: matrix.a * matrix.d - matrix.b * matrix.c, slope: matrix.b };
-					});
-					expect(back.determinant).toBeCloseTo(1, 5);
-					expect(
-						back.slope * (corner === "bottom" ? 1 : -1) * (direction === "ltr" ? 1 : -1),
-					).toBeGreaterThan(0);
-					const contentIntact = () =>
-						snapshot.evaluate((state) => {
-							const current = Array.from(state.book.querySelectorAll("*"));
-							const currentLeaf = state.pages.flatMap((page) =>
-								Array.from(page.querySelectorAll("*")),
-							);
-							return {
-								originalElements:
-									current.length === state.elements.length &&
-									current.every((element, index) => element === state.elements[index]),
-								originalContents: state.pages.every(
-									(page, index) => page.firstElementChild === state.children[index],
-								),
-								originalLeafElements:
-									currentLeaf.length === state.leafElements.length &&
-									currentLeaf.every((element, index) => element === state.leafElements[index]),
-								scrollTop: state.children[state.scrollIndex].scrollTop,
-							};
-						});
+					await expectFoldGeometry(surfaces, direction, corner);
+					const contentIntact = () => readPageContent(snapshot);
 					const intact = {
 						originalElements: true,
 						originalContents: true,
@@ -231,17 +301,12 @@ test.describe("Paper fold rendering", () => {
 						scrollTop: 37,
 					};
 					expect(await contentIntact()).toEqual(intact);
-					if (
-						process.env.FOLD_SCREENSHOT_DIR &&
-						testInfo.project.name === "chromium" &&
-						turn === "forward" &&
-						((direction === "ltr" && corner === "bottom") ||
-							(direction === "rtl" && corner === "top"))
-					) {
-						await page.screenshot({
-							path: `${process.env.FOLD_SCREENSHOT_DIR}/fold-${direction}-${corner}.png`,
-						});
-					}
+					await saveFoldScreenshot(
+						page,
+						testInfo,
+						`fold-${direction}-${corner}`,
+						isScreenshotCorner(direction, turn, corner),
+					);
 					await page.mouse.up();
 					await page.mouse.move(0, 0);
 					await expectFlat(book);
@@ -251,12 +316,7 @@ test.describe("Paper fold rendering", () => {
 							.evaluateAll((pages) => pages.map((page) => (page as HTMLElement).dataset.pageIndex)),
 					).toEqual(beforeCurrent);
 					expect(await contentIntact()).toEqual(intact);
-					const navigation = page.locator(
-						`.flipbook-toolbar-${turn === "forward" ? "next" : "prev"}`,
-					);
-					// The demo sidebar overlaps the RTL toolbar on narrow viewports.
-					if (testInfo.project.name === "mobile") await navigation.press("Enter");
-					else await navigation.click();
+					await navigateBook(page, turn, testInfo);
 					await expect(
 						book.locator(`.page[data-page-index="${turn === "forward" ? 7 : 4}"]`),
 					).toHaveClass(/current-page/);

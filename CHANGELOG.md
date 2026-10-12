@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Engineering
 
 - Added geometry, drag, release, content-preservation, and selection regressions for both reading directions; browser fixtures now measure travel using physical page widths.
+- Simplified held-fold state updates and shared gesture/content fixtures while preserving regression assertions.
 
 ---
 
