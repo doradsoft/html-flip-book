@@ -239,6 +239,12 @@ async function navigateBook(page: Page, turn: TurnDirection, testInfo: TestInfo)
 	else await navigation.click();
 }
 
+function currentPageIndices(book: Locator) {
+	return book
+		.locator(".current-page")
+		.evaluateAll((pages) => pages.map((page) => (page as HTMLElement).dataset.pageIndex));
+}
+
 test.describe("Paper fold rendering", () => {
 	for (const direction of ["ltr", "rtl"] as const) {
 		for (const turn of ["forward", "backward"] as const) {
@@ -283,9 +289,7 @@ test.describe("Paper fold rendering", () => {
 					const surfaces = book.locator(
 						`.page[data-page-index="${firstIndex}"], .page[data-page-index="${firstIndex + 1}"]`,
 					);
-					const beforeCurrent = await book
-						.locator(".current-page")
-						.evaluateAll((pages) => pages.map((page) => (page as HTMLElement).dataset.pageIndex));
+					const beforeCurrent = await currentPageIndices(book);
 					const scrollIndex = turn === "forward" ? 0 : 1;
 					await prepareScrollablePage(surfaces.nth(scrollIndex));
 					const snapshot = await capturePageContent(book, firstIndex, scrollIndex);
@@ -310,11 +314,7 @@ test.describe("Paper fold rendering", () => {
 					await page.mouse.up();
 					await page.mouse.move(0, 0);
 					await expectFlat(book);
-					expect(
-						await book
-							.locator(".current-page")
-							.evaluateAll((pages) => pages.map((page) => (page as HTMLElement).dataset.pageIndex)),
-					).toEqual(beforeCurrent);
+					expect(await currentPageIndices(book)).toEqual(beforeCurrent);
 					expect(await contentIntact()).toEqual(intact);
 					await navigateBook(page, turn, testInfo);
 					await expect(
