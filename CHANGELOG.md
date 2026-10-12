@@ -10,15 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
+- Paper pages fold from the grabbed corner with crease shading.
 
 ### Fixed
 
 - Browser Back/Forward now restores flipbook-owned pages without triggering a host SPA router traversal or remount.
+- Dragged page corners follow horizontal and vertical movement using the page's actual dimensions.
+- Text selection and gestures starting in excluded areas no longer trigger page folds.
+- Instant page positioning clears stale notifications from a held page.
 - Live demo (GitHub Pages) rendering blank due to duplicate React instances — removed esm.sh import map and Vite externals, added `resolve.dedupe` to ensure a single React copy when aliased monorepo sources are bundled
 
 ### Changed
 
-- None
+- Page turns settle smoothly from the held fold while cover boards retain rigid rotation.
 
 ### Breaking Changes
 
@@ -26,7 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Engineering
 
-- None
+- Added geometry, drag, release, content-preservation, and selection regressions for both reading directions; browser fixtures now measure travel using physical page widths.
+- Simplified held-fold state updates and shared gesture/content fixtures while preserving regression assertions.
 
 ---
 

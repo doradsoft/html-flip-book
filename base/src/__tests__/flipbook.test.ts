@@ -6,8 +6,9 @@ import { createDragEvent, getFlipBookInternals, setFlipBookInternals } from "./t
 // Mock HammerJS - must be hoisted
 vi.mock("hammerjs", () => {
 	// Create a proper constructor function for Hammer
-	function MockHammer() {
+	function MockHammer(_element: HTMLElement, options?: { touchAction: string }) {
 		return {
+			options,
 			on: vi.fn(),
 			off: vi.fn(),
 			destroy: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock("hammerjs", () => {
 		};
 	}
 	MockHammer.DIRECTION_HORIZONTAL = 6;
+	MockHammer.DIRECTION_ALL = 30;
 	return { default: MockHammer };
 });
 
@@ -729,6 +731,411 @@ describe("FlipBook", () => {
 	});
 
 	describe("drag handling", () => {
+		function dispatchMousePress(target: HTMLElement, pressType: string) {
+			target.dispatchEvent(
+				new PointerEvent(pressType, {
+					bubbles: true,
+					button: 0,
+					pointerType: "mouse",
+					clientX: 100,
+					clientY: 200,
+				}),
+			);
+		}
+
+		function dispatchTouchPress(target: HTMLElement) {
+			target.dispatchEvent(
+				new TouchEvent("touchstart", {
+					bubbles: true,
+					touches: [{ pageX: 700, pageY: 200 } as Touch],
+				}),
+			);
+		}
+
+		it.each([
+			"pointerdown",
+			"mousedown",
+		])("keeps a %s origin in a no-flip child excluded after leaving it", async (pressType) => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("button");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[1].appendChild(excluded);
+				const onPageChanged = vi.fn();
+				const flipBook = new FlipBook({ pagesCount: 6, initialTurnedLeaves: [0], onPageChanged });
+				flipBook.render(".flipbook-container");
+				const internals = getFlipBookInternals(flipBook);
+				dispatchMousePress(excluded, pressType);
+				const outside = new MouseEvent("mousemove", { bubbles: true, clientX: 500, clientY: 200 });
+				pages[2].dispatchEvent(outside);
+				const recognized = {
+					...createDragEvent("start", { x: 500, y: 200 }),
+					deltaX: 400,
+					deltaY: 0,
+					pointerType: "mouse",
+					srcEvent: outside,
+				};
+				internals.onDragStart(recognized);
+				internals.onDragUpdate({ ...recognized, center: { x: 700, y: 200 } });
+
+				expect(internals.activeFlips.size).toBe(0);
+				expect(internals.leaves[0].flipPosition).toBe(1);
+				expect(onPageChanged).not.toHaveBeenCalled();
+				internals.onDragEnd(createDragEvent("end", { velocityX: 1 }));
+
+				dispatchMousePress(pages[1], pressType);
+				const permitted = new MouseEvent("mousemove", {
+					bubbles: true,
+					clientX: 140,
+					clientY: 200,
+				});
+				pages[1].dispatchEvent(permitted);
+				internals.onDragStart({
+					...createDragEvent("start", { x: 140, y: 200 }),
+					deltaX: 40,
+					deltaY: 0,
+					pointerType: "mouse",
+					srcEvent: permitted,
+				});
+				expect(internals.activeFlips.size).toBe(1);
+				expect(internals.leaves[0].flipPosition).toBeLessThan(1);
+				internals.onDragEnd(createDragEvent("end"));
+				await vi.runAllTimersAsync();
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it("preserves a touch no-flip origin while allowing a later touch to turn", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("div");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[2].appendChild(excluded);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				const internals = getFlipBookInternals(flipBook);
+				dispatchTouchPress(excluded);
+				const outside = new PointerEvent("pointermove", { bubbles: true, pointerType: "touch" });
+				pages[0].dispatchEvent(outside);
+				const recognized = {
+					...createDragEvent("start", { x: 650, y: 200 }),
+					deltaX: -50,
+					deltaY: 0,
+					pointerType: "touch",
+					srcEvent: outside,
+				};
+				internals.onDragStart(recognized);
+				internals.onDragUpdate({ ...recognized, center: { x: 400, y: 200 } });
+				const movement = new TouchEvent("touchmove", {
+					bubbles: true,
+					cancelable: true,
+					touches: [{ pageX: 400, pageY: 200 } as Touch],
+				});
+				excluded.dispatchEvent(movement);
+				expect(movement.defaultPrevented).toBe(false);
+				expect(internals.activeFlips.size).toBe(0);
+				internals.onDragEnd(createDragEvent("end"));
+
+				dispatchTouchPress(pages[0]);
+				internals.onDragStart(recognized);
+				expect(internals.activeFlips.size).toBe(1);
+				internals.onDragEnd(createDragEvent("end"));
+				await vi.runAllTimersAsync();
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it.each([
+			{ direction: "ltr" as const, backward: false },
+			{ direction: "rtl" as const, backward: false },
+			{ direction: "ltr" as const, backward: true },
+			{ direction: "rtl" as const, backward: true },
+		])("tracks actual page widths in a wide $direction container (backward=$backward)", ({
+			direction,
+			backward,
+		}) => {
+			Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+			const pages = createPages(6);
+			const flipBook = new FlipBook({
+				pagesCount: 6,
+				direction,
+				initialTurnedLeaves: backward ? [0] : [],
+			});
+			flipBook.render(".flipbook-container");
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue({ left: 50, top: 0 } as DOMRect);
+			for (const page of [pages[0], pages[1]]) {
+				page.style.width = "240px";
+				page.style.height = "400px";
+				page.style.top = "100px";
+			}
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const movement = (direction === "ltr") !== backward ? -1 : 1;
+			const startX = movement < 0 ? 890 : 410;
+			internals.onDragStart(createDragEvent("start", { x: startX, y: 120 }));
+
+			internals.onDragUpdate(createDragEvent("move", { x: startX + movement * 240, y: 120 }));
+			expect(leaf.flipPosition).toBeCloseTo(0.5);
+			internals.onDragUpdate(createDragEvent("move", { x: startX + movement * 480, y: 120 }));
+			expect(leaf.flipPosition).toBe(backward ? 0 : 1);
+			expect(flipBook.currentPageIndex).toBe(backward ? 1 : 0);
+			flipBook.destroy();
+		});
+
+		it("uses the original press coordinates and renders the first recognized motion", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			pages[0].style.width = "240px";
+			pages[0].style.height = "400px";
+			pages[0].style.top = "100px";
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const origin = vi.spyOn(leaf, "setFoldOrigin");
+			const pointer = vi.spyOn(leaf, "setManualFold");
+			const recognized = {
+				...createDragEvent("start", { x: 770, y: 160 }),
+				deltaX: -30,
+				deltaY: 40,
+				pointerType: "mouse",
+			};
+
+			internals.onDragStart(recognized);
+
+			expect(internals.flipStartingPos).toBe(800);
+			expect(origin).toHaveBeenCalledExactlyOnceWith(0.05);
+			expect(pointer).toHaveBeenLastCalledWith({ x: 0.875, y: 0.1 });
+			expect(leaf.flipPosition).toBeGreaterThan(0);
+			flipBook.destroy();
+		});
+
+		it("responds to vertical mouse motion while held, including outside the page bounds", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			pages[0].style.width = "240px";
+			pages[0].style.height = "400px";
+			pages[0].style.top = "100px";
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const pointer = vi.spyOn(leaf, "setManualFold");
+			const verticalPull = {
+				...createDragEvent("start", { x: 600, y: 160 }),
+				deltaX: 0,
+				deltaY: 40,
+				pointerType: "mouse",
+			};
+			internals.onDragStart(verticalPull);
+			expect(internals.flipDirection).toBe(FlipDirection.Forward);
+			expect(pointer).toHaveBeenLastCalledWith({ x: 1, y: 0.1 });
+			const firstCrease = pages[0].style.clipPath;
+
+			internals.onDragUpdate(createDragEvent("move", { x: 600, y: 260 }));
+			expect(pointer).toHaveBeenLastCalledWith({ x: 1, y: 0.35 });
+			expect(pages[0].style.clipPath).not.toBe(firstCrease);
+			internals.onDragUpdate(createDragEvent("move", { x: 600, y: 660 }));
+			expect(pointer).toHaveBeenLastCalledWith({ x: 1, y: 1.35 });
+			internals.onDragUpdate(createDragEvent("move", { x: 600, y: 120 }));
+			expect(pointer).toHaveBeenLastCalledWith({ x: 1, y: 0 });
+			flipBook.destroy();
+		});
+
+		it("clamps a pull beyond the spread and follows its reversal without freezing", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			pages[0].style.width = "240px";
+			pages[0].style.height = "400px";
+			pages[0].style.top = "100px";
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			internals.onDragStart(createDragEvent("start", { x: 700, y: 120 }));
+			internals.onDragUpdate(createDragEvent("move", { x: -600, y: 120 }));
+			expect(leaf.flipPosition).toBe(1);
+
+			internals.onDragUpdate(createDragEvent("move", { x: 580, y: 120 }));
+			expect(leaf.flipPosition).toBeCloseTo(0.25);
+			internals.onDragUpdate(createDragEvent("move", { x: 720, y: 120 }));
+			expect(leaf.flipPosition).toBe(0);
+			flipBook.destroy();
+		});
+
+		it.each([
+			{ distance: 235, velocity: 0, turned: false },
+			{ distance: 245, velocity: 0, turned: true },
+			{ distance: 100, velocity: -0.6, turned: true },
+		])("settles a $distance px physical pull with velocity $velocity to turned=$turned", async ({
+			distance,
+			velocity,
+			turned,
+		}) => {
+			vi.useFakeTimers();
+			try {
+				Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+				const pages = createPages(6);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				pages[0].style.width = "240px";
+				pages[0].style.height = "400px";
+				pages[0].style.top = "100px";
+				const internals = getFlipBookInternals(flipBook);
+				internals.onDragStart(createDragEvent("start", { x: 800, y: 120 }));
+				internals.onDragUpdate(createDragEvent("move", { x: 800 - distance, y: 120 }));
+				internals.onDragEnd(createDragEvent("end", { velocityX: velocity }));
+				await vi.runAllTimersAsync();
+
+				expect(internals.leaves[0].isTurned).toBe(turned);
+				expect(flipBook.currentPageIndex).toBe(turned ? 1 : 0);
+				expect(internals.activeFlips.size).toBe(0);
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it("uses the rigid cover's physical width for its drag", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6, coverPageIndices: [0] });
+			flipBook.render(".flipbook-container");
+			pages[0].style.width = "240px";
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 700, y: 120 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 460, y: 120 }));
+
+			expect(internals.leaves[0].flipPosition).toBe(0.5);
+			expect(pages[0].classList.contains("page--folded")).toBe(false);
+			flipBook.destroy();
+		});
+
+		it("recognizes mouse motion in both axes while leaving vertical touch scrolling native", () => {
+			createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const raw = flipBook as unknown as {
+				hammer: { options: { touchAction: string }; get: ReturnType<typeof vi.fn> };
+			};
+			expect(raw.hammer.options.touchAction).toBe("pan-y");
+			expect(raw.hammer.get.mock.results[0].value.set).toHaveBeenCalledWith({ direction: 30 });
+			const internals = getFlipBookInternals(flipBook);
+			container.dispatchEvent(
+				new TouchEvent("touchstart", { touches: [{ pageX: 600, pageY: 120 } as Touch] }),
+			);
+			const touchPan = {
+				...createDragEvent("start", { x: 600, y: 160 }),
+				deltaX: 0,
+				deltaY: 40,
+				pointerType: "touch",
+			};
+			internals.onDragStart(touchPan);
+			const movement = new TouchEvent("touchmove", {
+				cancelable: true,
+				touches: [{ pageX: 600, pageY: 160 } as Touch],
+			});
+			container.dispatchEvent(movement);
+
+			expect(movement.defaultPrevented).toBe(false);
+			expect(flipBook.touchDirectionLock).toBe("vertical");
+			expect(internals.activeFlips.size).toBe(0);
+			flipBook.destroy();
+		});
+
+		it("follows the pointer immediately and preserves the chosen fold corner", () => {
+			const pages = createPages(4);
+			const onPageChanged = vi.fn();
+			const flipBook = new FlipBook({ pagesCount: 4, onPageChanged });
+			flipBook.render(".flipbook-container");
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue({ top: 90 } as DOMRect);
+			pages[0].style.top = "40px";
+			pages[0].style.width = "400px";
+			pages[0].style.height = "400px";
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[0];
+			const origin = vi.spyOn(leaf, "setFoldOrigin");
+			const pointer = vi.spyOn(leaf, "setManualFold");
+
+			internals.onDragStart(createDragEvent("start", { x: 740, y: 170 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700, y: 170 }));
+			expect(leaf.flipPosition).toBeCloseTo(0.05);
+			internals.onDragUpdate(createDragEvent("move", { x: 500, y: 370 }));
+
+			expect(leaf.flipPosition).toBeCloseTo(0.3);
+			expect(origin).toHaveBeenCalledExactlyOnceWith(0.1);
+			expect(pointer).toHaveBeenLastCalledWith({ x: 0.4, y: 0.5 });
+			expect(onPageChanged).not.toHaveBeenCalled();
+			expect(flipBook.currentPageIndex).toBe(0);
+			flipBook.destroy();
+		});
+
+		it("uses a stable lower corner when page dimensions are unavailable", () => {
+			const pages = createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			pages[0].style.height = "0px";
+			const internals = getFlipBookInternals(flipBook);
+			const origin = vi.spyOn(internals.leaves[0], "setFoldOrigin");
+
+			internals.onDragStart(createDragEvent("start", { x: 740, y: 170 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700, y: 170 }));
+
+			expect(origin).toHaveBeenCalledExactlyOnceWith(0.75);
+			flipBook.destroy();
+		});
+
+		it.each([
+			{ direction: "ltr" as const, backward: false },
+			{ direction: "rtl" as const, backward: false },
+			{ direction: "ltr" as const, backward: true },
+			{ direction: "rtl" as const, backward: true },
+		])("returns an interrupted $direction drag to its starting side (backward=$backward)", async ({
+			direction,
+			backward,
+		}) => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(4);
+				const flipBook = new FlipBook({
+					pagesCount: 4,
+					direction,
+					initialTurnedLeaves: backward ? [0] : [],
+				});
+				flipBook.render(".flipbook-container");
+				pages[0].style.width = "400px";
+				pages[1].style.width = "400px";
+				const internals = getFlipBookInternals(flipBook);
+				const leaf = internals.leaves[0];
+				const movement = (direction === "ltr") !== backward ? -1 : 1;
+				const startX = movement < 0 ? 740 : 60;
+				const firstMoveX = startX + movement * 40;
+				internals.onDragStart(createDragEvent("start", { x: startX }));
+				internals.onDragUpdate(createDragEvent("move", { x: firstMoveX }));
+				internals.onDragUpdate(createDragEvent("move", { x: firstMoveX + movement * 520 }));
+				expect(leaf.flipPosition).toBeCloseTo(backward ? 0.3 : 0.7);
+				expect(pages[0].classList.contains("page--flipping")).toBe(true);
+
+				const raw = flipBook as unknown as {
+					hammer: { on: ReturnType<typeof vi.fn> };
+				};
+				const cancellation = raw.hammer.on.mock.calls.find(([name]) => name === "pancancel")?.[1];
+				expect(cancellation).toBeTypeOf("function");
+				cancellation(createDragEvent("end", { velocityX: movement * 2 }));
+				await vi.runAllTimersAsync();
+
+				expect(leaf.flipPosition).toBe(backward ? 1 : 0);
+				expect(internals.activeFlips.size).toBe(0);
+				expect(pages[0].classList.contains("page--flipping")).toBe(false);
+				expect(pages[0].style.willChange).toBe("");
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
 		it("should set flipStartingPos on drag start when idle", () => {
 			createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -766,7 +1173,7 @@ describe("FlipBook", () => {
 			flipBook.render(".flipbook-container");
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			setFlipBookInternals(flipBook, { flipStartingPos: 400 });
 			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 100 } });
@@ -781,7 +1188,7 @@ describe("FlipBook", () => {
 			flipBook.render(".flipbook-container");
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			// Set up pending flip state first (simulating drag start)
 			const raw = flipBook as unknown as { pendingFlipStartingPos: number };
@@ -798,7 +1205,7 @@ describe("FlipBook", () => {
 			flipBook.render(".flipbook-container");
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			setFlipBookInternals(flipBook, { flipStartingPos: 100 });
 			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } });
@@ -901,14 +1308,15 @@ describe("FlipBook", () => {
 			expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None);
 		});
 
-		it("should return early when drag delta exceeds book width", () => {
+		it("does not start an unavailable backward leaf even when pulled beyond the container", () => {
 			createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			flipBook.render(".flipbook-container");
 			setFlipBookInternals(flipBook, { flipStartingPos: 0 });
 			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 1000 } });
 
-			expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None);
+			expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
+			expect(getFlipBookInternals(flipBook).leaves[0].flipPosition).toBe(0);
 		});
 
 		it("should return early when drag delta is zero", () => {
@@ -921,21 +1329,21 @@ describe("FlipBook", () => {
 			expect(getFlipBookInternals(flipBook).flipDirection).toBe(FlipDirection.None);
 		});
 
-		it("should return early for forward drag when delta is negative", () => {
+		it("keeps a forward pull on its starting side when movement reverses past the grab point", () => {
 			createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			flipBook.render(".flipbook-container");
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
-			setFlipBookInternals(flipBook, {
-				flipDirection: FlipDirection.Forward,
-				flipStartingPos: 100,
-			});
-			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } });
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 600 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 500 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700 }));
 
-			expect(spy).not.toHaveBeenCalled();
+			expect(spy).toHaveBeenCalledWith({ x: expect.any(Number), y: expect.any(Number) });
+			expect(leaf.flipPosition).toBe(0);
 		});
 
 		it("should return early when book is closed inverted on forward drag", () => {
@@ -946,7 +1354,7 @@ describe("FlipBook", () => {
 			const leaf = getFlipBookInternals(flipBook).leaves[1];
 			leaf.flipPosition = 1;
 
-			const spy = vi.spyOn(getFlipBookInternals(flipBook).leaves[0], "efficientFlipToPosition");
+			const spy = vi.spyOn(getFlipBookInternals(flipBook).leaves[0], "setManualFold");
 
 			setFlipBookInternals(flipBook, { flipStartingPos: 400 });
 			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 200 } });
@@ -961,7 +1369,7 @@ describe("FlipBook", () => {
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
 			leaf.flipPosition = 1;
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			setFlipBookInternals(flipBook, { flipStartingPos: 100 });
 			getFlipBookInternals(flipBook).onDragUpdate({ center: { x: 300 } });
@@ -977,7 +1385,7 @@ describe("FlipBook", () => {
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
 			leaf.flipPosition = 1;
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			setFlipBookInternals(flipBook, {
 				currentLeaf: leaf,
@@ -996,7 +1404,7 @@ describe("FlipBook", () => {
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
 			leaf.flipPosition = 1;
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			// In the new concurrent architecture, direction is locked on first movement
 			// Set up a backward flip state first
@@ -1020,7 +1428,7 @@ describe("FlipBook", () => {
 			flipBook.render(".flipbook-container");
 
 			const leaf = getFlipBookInternals(flipBook).leaves[0];
-			const spy = vi.spyOn(leaf, "efficientFlipToPosition");
+			const spy = vi.spyOn(leaf, "setManualFold");
 
 			setFlipBookInternals(flipBook, {
 				flipDirection: FlipDirection.Backward,
@@ -1912,6 +2320,170 @@ describe("FlipBook", () => {
 			return flipBook.bookElement!;
 		}
 
+		it("keeps an excluded mouse press flat and resumes idle preview without a pan event", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const excluded = document.createElement("button");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[0].appendChild(excluded);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+					left: 0,
+					top: 0,
+					width: 800,
+				} as DOMRect);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+
+				excluded.dispatchEvent(
+					new MouseEvent("mousedown", { bubbles: true, button: 0, buttons: 1 }),
+				);
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				container.dispatchEvent(
+					new MouseEvent("mousemove", { buttons: 1, clientX: 790, clientY: 200 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
+
+				excluded.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0, buttons: 0 }));
+				container.dispatchEvent(
+					new MouseEvent("mousemove", { buttons: 0, clientX: 790, clientY: 200 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				expect(getFlipBookInternals(flipBook).leaves[0].flipPosition).toBe(0);
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it("clears a corner preview and keeps text stationary while selecting", async () => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const text = document.createElement("span");
+				text.textContent = "Select this text";
+				pages[0].appendChild(text);
+				const flipBook = new FlipBook({ pagesCount: 6 });
+				flipBook.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+					left: 0,
+					top: 0,
+					width: 800,
+				} as DOMRect);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+
+				flipBook.setMouseMode("select");
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				const restingTransform = pages[0].style.transform;
+				text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+				text.dispatchEvent(
+					new MouseEvent("mousemove", { bubbles: true, buttons: 1, clientX: 790, clientY: 300 }),
+				);
+				await vi.advanceTimersByTimeAsync(20);
+
+				expect(pages[0].style.transform).toBe(restingTransform);
+				expect(pages[0].style.clipPath).toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toBe("");
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
+
+				flipBook.setMouseMode("turn");
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it.each([
+			{ method: "flipNext" as const, backward: false, expectedPage: 1 },
+			{ method: "flipPrev" as const, backward: true, expectedPage: 0 },
+		])("settles $method cleanly after an unmoved corner preview", async ({
+			method,
+			backward,
+			expectedPage,
+		}) => {
+			vi.useFakeTimers();
+			try {
+				const pages = createPages(6);
+				const onPageChanged = vi.fn();
+				const flipBook = new FlipBook({
+					pagesCount: 6,
+					initialTurnedLeaves: backward ? [0] : [],
+					onPageChanged,
+				});
+				flipBook.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+					left: 0,
+					top: 0,
+					width: 800,
+				} as DOMRect);
+				const leaf = getFlipBookInternals(flipBook).leaves[0];
+				const restingPosition = backward ? 1 : 0;
+
+				container.dispatchEvent(
+					new MouseEvent("mousemove", { clientX: backward ? 10 : 790, clientY: 100 }),
+				);
+				expect(leaf.flipPosition).toBe(restingPosition);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				expect(pages[0].style.clipPath).not.toBe("");
+				expect(pages[0].style.getPropertyValue("--fold-shading")).toContain("linear-gradient");
+				expect(onPageChanged).not.toHaveBeenCalled();
+
+				const settled = flipBook[method]();
+				await vi.runAllTimersAsync();
+				await settled;
+
+				expect(leaf.flipPosition).toBe(1 - restingPosition);
+				expect(flipBook.currentPageIndex).toBe(expectedPage);
+				expect(pages[expectedPage].classList.contains("current-page")).toBe(true);
+				expect(onPageChanged).toHaveBeenCalledExactlyOnceWith(expectedPage);
+				for (const page of [pages[0], pages[1]]) {
+					expect(page.classList.contains("page--folded")).toBe(false);
+					expect(page.classList.contains("page--flipping")).toBe(false);
+					expect(page.style.clipPath).toBe("");
+					expect(page.style.getPropertyValue("--fold-shading")).toBe("");
+					expect(page.style.willChange).toBe("");
+				}
+				flipBook.destroy();
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it.each([0.1, 0.9])("selects the hovered corner at normalized height %s", (normalizedY) => {
+			const pages = createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+				left: 0,
+				top: 90,
+				width: 800,
+			} as DOMRect);
+			pages[0].style.top = "40px";
+			pages[0].style.height = "400px";
+			const origin = vi.spyOn(getFlipBookInternals(flipBook).leaves[0], "setFoldOrigin");
+
+			container.dispatchEvent(
+				new MouseEvent("mousemove", { clientX: 790, clientY: 130 + normalizedY * 400 }),
+			);
+
+			expect(origin).toHaveBeenCalledExactlyOnceWith(normalizedY);
+			flipBook.destroy();
+		});
+
 		it("shows hover shadow when hovering right edge in LTR mode", () => {
 			createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -1941,7 +2513,7 @@ describe("FlipBook", () => {
 			const internals = getFlipBookInternals(flipBook);
 			const leaf = internals.leaves[0];
 			// Hover shadow should be set on the first leaf (forward flip direction)
-			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe("0.000");
+			expect(leaf.pages[0]?.style.getPropertyValue("--fold-shading")).toContain("linear-gradient");
 		});
 
 		it("shows hover shadow when hovering left edge in LTR mode after flipping", async () => {
@@ -1975,8 +2547,8 @@ describe("FlipBook", () => {
 			// Check that leaf has hover shadow applied
 			const internals = getFlipBookInternals(flipBook);
 			const turnedLeaf = internals.leaves[0];
-			expect(turnedLeaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe(
-				"0.000",
+			expect(turnedLeaf.pages[0]?.style.getPropertyValue("--fold-shading")).toContain(
+				"linear-gradient",
 			);
 
 			vi.useRealTimers();
@@ -2025,6 +2597,8 @@ describe("FlipBook", () => {
 			const internals = getFlipBookInternals(flipBook);
 			const leaf = internals.leaves[0];
 			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+			expect(leaf.pages[0]?.style.getPropertyValue("--fold-shading")).toBe("");
+			expect(leaf.pages[0]?.style.clipPath).toBe("");
 		});
 
 		it("clears hover shadow on mouse leave", () => {
@@ -2058,6 +2632,8 @@ describe("FlipBook", () => {
 			const internals = getFlipBookInternals(flipBook);
 			const leaf = internals.leaves[0];
 			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).toBe("0.000");
+			expect(leaf.pages[0]?.style.getPropertyValue("--fold-shading")).toBe("");
+			expect(leaf.pages[0]?.style.clipPath).toBe("");
 		});
 
 		it("does not show hover shadow when dragging", async () => {
@@ -2099,6 +2675,7 @@ describe("FlipBook", () => {
 			const shadowValue = leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow");
 			// Either empty (never set) or "0.000" (cleared by drag) is acceptable
 			expect(shadowValue === "" || shadowValue === "0.000").toBe(true);
+			expect(leaf.pages[0]?.style.getPropertyValue("--fold-shading")).toBe("");
 		});
 
 		it("calculates correct hover strength based on distance from edge", () => {
@@ -2128,10 +2705,12 @@ describe("FlipBook", () => {
 			const internals = getFlipBookInternals(flipBook);
 			const leaf = internals.leaves[0];
 			const shadowValue = Number.parseFloat(
-				leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow") || "0",
+				leaf.pages[0]?.style
+					.getPropertyValue("--fold-shading")
+					.match(/rgba\(0,0,0,([\d.]+)\)/)?.[1] || "0",
 			);
 
-			// Should have shadow (exact value depends on HOVER_STRENGTH_MAX * 1.1)
+			// The preview's crease should cast a visible shadow.
 			expect(shadowValue).toBeGreaterThan(0);
 		});
 
@@ -2161,7 +2740,7 @@ describe("FlipBook", () => {
 
 			const internals = getFlipBookInternals(flipBook);
 			const leaf = internals.leaves[0];
-			expect(leaf.pages[0]?.style.getPropertyValue("--inner-shadow-shadow")).not.toBe("0.000");
+			expect(leaf.pages[0]?.style.getPropertyValue("--fold-shading")).toContain("linear-gradient");
 		});
 
 		it("ignores mouse events when book element has zero width", async () => {
@@ -2372,6 +2951,27 @@ describe("FlipBook", () => {
 			// Page dimensions should have changed
 			expect(page.style.width).not.toBe(initialWidth);
 
+			flipBook.destroy();
+		});
+
+		it("keeps a held fold at the same position while fitting the new page dimensions", () => {
+			const pages = createPages(6);
+			const flipBook = new FlipBook({ pagesCount: 6 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+			const leaf = internals.leaves[1];
+			leaf.setFoldOrigin(0.2);
+			leaf.setManualPosition(0.3);
+			const initialClip = pages[2].style.clipPath;
+			expect(initialClip).not.toBe("");
+
+			Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+			Object.defineProperty(container, "clientHeight", { value: 900, configurable: true });
+			resizeCallback?.();
+
+			expect(leaf.flipPosition).toBe(0.3);
+			expect(pages[2].style.clipPath).not.toBe(initialClip);
+			expect(pages[2].classList.contains("page--folded")).toBe(true);
 			flipBook.destroy();
 		});
 

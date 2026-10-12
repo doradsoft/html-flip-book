@@ -1,5 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Locator, test } from "@playwright/test";
 import { FlipBookPage } from "../fixtures/flip-book-page";
+
+async function expectBeforeSpine(surface: Locator) {
+	const horizontalScale = await surface.evaluate(
+		(element) => new DOMMatrix(getComputedStyle(element).transform).m11,
+	);
+	expect(horizontalScale).toBeGreaterThan(0);
+}
 
 /**
  * Velocity threshold tests
@@ -47,7 +54,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// Slow drag - many steps over large time = low velocity
 			const startX = box.x + box.width * 0.75;
-			const endX = box.x + box.width * 0.55; // Only 20% movement, before middle
+			const endX = startX - (await flipBookPage.getPageWidth(0)) * 2 * 0.2;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -60,6 +67,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(50); // 50ms per step = 1000ms total = slow
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(1000);
 
@@ -83,7 +91,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// Fast drag - few steps with minimal time advancing = high velocity
 			const startX = box.x + box.width * 0.9;
-			const endX = box.x + box.width * 0.4; // 50% movement but fast
+			const endX = startX - (await flipBookPage.getPageWidth(0)) * 2 * 0.25;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -98,6 +106,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(10);
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(2000);
 
@@ -105,7 +114,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			await expect(firstPage).not.toHaveClass(/current-page/);
 		});
 
-		test("velocity exactly at threshold (edge case)", async ({ page }) => {
+		test("swipe above custom threshold completes before middle", async ({ page }) => {
 			// Use a lower threshold for easier testing
 			const flipBookPage = new FlipBookPage(page, {
 				direction: "ltr",
@@ -122,7 +131,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// Medium speed drag
 			const startX = box.x + box.width * 0.8;
-			const endX = box.x + box.width * 0.3; // 50% movement
+			const endX = startX - (await flipBookPage.getPageWidth(0)) * 2 * 0.25;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -137,6 +146,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(6); // 6ms per step = 30ms total > 25ms COMPUTE_INTERVAL
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(2000);
 
@@ -162,7 +172,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// Start a backward flip from left side
 			const startX = box.x + box.width * 0.25;
-			const endX = box.x + box.width * 0.6; // Partial backward flip
+			const endX = startX + (await flipBookPage.getPageWidth(1)) * 2 * 0.35;
 
 			const y = box.y + box.height / 2;
 
@@ -175,6 +185,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.mouse.move(startX + (endX - startX) * progress, y);
 				await page.clock.runFor(50);
 			}
+			await expectBeforeSpine(flipBookPage.getPage(1));
 			await page.mouse.up();
 
 			await page.clock.runFor(1000);
@@ -203,7 +214,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// RTL forward flip is left-to-right
 			const startX = box.x + box.width * 0.25;
-			const endX = box.x + box.width * 0.45; // Only 20% movement, before middle
+			const endX = startX + (await flipBookPage.getPageWidth(0)) * 2 * 0.2;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -216,6 +227,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(50);
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(1000);
 
@@ -240,7 +252,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// RTL forward flip - fast swipe from left to right
 			const startX = box.x + box.width * 0.1;
-			const endX = box.x + box.width * 0.9;
+			const endX = startX + (await flipBookPage.getPageWidth(0)) * 2 * 0.25;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -255,6 +267,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(10);
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(2000);
 
@@ -280,7 +293,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 
 			// Even a relatively slow swipe should be "fast" with low threshold
 			const startX = box.x + box.width * 0.7;
-			const endX = box.x + box.width * 0.4;
+			const endX = startX - (await flipBookPage.getPageWidth(0)) * 2 * 0.3;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -295,6 +308,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.clock.runFor(10);
 			}
 
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 			await page.clock.runFor(2000);
 
@@ -319,7 +333,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 			// Short slow swipe that doesn't cross the 0.5 threshold
 			// With high velocity threshold, this is considered "slow" and should return
 			const startX = box.x + box.width * 0.75;
-			const endX = box.x + box.width * 0.55; // Only 20% movement, stays before middle
+			const endX = startX - (await flipBookPage.getPageWidth(0)) * 2 * 0.2;
 			const y = box.y + box.height / 2;
 
 			await page.mouse.move(startX, y);
@@ -330,6 +344,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 				await page.mouse.move(startX + (endX - startX) * progress, y);
 				await page.clock.runFor(50);
 			}
+			await expectBeforeSpine(firstPage);
 			await page.mouse.up();
 
 			await page.clock.runFor(1000);

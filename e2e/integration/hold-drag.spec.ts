@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { getPageDOMState } from "../fixtures/dom-inspection";
 import { FlipBookPage } from "../fixtures/flip-book-page";
 import { generateTestCases, type TestCase } from "../fixtures/test-cases";
 
@@ -93,8 +94,9 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 	const container = await flipBookPage.container.boundingBox();
 	if (!container) throw new Error("Container not found");
 
-	const dragDistance = container.width * tc.dropPosition * 0.4;
 	const targetPageIndex = tc.targetLeafIndex * 2;
+	const surfaceIndex = targetPageIndex + (tc.flipDir === "backward" ? 1 : 0);
+	const dragDistance = (await flipBookPage.getPageWidth(surfaceIndex)) * 2 * tc.dropPosition;
 
 	// Calculate start and end positions based on direction and flip direction
 	let startX: number;
@@ -153,12 +155,11 @@ async function runTestCase(page: Page, tc: TestCase): Promise<void> {
 
 	// Assert: Check final state using polling for stability
 	await expect(async () => {
-		const finalState = await flipBookPage.getDOMState();
-		const targetPage = finalState.pages.find((p) => p.index === targetPageIndex);
-
-		if (!targetPage) {
-			throw new Error(`Target page ${targetPageIndex} not found`);
-		}
+		const targetPage = await getPageDOMState(
+			page,
+			targetPageIndex,
+			tc.direction === "ltr" ? ".en-book.flipbook" : ".he-book.flipbook",
+		);
 
 		const rotation = Math.abs(targetPage.transform.rotateY);
 

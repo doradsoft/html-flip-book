@@ -36,6 +36,8 @@ interface FlipState {
 	leaf: Leaf;
 	direction: FlipDirection;
 	startingPos: number;
+	startingY?: number;
+	cornerY?: number;
 	delta: number;
 	isDuringAutoFlip: boolean;
 }
@@ -91,8 +93,10 @@ class FlipBook {
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
 	private pendingFlipStartingPos = 0;
+	private pendingFlipStartingY: number | undefined;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
+	private gestureStartedInNoFlipZone = false;
 	/** Set after a drag ends; the next click event is suppressed so child buttons/links don't fire. */
 	private _suppressNextClick = false;
 	private hoveredLeaf: Leaf | undefined;
@@ -254,6 +258,7 @@ class FlipBook {
 	setMouseMode(mode: MouseMode): void {
 		this.mouseMode = mode;
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
+		if (mode === "select") this.clearHoverShadow();
 	}
 
 	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
@@ -261,6 +266,10 @@ class FlipBook {
 		// A swipe may emit no click. A fresh press must not inherit suppression
 		// intended only for the previous gesture's synthetic click.
 		this._suppressNextClick = false;
+		if (event.type === "mousedown" || (event as PointerEvent).pointerType === "mouse") {
+			this.gestureStartedInNoFlipZone = this.isInsideNoFlipZone(event.target);
+			if (this.gestureStartedInNoFlipZone) this.clearHoverShadow();
+		}
 		if (
 			this.mouseMode === "select" &&
 			event instanceof MouseEvent &&
@@ -317,6 +326,9 @@ class FlipBook {
 			pageElement.style[this.isLTR ? "left" : "right"] =
 				`${(containerWidth - 2 * pageSize.width) / 2}px`;
 			pageElement.style.top = `${(containerHeight - pageSize.height) / 2}px`;
+		}
+		for (const leaf of this.leaves) {
+			leaf.applyTransform(leaf.flipPosition);
 		}
 	}
 
@@ -467,15 +479,13 @@ class FlipBook {
 			this.resizeObserver.observe(this.bookElement);
 		}
 
-		this.hammer = new Hammer(this.bookElement);
-		// Only recognise horizontal pans — vertical touch gestures must
-		// remain native scroll events. Without this, a vertical scroll can
-		// contaminate the pan state (wrong starting X) causing the next
-		// flip to jump to a random position or get stuck.
-		this.hammer.get("pan").set({ direction: Hammer.DIRECTION_HORIZONTAL });
+		this.hammer = new Hammer(this.bookElement, { touchAction: "pan-y" });
+		// Mouse pulls can move in both axes while touch keeps native vertical scrolling.
+		this.hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL });
 		this.hammer.on("panstart", this.onDragStart.bind(this));
 		this.hammer.on("panmove", this.onDragUpdate.bind(this));
 		this.hammer.on("panend", this.onDragEnd.bind(this));
+		this.hammer.on("pancancel", (event) => this.onDragEnd(event, true));
 		this.bookElement.addEventListener("touchstart", this.handleTouchStart, {
 			passive: false,
 		});
@@ -628,13 +638,25 @@ class FlipBook {
 	}
 
 	private onDragStart(event: HammerInput) {
+		const isTouch = event.pointerType === "touch" || event.srcEvent?.type.startsWith("touch");
+		if (isTouch && this.touchDirectionLock === "none") {
+			const dx = Number.isFinite(event.deltaX) ? Math.abs(event.deltaX) : 0;
+			const dy = Number.isFinite(event.deltaY) ? Math.abs(event.deltaY) : 0;
+			if (Math.max(dx, dy) > FlipBook.DIRECTION_LOCK_THRESHOLD) {
+				this.touchDirectionLock = dx >= dy ? "horizontal" : "vertical";
+			}
+		}
 		// Reject pan events that belong to a touch gesture locked to vertical
 		// (i.e. the user is scrolling, not flipping).
-		if (this.touchDirectionLock === "vertical") {
+		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
 			return;
 		}
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
-		if (this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) {
+		if (
+			this.gestureStartedInNoFlipZone ||
+			this.isInsideNoFlipZone(event.srcEvent?.target ?? null)
+		) {
+			this.gestureStartedInNoFlipZone = true;
 			return;
 		}
 		// Allow starting a new flip even if others are in auto-flip mode
@@ -642,41 +664,68 @@ class FlipBook {
 		if (this.currentManualFlip) {
 			this.pendingFlipDirection = FlipDirection.None;
 			this.pendingFlipStartingPos = 0;
+			this.pendingFlipStartingY = undefined;
 			return;
 		}
 		this.isDragging = true;
 		this.clearHoverShadow();
-		this.pendingFlipStartingPos = event.center.x;
+		this.pendingFlipStartingPos =
+			event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0);
+		this.pendingFlipStartingY = Number.isFinite(event.center.y)
+			? event.center.y - (Number.isFinite(event.deltaY) ? event.deltaY : 0)
+			: undefined;
 		this.pendingFlipDirection = FlipDirection.None;
+		if (
+			(Number.isFinite(event.deltaX) && event.deltaX !== 0) ||
+			(Number.isFinite(event.deltaY) && event.deltaY !== 0)
+		) {
+			this.onDragUpdate(event);
+		}
 	}
 
 	private onDragUpdate(event: HammerInput) {
+		if (this.gestureStartedInNoFlipZone) return;
 		// Reject pan events that belong to a touch gesture locked to vertical.
-		if (this.touchDirectionLock === "vertical") {
+		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
 			return;
 		}
 
 		// Get or create the current manual flip state
 		let flipState = this.currentManualFlip;
+		if (!flipState && this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) return;
 
 		const currentPos = event.center.x;
 		const bookWidth = this.bookElement?.clientWidth ?? 0;
+		if (bookWidth <= 0) return;
 
 		// Calculate delta
-		let delta = this.isLTR
-			? this.pendingFlipStartingPos - currentPos
-			: currentPos - this.pendingFlipStartingPos;
-
-		if (Math.abs(delta) > bookWidth) return;
-		if (delta === 0) return;
+		const startingPos = flipState?.startingPos ?? this.pendingFlipStartingPos;
+		const delta = this.isLTR ? startingPos - currentPos : currentPos - startingPos;
+		const verticalMove =
+			Number.isFinite(event.center.y) && this.pendingFlipStartingY !== undefined
+				? event.center.y - this.pendingFlipStartingY
+				: 0;
+		if (
+			!flipState &&
+			delta === 0 &&
+			(!this.isDragging || verticalMove === 0 || event.pointerType === "touch")
+		)
+			return;
 
 		// Determine direction on first meaningful movement
+		const isRightSide =
+			startingPos >= (this.bookElement?.getBoundingClientRect().left ?? 0) + bookWidth / 2;
 		const direction =
-			this.pendingFlipDirection !== FlipDirection.None
+			flipState?.direction ??
+			(this.pendingFlipDirection !== FlipDirection.None
 				? this.pendingFlipDirection
-				: delta > 0
-					? FlipDirection.Forward
-					: FlipDirection.Backward;
+				: delta === 0
+					? this.isLTR === isRightSide
+						? FlipDirection.Forward
+						: FlipDirection.Backward
+					: delta > 0
+						? FlipDirection.Forward
+						: FlipDirection.Backward);
 
 		// Lock in direction for this flip
 		if (this.pendingFlipDirection === FlipDirection.None) {
@@ -703,18 +752,21 @@ class FlipBook {
 			// endFlip() is deferred until the release animation completes
 			// in onDragEnd, so the snapshot/scrollbar lockdown stays stable.
 			leaf.beginFlip();
-
-			// Snap the starting position to the current finger position so
-			// the first rendered frame has delta ≈ 0 and the page begins at
-			// its resting position (0 for forward, 1 for backward) instead
-			// of jumping to an intermediate value.
-			this.pendingFlipStartingPos = currentPos;
-			delta = 0;
+			const originY = this.getFoldPointerY(
+				leaf,
+				direction,
+				this.pendingFlipStartingY ?? event.center.y,
+			);
+			leaf.setFoldOrigin(originY);
 
 			flipState = {
 				leaf,
 				direction,
-				startingPos: currentPos,
+				startingPos,
+				startingY:
+					this.pendingFlipStartingY ??
+					(Number.isFinite(event.center.y) ? event.center.y : undefined),
+				cornerY: originY < 0.5 ? 0 : 1,
 				delta: 0,
 				isDuringAutoFlip: false,
 			};
@@ -723,25 +775,47 @@ class FlipBook {
 
 		// Update delta
 		flipState.delta = delta;
-
-		// Calculate and apply flip position
-		switch (flipState.direction) {
-			case FlipDirection.Forward: {
-				const posForward = (delta / bookWidth) as FlipPosition;
-				if (posForward > 1 || delta < 0) return;
-				flipState.leaf.efficientFlipToPosition(posForward);
-				break;
-			}
-			case FlipDirection.Backward: {
-				const posBackward = (1 - Math.abs(delta) / bookWidth) as FlipPosition;
-				if (posBackward < 0 || delta > 0) return;
-				flipState.leaf.efficientFlipToPosition(posBackward);
-				break;
-			}
+		const page =
+			flipState.direction === FlipDirection.Backward
+				? (flipState.leaf.pages[1] ?? flipState.leaf.pages[0])
+				: flipState.leaf.pages[0];
+		const pageWidth = Number.parseFloat(page.style.width);
+		const pageHeight = Number.parseFloat(page.style.height);
+		const hasDimensions =
+			Number.isFinite(pageWidth) && pageWidth > 0 && Number.isFinite(pageHeight) && pageHeight > 0;
+		const rigid = flipState.leaf.pages.some((side) => side?.dataset.isCoverPage === "1");
+		if (hasDimensions && !rigid && flipState.leaf.pages[1]) {
+			const dy =
+				Number.isFinite(event.center.y) && flipState.startingY !== undefined
+					? event.center.y - flipState.startingY
+					: 0;
+			flipState.leaf.setManualFold({
+				x: (flipState.direction === FlipDirection.Forward ? 1 : -1) - delta / pageWidth,
+				y: (flipState.cornerY ?? 1) + dy / pageHeight,
+			});
+		} else {
+			const travel = Number.isFinite(pageWidth) && pageWidth > 0 ? pageWidth * 2 : bookWidth;
+			const position =
+				flipState.direction === FlipDirection.Forward ? delta / travel : 1 + delta / travel;
+			flipState.leaf.setManualPosition(Math.max(0, Math.min(1, position)));
 		}
 	}
 
-	private onDragEnd(event: HammerInput) {
+	private getFoldPointerY(leaf: Leaf, direction: FlipDirection, pointerY: number): number {
+		const page =
+			direction === FlipDirection.Backward ? (leaf.pages[1] ?? leaf.pages[0]) : leaf.pages[0];
+		const height = Number.parseFloat(page.style.height);
+		const top = Number.parseFloat(page.style.top);
+		if (!Number.isFinite(pointerY) || !Number.isFinite(height) || height <= 0) return 0.75;
+		const bookTop = this.bookElement?.getBoundingClientRect().top ?? 0;
+		return Math.max(
+			0,
+			Math.min(1, (pointerY - bookTop - (Number.isFinite(top) ? top : 0)) / height),
+		);
+	}
+
+	private onDragEnd(event: HammerInput, cancelled = false) {
+		this.gestureStartedInNoFlipZone = false;
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
 
@@ -749,6 +823,7 @@ class FlipBook {
 		if (!flipState) {
 			this.pendingFlipDirection = FlipDirection.None;
 			this.pendingFlipStartingPos = 0;
+			this.pendingFlipStartingY = undefined;
 			this.isDragging = false;
 			this.clearHoverShadow();
 			return;
@@ -760,8 +835,9 @@ class FlipBook {
 		switch (flipState.direction) {
 			case FlipDirection.Forward:
 				if (
-					(this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
-					flipState.leaf.flipPosition >= 0.5
+					!cancelled &&
+					((this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
+						flipState.leaf.flipPosition >= 0.5)
 				) {
 					flipTo = 1;
 				} else {
@@ -770,8 +846,9 @@ class FlipBook {
 				break;
 			case FlipDirection.Backward:
 				if (
-					(this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
-					flipState.leaf.flipPosition <= 0.5
+					!cancelled &&
+					((this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
+						flipState.leaf.flipPosition <= 0.5)
 				) {
 					flipTo = 0;
 				} else {
@@ -781,6 +858,11 @@ class FlipBook {
 			default:
 				// Safety: release the drag-level flip lock if direction is unexpected.
 				flipState.leaf.endFlip();
+				this.activeFlips.delete(flipState.leaf.index);
+				this.pendingFlipDirection = FlipDirection.None;
+				this.pendingFlipStartingPos = 0;
+				this.pendingFlipStartingY = undefined;
+				this.isDragging = false;
 				return;
 		}
 
@@ -788,6 +870,7 @@ class FlipBook {
 		flipState.isDuringAutoFlip = true;
 		this.pendingFlipDirection = FlipDirection.None;
 		this.pendingFlipStartingPos = 0;
+		this.pendingFlipStartingY = undefined;
 		this.isDragging = false;
 
 		const targetPageIndex =
@@ -814,6 +897,7 @@ class FlipBook {
 		const touch = e.touches[0];
 		this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
 		this.touchStartedInNoFlipZone = this.isInsideNoFlipZone(e.target);
+		this.gestureStartedInNoFlipZone = this.touchStartedInNoFlipZone;
 		this.touchDirectionLock = "none";
 	};
 
@@ -849,7 +933,13 @@ class FlipBook {
 
 	private handleMouseMove = throttle(MOUSE_MOVE_THROTTLE_MS, (event: MouseEvent) => {
 		if (!this.bookElement) return;
-		if (this.isDragging || this.currentManualFlip || this.activeFlips.size > 0) {
+		if (
+			this.mouseMode === "select" ||
+			event.buttons !== 0 ||
+			this.isDragging ||
+			this.currentManualFlip ||
+			this.activeFlips.size > 0
+		) {
 			this.clearHoverShadow();
 			return;
 		}
@@ -887,6 +977,9 @@ class FlipBook {
 
 		if (this.hoveredLeaf && this.hoveredLeaf !== leaf) {
 			this.hoveredLeaf.setHoverShadow(0);
+		}
+		if (this.hoveredLeaf !== leaf) {
+			leaf.setFoldOrigin(this.getFoldPointerY(leaf, direction, event.clientY));
 		}
 		this.hoveredLeaf = leaf;
 		leaf.setHoverShadow(hoverStrength);
@@ -992,6 +1085,7 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
 		if (!leaf) return;
+		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,
@@ -1024,6 +1118,7 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Backward);
 		if (!leaf) return;
+		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,

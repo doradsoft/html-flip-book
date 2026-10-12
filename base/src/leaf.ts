@@ -1,6 +1,13 @@
 import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
 import { FlipDirection } from "./flip-direction";
+import {
+	computePageFold,
+	computePageFoldFromPoint,
+	easePageTurn,
+	type PageFold,
+	type Point,
+} from "./page-fold";
 
 /** Schedule a frame callback; fallback for test envs where requestAnimationFrame is missing. Called at invoke time so test mocks apply. */
 function scheduleFrame(cb: (timestamp: number) => void): number {
@@ -26,6 +33,58 @@ export class Leaf {
 	private hoverShadow = 0;
 	/** Ref-count for nested beginFlip/endFlip pairs (drag wrapping animation). */
 	private flipRefCount = 0;
+	private foldOrigin = 0.75;
+	private foldPointer = 0.75;
+	private manualNeedsSettlement = false;
+	private manualFoldPoint: Point | undefined;
+
+	setFoldOrigin(normalizedY: number): void {
+		this.foldOrigin = Math.max(0, Math.min(1, normalizedY));
+		this.foldPointer = this.foldOrigin;
+	}
+
+	setFoldPointer(normalizedY: number): void {
+		this.foldPointer = Math.max(0, Math.min(1, normalizedY));
+	}
+
+	/** Follow a held pointer without queuing animations or reporting a completed turn. */
+	setManualPosition(position: number): void {
+		this.manualFoldPoint = undefined;
+		const previous = this.flipPosition;
+		this.updatePosition(position);
+		this.manualNeedsSettlement ||= previous !== this.flipPosition;
+		this.applyTransform(this.flipPosition);
+	}
+
+	/** Track the lifted corner in page coordinates, including movement beyond the page edges. */
+	setManualFold(point: Point): void {
+		const size = this.getPaperSize();
+		if (!size) {
+			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
+			return;
+		}
+		const fold = computePageFoldFromPoint(
+			size.width,
+			size.height,
+			{ x: point.x * size.width, y: point.y * size.height },
+			this.foldOrigin < 0.5 ? "top" : "bottom",
+		);
+		this.updateManualFold({
+			x: fold.destination.x / size.width,
+			y: fold.destination.y / size.height,
+		});
+	}
+
+	private updateManualFold(point: Point): void {
+		const previousPosition = this.flipPosition;
+		const previousPoint = this.manualFoldPoint;
+		this.updatePosition((1 - point.x) / 2);
+		this.manualFoldPoint = this.flipPosition === 0 || this.flipPosition === 1 ? undefined : point;
+		this.manualNeedsSettlement ||=
+			previousPosition !== this.flipPosition ||
+			(previousPoint !== undefined && previousPoint.y !== point.y);
+		this.applyTransform(this.flipPosition);
+	}
 
 	constructor(
 		readonly index: number,
@@ -63,7 +122,16 @@ export class Leaf {
 		return this.index === this.bookProperties.leavesCount - 1;
 	}
 	set flipPosition(value: number) {
+		this.updatePosition(value);
+		if (this.flipPosition === 0 || this.flipPosition === 1) {
+			this.manualNeedsSettlement = false;
+		}
+	}
+	private updatePosition(value: number): void {
 		this.wrappedFlipPosition = Math.max(0, Math.min(1, value)) as FlipPosition;
+		if (this.wrappedFlipPosition === 0 || this.wrappedFlipPosition === 1) {
+			this.manualFoldPoint = undefined;
+		}
 	}
 	get flipPosition(): number {
 		return this.wrappedFlipPosition;
@@ -102,6 +170,11 @@ export class Leaf {
 	endFlip(): void {
 		this.flipRefCount = Math.max(0, this.flipRefCount - 1);
 		if (this.flipRefCount !== 0) return; // still active
+		if (!this.manualFoldPoint || this.flipPosition === 0 || this.flipPosition === 1) {
+			this.manualFoldPoint = undefined;
+			this.foldOrigin = 0.75;
+			this.foldPointer = this.foldOrigin;
+		}
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "";
@@ -120,6 +193,14 @@ export class Leaf {
 		}
 
 		if (this.flipPosition === flipPosition) {
+			if (flipPosition === 0 || flipPosition === 1) {
+				this.manualFoldPoint = undefined;
+				this.applyTransform(flipPosition);
+			}
+			if (this.manualNeedsSettlement && (flipPosition === 0 || flipPosition === 1)) {
+				this.manualNeedsSettlement = false;
+				this.onTurned(flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward);
+			}
 			return Promise.resolve();
 		}
 
@@ -133,6 +214,11 @@ export class Leaf {
 
 		this.currentAnimation = new Promise<void>((resolve) => {
 			const currentFlipPosition = this.flipPosition;
+			const startingFoldPoint = this.manualFoldPoint && { ...this.manualFoldPoint };
+			const targetFoldPoint = {
+				x: 1 - 2 * flipPosition,
+				y: this.foldOrigin < 0.5 ? 0 : 1,
+			};
 			const distance = Math.abs(flipPosition - currentFlipPosition);
 			const duration = ((distance * 180) / velocity) * 1000; // duration in milliseconds
 
@@ -146,21 +232,31 @@ export class Leaf {
 				}
 
 				const progress = Math.min(elapsed / duration, 1);
-				const newPosition = currentFlipPosition + progress * (flipPosition - currentFlipPosition);
-
-				this.applyTransform(newPosition);
+				const easedProgress = easePageTurn(progress);
+				const newPosition =
+					currentFlipPosition + easedProgress * (flipPosition - currentFlipPosition);
+				if (startingFoldPoint) {
+					this.manualFoldPoint = {
+						x: startingFoldPoint.x + easedProgress * (targetFoldPoint.x - startingFoldPoint.x),
+						y: startingFoldPoint.y + easedProgress * (targetFoldPoint.y - startingFoldPoint.y),
+					};
+					if (progress === 1 && (flipPosition === 0 || flipPosition === 1)) {
+						this.manualFoldPoint = undefined;
+					}
+				}
 
 				// Ensure the new position is within valid bounds [0, 1]
 				this.flipPosition = Math.max(0, Math.min(1, newPosition)) as FlipPosition;
-				if (this.flipPosition === 1 || this.flipPosition === 0) {
-					this.onTurned(this.flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward);
-				}
-
+				this.applyTransform(newPosition);
 				if (progress < 1) {
 					scheduleFrame(step);
 				} else {
 					this.currentAnimation = null;
 					this.targetFlipPosition = null;
+					this.manualNeedsSettlement = false;
+					if (this.flipPosition === 0 || this.flipPosition === 1) {
+						this.onTurned(this.flipPosition === 1 ? FlipDirection.Forward : FlipDirection.Backward);
+					}
 					// Release GPU layer after animation completes
 					this.endFlip();
 					resolve();
@@ -183,6 +279,34 @@ export class Leaf {
 	applyTransform(position: number): void {
 		const clampedPosition = Math.max(0, Math.min(1, position));
 		const { pageShadow } = this.bookProperties;
+		const previewPosition =
+			clampedPosition === 0
+				? this.hoverShadow * 0.22
+				: clampedPosition === 1
+					? 1 - this.hoverShadow * 0.22
+					: clampedPosition;
+		const width = Number.parseFloat(this.pages[0].style.width);
+		const height = Number.parseFloat(this.pages[0].style.height);
+		const paperSize = this.getPaperSize();
+		if (paperSize && this.manualFoldPoint) {
+			const fold = computePageFoldFromPoint(
+				width,
+				height,
+				{ x: this.manualFoldPoint.x * width, y: this.manualFoldPoint.y * height },
+				this.foldOrigin < 0.5 ? "top" : "bottom",
+			);
+			this.manualFoldPoint = { x: fold.destination.x / width, y: fold.destination.y / height };
+			this.updatePosition((1 - this.manualFoldPoint.x) / 2);
+			if (this.flipPosition > 0 && this.flipPosition < 1) {
+				this.applyPaperFold(width, height, this.flipPosition, fold);
+				return;
+			}
+		}
+		const usePaperFold = paperSize && previewPosition > 0 && previewPosition < 1;
+		if (usePaperFold) {
+			this.applyPaperFold(width, height, previewPosition);
+			return;
+		}
 
 		// Only compute shadow values when shadow is enabled — skipping these
 		// saves CSS custom-property mutations per page per animation frame.
@@ -198,6 +322,9 @@ export class Leaf {
 		this.pages.forEach((page, index) => {
 			const isLTR = this.bookProperties.isLTR;
 			if (!page) return;
+			page.classList.remove("page--folded");
+			page.style.clipPath = "";
+			page.style.removeProperty("--fold-shading");
 
 			const isOdd = (index % 2) + 1 === 1;
 			const degrees = isOdd
@@ -222,11 +349,7 @@ export class Leaf {
 
 			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
 			page.style.transformOrigin = origin;
-			page.style.zIndex = `${
-				clampedPosition > 0.5
-					? page.dataset.pageIndex
-					: this.bookProperties.pagesCount - (page.dataset.pageIndex as unknown as number)
-			}`;
+			page.style.zIndex = this.getSurfaceZIndex(page, clampedPosition, index, false);
 
 			if (pageShadow) {
 				const edge = origin === "left" ? "right" : "left";
@@ -235,5 +358,121 @@ export class Leaf {
 				page.style.setProperty("--inner-shadow-edge", edge);
 			}
 		});
+	}
+
+	private getPaperSize(): { width: number; height: number } | undefined {
+		const width = Number.parseFloat(this.pages[0].style.width);
+		const height = Number.parseFloat(this.pages[0].style.height);
+		if (
+			!this.pages[1] ||
+			this.pages.some((page) => page?.dataset.isCoverPage === "1") ||
+			!Number.isFinite(width) ||
+			!Number.isFinite(height) ||
+			width <= 0 ||
+			height <= 0
+		) {
+			return undefined;
+		}
+		return { width, height };
+	}
+
+	private getSurfaceZIndex(
+		page: HTMLElement,
+		position: number,
+		side: number,
+		folded: boolean,
+	): string {
+		if (position === 0 || position === 1) {
+			return `${
+				position === 1
+					? page.dataset.pageIndex
+					: this.bookProperties.pagesCount - Number(page.dataset.pageIndex)
+			}`;
+		}
+		// All moving leaves share a stack above the flat pages, including rigid boards.
+		// Leaf order reverses across the spine; rigid faces also swap their visible side.
+		const beforeSpine = position < 0.5;
+		const leafOrder = beforeSpine ? -this.index * 2 : this.index * 2;
+		const faceOrder = folded || !beforeSpine ? side : 1 - side;
+		return `${this.bookProperties.pagesCount * 2 + leafOrder + faceOrder}`;
+	}
+
+	private applyPaperFold(
+		width: number,
+		height: number,
+		position: number,
+		manualFold?: PageFold,
+	): void {
+		const fold =
+			manualFold ??
+			computePageFold(
+				width,
+				height,
+				position,
+				this.foldOrigin < 0.5 ? "top" : "bottom",
+				this.foldPointer - this.foldOrigin,
+			);
+		const [a, b, c, d, tx, ty] = fold.reflection;
+		const isLTR = this.bookProperties.isLTR;
+		for (let side = 0; side < this.pages.length; side++) {
+			const page = this.pages[side];
+			if (!page) continue;
+			const front = side === 0;
+			const mirror = front ? !isLTR : isLTR;
+			const polygon = (front ? fold.front : fold.folded).map((point) => ({
+				x: mirror ? width - point.x : point.x,
+				y: point.y,
+			}));
+			page.classList.add("page--folded");
+			page.style.transformOrigin = "0px 0px";
+			page.style.transform = front
+				? `translateX(${isLTR ? width : -width}px)`
+				: isLTR
+					? `matrix(${-a}, ${-b}, ${c}, ${d}, ${width + a * width + tx}, ${b * width + ty})`
+					: `matrix(${-a}, ${b}, ${-c}, ${d}, ${-tx}, ${ty})`;
+			page.style.clipPath =
+				polygon.length < 3
+					? "polygon(0px 0px, 0px 0px, 0px 0px)"
+					: `polygon(${polygon.map((point) => `${point.x.toFixed(3)}px ${point.y.toFixed(3)}px`).join(", ")})`;
+			page.style.zIndex = this.getSurfaceZIndex(page, position, side, true);
+			if (this.bookProperties.pageShadow) {
+				this.applyCreaseShading(
+					page,
+					width,
+					height,
+					fold.normal,
+					fold.midpoint,
+					mirror,
+					fold.strength,
+					front,
+				);
+			}
+		}
+	}
+
+	private applyCreaseShading(
+		page: HTMLElement,
+		width: number,
+		height: number,
+		normal: Point,
+		midpoint: Point,
+		mirror: boolean,
+		strength: number,
+		front: boolean,
+	): void {
+		const nx = mirror ? -normal.x : normal.x;
+		const mx = mirror ? width - midpoint.x : midpoint.x;
+		const span = Math.abs(nx) * width + Math.abs(normal.y) * height;
+		const minimum = Math.min(0, nx * width) + Math.min(0, normal.y * height);
+		const stop = ((nx * mx + normal.y * midpoint.y - minimum) / span) * 100;
+		const angle = (Math.atan2(nx, -normal.y) * 180) / Math.PI;
+		const band = Math.min(18, (100 * Math.min(width * 0.12, 48)) / span);
+		const opacity = (strength * (front ? 0.24 : 0.3)).toFixed(3);
+		page.style.setProperty(
+			"--fold-shading",
+			front
+				? `linear-gradient(${angle}deg, transparent ${stop - band}%, rgba(0,0,0,${opacity}) ${stop}%, transparent ${stop + 0.5}%)`
+				: `linear-gradient(${angle}deg, rgba(0,0,0,${opacity}) ${stop}%, rgba(255,255,255,${(strength * 0.35).toFixed(3)}) ${stop + band * 0.3}%, transparent ${stop + band}%)`,
+		);
 	}
 }

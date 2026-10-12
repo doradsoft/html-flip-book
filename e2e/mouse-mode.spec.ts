@@ -33,6 +33,10 @@ test("mouse mode selects real page text, then restores continuous page turning",
 	await page.mouse.move(word.right - 1, word.y, {
 		steps: 12,
 	});
+	const bookBox = await book.boundingBox();
+	if (!bookBox) throw new Error("Book missing while selecting text");
+	await page.mouse.move(bookBox.x + bookBox.width * 0.01, word.y, { steps: 12 });
+	await expect(book.locator(".page--folded")).toHaveCount(0);
 	await page.mouse.up();
 	await expect
 		.poll(() => page.evaluate(() => window.getSelection()?.toString().length ?? 0))
@@ -52,20 +56,20 @@ test("mouse mode selects real page text, then restores continuous page turning",
 	await page.mouse.down();
 	await page.waitForTimeout(550);
 	await page.mouse.move(box.x + box.width * 0.45, y, { steps: 10 });
-	const pageAngle = () =>
+	const heldTransform = () =>
 		book.evaluate((element) => {
-			const turningPage = Array.from(element.querySelectorAll<HTMLElement>(".page")).find(
-				(page) => page.style.willChange === "transform",
+			const turningPage = Array.from(element.querySelectorAll<HTMLElement>(".page")).find((page) =>
+				page.classList.contains("page--folded"),
 			);
-			const angle = turningPage?.style.transform.match(/rotateY\((-?[\d.]+)deg\)/);
-			return angle ? Math.abs(Number(angle[1])) : 0;
+			return turningPage?.style.transform ?? "";
 		});
-	await expect.poll(pageAngle).toBeGreaterThan(2);
-	const heldAngle = await pageAngle();
+	await expect(book.locator(".page--folded")).toHaveCount(2);
+	const transform = await heldTransform();
+	expect(transform).not.toBe("");
 	await page.waitForTimeout(550);
-	expect(Math.abs((await pageAngle()) - heldAngle)).toBeLessThan(3);
+	expect(await heldTransform()).toBe(transform);
 	await page.mouse.move(startX, y, { steps: 10 });
-	await expect.poll(pageAngle).toBeLessThan(3);
+	await expect(book.locator(".page--folded")).toHaveCount(0);
 	await page.mouse.up();
 	await expect(currentPage).toHaveClass(/current-page/);
 });
