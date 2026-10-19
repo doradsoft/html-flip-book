@@ -22,7 +22,7 @@ import { setTocPageIndex } from "./store";
 /** Default threshold for fast flip detection (in ms) */
 const DEFAULT_FAST_DELTA = 500;
 
-/** Percentage of book width that triggers hover shadow effect */
+/** Percentage of a page's width that triggers its edge preview */
 const EDGE_ZONE_RATIO = 0.18;
 /** Maximum hover shadow strength (0-1) */
 const HOVER_STRENGTH_MAX = 0.12;
@@ -945,19 +945,16 @@ class FlipBook {
 		}
 
 		const rect = this.bookElement.getBoundingClientRect();
-		if (rect.width <= 0) return;
-
-		const x = event.clientX - rect.left;
-		const edgeZone = rect.width * EDGE_ZONE_RATIO;
-		const isLeftEdge = x <= edgeZone;
-		const isRightEdge = x >= rect.width - edgeZone;
-
-		if (!isLeftEdge && !isRightEdge) {
+		if (rect.width <= 0 || rect.height <= 0) {
 			this.clearHoverShadow();
 			return;
 		}
 
-		const isForward = this.isLTR ? isRightEdge : isLeftEdge;
+		const x = ((event.clientX - rect.left) * this.bookElement.clientWidth) / rect.width;
+		const y = ((event.clientY - rect.top) * this.bookElement.clientHeight) / rect.height;
+		const spineX = this.bookElement.clientWidth / 2;
+		const isRightSide = x >= spineX;
+		const isForward = this.isLTR === isRightSide;
 		const direction = isForward ? FlipDirection.Forward : FlipDirection.Backward;
 		const leaf = this.getNextAvailableLeaf(direction);
 		if (!leaf) {
@@ -965,13 +962,28 @@ class FlipBook {
 			return;
 		}
 
-		const distanceFromEdge = isForward
-			? this.isLTR
-				? rect.width - x
-				: x
-			: this.isLTR
-				? x
-				: rect.width - x;
+		// Use resting page dimensions: the preview itself transforms the page bounds.
+		const page = isForward ? leaf.pages[0] : (leaf.pages[1] ?? leaf.pages[0]);
+		const width = Number.parseFloat(page.style.width);
+		const height = Number.parseFloat(page.style.height);
+		const top = Number.parseFloat(page.style.top);
+		const distanceFromEdge = isRightSide ? spineX + width - x : x - (spineX - width);
+		const edgeZone = width * EDGE_ZONE_RATIO;
+		if (
+			!Number.isFinite(distanceFromEdge) ||
+			!Number.isFinite(y) ||
+			!Number.isFinite(height) ||
+			!Number.isFinite(top) ||
+			width <= 0 ||
+			height <= 0 ||
+			distanceFromEdge < 0 ||
+			distanceFromEdge > edgeZone ||
+			y < top ||
+			y > top + height
+		) {
+			this.clearHoverShadow();
+			return;
+		}
 		const edgeProgress = 1 - Math.min(1, distanceFromEdge / edgeZone);
 		const hoverStrength = edgeProgress * HOVER_STRENGTH_MAX;
 
@@ -979,13 +991,14 @@ class FlipBook {
 			this.hoveredLeaf.setHoverShadow(0);
 		}
 		if (this.hoveredLeaf !== leaf) {
-			leaf.setFoldOrigin(this.getFoldPointerY(leaf, direction, event.clientY));
+			leaf.setFoldOrigin((y - top) / height);
 		}
 		this.hoveredLeaf = leaf;
 		leaf.setHoverShadow(hoverStrength);
 	});
 
 	private handleMouseLeave = () => {
+		this.handleMouseMove.cancel({ upcomingOnly: true });
 		this.clearHoverShadow();
 	};
 
