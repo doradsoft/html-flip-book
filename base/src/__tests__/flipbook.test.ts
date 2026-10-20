@@ -2367,8 +2367,9 @@ describe("FlipBook", () => {
 				const width = Number.parseFloat(page.style.width);
 				const height = Number.parseFloat(page.style.height);
 				const top = Number.parseFloat(page.style.top);
-				const edgeX = 600 + (isRight ? width : -width);
-				const insideX = edgeX + (isRight ? -3 : 3);
+				const edgeSign = isRight ? 1 : -1;
+				const edgeX = 600 + edgeSign * width;
+				const insideX = edgeX - edgeSign * 3;
 				const move = async (x: number, y: number) => {
 					container.dispatchEvent(
 						new MouseEvent("mousemove", { clientX: 100 + x * scale, clientY: 50 + y * scale }),
@@ -2377,8 +2378,8 @@ describe("FlipBook", () => {
 				};
 
 				for (const [x, y] of [
-					[isRight ? 1190 : 10, 300],
-					[edgeX + (isRight ? 5 : -5), 300],
+					[600 + edgeSign * 590, 300],
+					[edgeX + edgeSign * 5, 300],
 					[insideX, top - 5],
 					[insideX, top + height + 5],
 					[600, 300],
@@ -2390,7 +2391,7 @@ describe("FlipBook", () => {
 					await move(insideX, top + height * 0.1);
 					expect(page.classList.contains("page--folded")).toBe(true);
 				}
-				await move(edgeX + (isRight ? 5 : -5), 300);
+				await move(edgeX + edgeSign * 5, 300);
 				expect(pages.some((element) => element.classList.contains("page--folded"))).toBe(false);
 				await move(insideX, top + height * 0.9);
 				expect(page.classList.contains("page--folded")).toBe(true);
