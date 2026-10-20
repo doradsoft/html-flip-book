@@ -47,7 +47,9 @@ async function openContent(page: Page, direction: string, turn: string, kind: Co
 	const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
 	const surface = book.locator(`.page[data-page-index="${turn === "forward" ? 6 : 5}"]`);
 	await expect(surface).toBeVisible();
-	return { book, surface, ...(await addContent(surface, kind)) };
+	const movement = (direction === "ltr") === (turn === "forward") ? -1 : 1;
+	const settledPage = book.locator(`.page[data-page-index="${turn === "forward" ? 8 : 4}"]`);
+	return { book, surface, movement, settledPage, ...(await addContent(surface, kind)) };
 }
 
 async function press(page: Page, target: Locator, touch: boolean): Promise<Pull> {
@@ -76,7 +78,7 @@ async function move(page: Page, pull: Pull, x: number) {
 			});
 		}
 	} else await page.mouse.move(x, pull.y, { steps: 8 });
-	pull.x = x;
+	return { ...pull, x };
 }
 
 async function release(page: Page, pull: Pull) {
@@ -87,6 +89,20 @@ async function release(page: Page, pull: Pull) {
 	await page.mouse.move(0, 0);
 }
 
+async function expectLinkClick(page: Page, target: Locator, kind: ContentKind) {
+	if (kind === "image") return;
+	await target.click();
+	await expect(page).toHaveURL(/#native-drag-link$/);
+}
+
+async function expectPageOwnsDrag(fixture: Locator, touch: boolean) {
+	await expect(fixture).toHaveAttribute("data-native-drags", "0");
+	if (touch) return;
+	await expect
+		.poll(async () => Number(await fixture.getAttribute("data-drag-starts")))
+		.toBeGreaterThan(0);
+}
+
 async function checkTurning(
 	page: Page,
 	touch: boolean,
@@ -94,30 +110,24 @@ async function checkTurning(
 	turn: string,
 	kind: ContentKind,
 ) {
-	const { book, surface, fixture, target } = await openContent(page, direction, turn, kind);
-	if (kind !== "image") {
-		await target.click();
-		await expect(page).toHaveURL(/#native-drag-link$/);
-	}
+	const { book, surface, fixture, target, movement, settledPage } = await openContent(
+		page,
+		direction,
+		turn,
+		kind,
+	);
+	await expectLinkClick(page, target, kind);
 	const clicks = await fixture.getAttribute("data-clicks");
 	const bounds = await surface.boundingBox();
 	if (!bounds) throw new Error("Page bounds missing");
-	const movement = (direction === "ltr") === (turn === "forward") ? -1 : 1;
-	const pull = await press(page, target, touch);
+	let pull = await press(page, target, touch);
 	const origin = pull.x;
-	await move(page, pull, origin + movement * bounds.width * 0.35);
+	pull = await move(page, pull, origin + movement * bounds.width * 0.35);
 	await expect(book.locator(".page--folded")).toHaveCount(2);
-	await expect(fixture).toHaveAttribute("data-native-drags", "0");
-	if (!touch) {
-		await expect
-			.poll(async () => Number(await fixture.getAttribute("data-drag-starts")))
-			.toBeGreaterThan(0);
-	}
-	await move(page, pull, origin + movement * bounds.width * 1.3);
+	await expectPageOwnsDrag(fixture, touch);
+	pull = await move(page, pull, origin + movement * bounds.width * 1.3);
 	await release(page, pull);
-	await expect(book.locator(`.page[data-page-index="${turn === "forward" ? 8 : 4}"]`)).toHaveClass(
-		/current-page/,
-	);
+	await expect(settledPage).toHaveClass(/current-page/);
 	await expect(book.locator(".page--folded, .page--flipping")).toHaveCount(0);
 	await expect(fixture).toHaveAttribute("data-clicks", clicks ?? "0");
 }
@@ -147,12 +157,12 @@ for (const mode of ["select", "excluded"]) {
 				await page.getByRole("button", { name: "Select text with mouse" }).click();
 			else await fixture.evaluate((element) => element.setAttribute("data-flipbook-no-flip", ""));
 			const pull = await press(page, target, false);
-			await move(page, pull, pull.x - 70);
+			const movedPull = await move(page, pull, pull.x - 70);
 			await expect
 				.poll(async () => Number(await fixture.getAttribute("data-native-drags")))
 				.toBeGreaterThan(0);
 			await expect(book.locator(".page--folded, .page--flipping")).toHaveCount(0);
-			await release(page, pull);
+			await release(page, movedPull);
 			await expect(surface).toHaveClass(/current-page/);
 		});
 	}
