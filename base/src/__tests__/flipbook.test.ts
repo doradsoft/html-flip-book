@@ -60,6 +60,90 @@ describe("FlipBook", () => {
 		return pages;
 	}
 
+	describe("native content dragging", () => {
+		function renderContent(kind: "image" | "link" | "linked-image") {
+			const pages = createPages(4);
+			const book = new FlipBook({ pagesCount: 4 });
+			book.render(".flipbook-container");
+			const content = document.createElement(kind === "image" ? "img" : "a");
+			const target = kind === "linked-image" ? document.createElement("img") : content;
+			if (kind !== "image") content.setAttribute("href", "#example");
+			if (target !== content) content.append(target);
+			pages[0].append(content);
+			return { book, content, target };
+		}
+
+		function startNativeDrag(target: HTMLElement) {
+			const event = new Event("dragstart", { bubbles: true, cancelable: true });
+			target.dispatchEvent(event);
+			return event;
+		}
+
+		it.each([
+			"image",
+			"link",
+			"linked-image",
+		] as const)("cancels native %s dragging in default turn mode", (kind) => {
+			const { book, target } = renderContent(kind);
+			expect(startNativeDrag(target).defaultPrevented).toBe(true);
+			book.destroy();
+		});
+
+		it.each([
+			"image",
+			"link",
+			"linked-image",
+		] as const)("preserves native %s dragging in selection mode", (kind) => {
+			const { book, target } = renderContent(kind);
+			book.setMouseMode("select");
+			expect(startNativeDrag(target).defaultPrevented).toBe(false);
+			book.setMouseMode("turn");
+			expect(startNativeDrag(target).defaultPrevented).toBe(true);
+			book.destroy();
+		});
+
+		it.each([
+			"image",
+			"link",
+			"linked-image",
+		] as const)("preserves native %s dragging inside an excluded ancestor", (kind) => {
+			const { book, content, target } = renderContent(kind);
+			const excluded = document.createElement("div");
+			excluded.dataset.flipbookNoFlip = "";
+			content.replaceWith(excluded);
+			excluded.append(content);
+			expect(startNativeDrag(target).defaultPrevented).toBe(false);
+			book.destroy();
+		});
+
+		it("cancels the drag before a child stops event propagation", () => {
+			const { book, target } = renderContent("linked-image");
+			target.addEventListener("dragstart", (event) => event.stopPropagation());
+			expect(startNativeDrag(target).defaultPrevented).toBe(true);
+			book.destroy();
+		});
+
+		it("keeps ordinary clicks and explicit draggable attributes intact", () => {
+			const { book, target } = renderContent("link");
+			target.draggable = true;
+			const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+			target.dispatchEvent(click);
+			expect(click.defaultPrevented).toBe(false);
+			expect(startNativeDrag(target).defaultPrevented).toBe(true);
+			expect(target.draggable).toBe(true);
+			book.destroy();
+		});
+
+		it("does not cancel drags outside pages or after destroy", () => {
+			const { book, target } = renderContent("image");
+			const outside = document.createElement("img");
+			container.append(outside);
+			expect(startNativeDrag(outside).defaultPrevented).toBe(false);
+			book.destroy();
+			expect(startNativeDrag(target).defaultPrevented).toBe(false);
+		});
+	});
+
 	describe("constructor", () => {
 		it("should create a FlipBook with default options", () => {
 			const flipBook = new FlipBook({ pagesCount: 4 });
