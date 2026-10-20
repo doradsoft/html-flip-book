@@ -117,7 +117,7 @@ async function checkTurning(
 		kind,
 	);
 	await expectLinkClick(page, target, kind);
-	const clicks = await fixture.getAttribute("data-clicks");
+	const clicks = Number(await fixture.getAttribute("data-clicks"));
 	const bounds = await surface.boundingBox();
 	if (!bounds) throw new Error("Page bounds missing");
 	let pull = await press(page, target, touch);
@@ -129,7 +129,7 @@ async function checkTurning(
 	await release(page, pull);
 	await expect(settledPage).toHaveClass(/current-page/);
 	await expect(book.locator(".page--folded, .page--flipping")).toHaveCount(0);
-	await expect(fixture).toHaveAttribute("data-clicks", clicks ?? "0");
+	await expect(fixture).toHaveAttribute("data-clicks", String(clicks));
 }
 
 for (const direction of ["ltr", "rtl"]) {
