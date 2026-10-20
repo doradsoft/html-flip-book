@@ -8,7 +8,7 @@ import type { HeBookConfig } from "./HeBook";
 import HeBook from "./HeBook";
 
 export type ExampleId =
-	| "ltr-shadow"
+	| "ltr-no-shadow"
 	| "ltr-buffer"
 	| "ltr-history"
 	| "ltr-debug"
@@ -16,7 +16,7 @@ export type ExampleId =
 	| "ltr-initial-position"
 	| "ltr-no-snapshot"
 	| "ltr-comprehensive"
-	| "rtl-shadow"
+	| "rtl-no-shadow"
 	| "rtl-buffer"
 	| "rtl-history"
 	| "rtl-debug"
@@ -26,7 +26,7 @@ export type ExampleId =
 	| "rtl-comprehensive";
 
 const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
-	{ section: "LTR", id: "ltr-shadow", label: "Shadow" },
+	{ section: "LTR", id: "ltr-no-shadow", label: "No shadow" },
 	{ section: "LTR", id: "ltr-buffer", label: "Buffer" },
 	{ section: "LTR", id: "ltr-history", label: "History mapping" },
 	{ section: "LTR", id: "ltr-debug", label: "Debug" },
@@ -34,7 +34,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-initial-position", label: "Initial position" },
 	{ section: "LTR", id: "ltr-no-snapshot", label: "No snapshot" },
 	{ section: "LTR", id: "ltr-comprehensive", label: "Comprehensive" },
-	{ section: "RTL", id: "rtl-shadow", label: "Shadow" },
+	{ section: "RTL", id: "rtl-no-shadow", label: "No shadow" },
 	{ section: "RTL", id: "rtl-buffer", label: "Buffer" },
 	{ section: "RTL", id: "rtl-history", label: "History mapping" },
 	{ section: "RTL", id: "rtl-debug", label: "Debug" },
@@ -46,8 +46,13 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 
 function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 	switch (id) {
-		case "ltr-shadow":
-			return { debug: false, enableHistory: false, enableDownload: false };
+		case "ltr-no-shadow":
+			return {
+				showPageShadow: false,
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
 		case "ltr-buffer":
 			return { leavesBuffer: 3, debug: false, enableHistory: false, enableDownload: false };
 		case "ltr-history":
@@ -78,7 +83,6 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 				debug: true,
 				enableHistory: true,
 				enableDownload: true,
-				showPageShadow: false,
 			};
 		default:
 			return undefined;
@@ -87,8 +91,14 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 
 function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 	switch (id) {
-		case "rtl-shadow":
-			return { leavesBuffer: 7, debug: false, enableHistory: false, enableDownload: false };
+		case "rtl-no-shadow":
+			return {
+				leavesBuffer: 7,
+				showPageShadow: false,
+				debug: false,
+				enableHistory: false,
+				enableDownload: false,
+			};
 		case "rtl-buffer":
 			return { leavesBuffer: 7, debug: false, enableHistory: false, enableDownload: false };
 		case "rtl-history":
@@ -119,30 +129,25 @@ function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 				debug: true,
 				enableHistory: true,
 				enableDownload: true,
-				showPageShadow: false,
 			};
 		default:
 			return undefined;
 	}
 }
 
+function getExampleFromUrl(): ExampleId {
+	const params = new URLSearchParams(window.location.search);
+	// Keep older shadow-enabled links pointing to a shadow-enabled example.
+	const example = params.get("example")?.replace(/^(ltr|rtl)-shadow$/, "$1-buffer");
+	return EXAMPLES.find((entry) => entry.id === example)?.id ?? "ltr-comprehensive";
+}
+
 export const App: FC = () => {
-	const [selectedId, setSelectedId] = useState<ExampleId>(() => {
-		const params = new URLSearchParams(window.location.search);
-		const example = params.get("example") as ExampleId | null;
-		if (example && EXAMPLES.some((e) => e.id === example)) {
-			return example;
-		}
-		return "ltr-comprehensive";
-	});
+	const [selectedId, setSelectedId] = useState<ExampleId>(getExampleFromUrl);
 
 	// Sync from URL on mount so E2E and direct links always show the right example
 	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		const example = params.get("example") as ExampleId | null;
-		if (example && EXAMPLES.some((e) => e.id === example)) {
-			setSelectedId(example);
-		}
+		setSelectedId(getExampleFromUrl());
 	}, []);
 
 	const ltrExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "LTR"), []);

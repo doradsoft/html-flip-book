@@ -304,7 +304,7 @@ export class Leaf {
 		}
 		const usePaperFold = paperSize && previewPosition > 0 && previewPosition < 1;
 		if (usePaperFold) {
-			this.applyPaperFold(width, height, previewPosition);
+			this.applyPaperFold(width, height, previewPosition, undefined, clampedPosition === 1);
 			return;
 		}
 
@@ -402,22 +402,25 @@ export class Leaf {
 		height: number,
 		position: number,
 		manualFold?: PageFold,
+		backwardPreview = false,
 	): void {
 		const fold =
 			manualFold ??
 			computePageFold(
 				width,
 				height,
-				position,
+				backwardPreview ? 1 - position : position,
 				this.foldOrigin < 0.5 ? "top" : "bottom",
 				this.foldPointer - this.foldOrigin,
 			);
 		const [a, b, c, d, tx, ty] = fold.reflection;
-		const isLTR = this.bookProperties.isLTR;
+		// A resting back face curls from its own outer corner, with its body stationary.
+		const isLTR = backwardPreview ? !this.bookProperties.isLTR : this.bookProperties.isLTR;
+		const offsetX = backwardPreview ? 0 : isLTR ? width : -width;
 		for (let side = 0; side < this.pages.length; side++) {
 			const page = this.pages[side];
 			if (!page) continue;
-			const front = side === 0;
+			const front = side === (backwardPreview ? 1 : 0);
 			const mirror = front ? !isLTR : isLTR;
 			const polygon = (front ? fold.front : fold.folded).map((point) => ({
 				x: mirror ? width - point.x : point.x,
@@ -426,15 +429,20 @@ export class Leaf {
 			page.classList.add("page--folded");
 			page.style.transformOrigin = "0px 0px";
 			page.style.transform = front
-				? `translateX(${isLTR ? width : -width}px)`
+				? `translateX(${offsetX}px)`
 				: isLTR
-					? `matrix(${-a}, ${-b}, ${c}, ${d}, ${width + a * width + tx}, ${b * width + ty})`
-					: `matrix(${-a}, ${b}, ${-c}, ${d}, ${-tx}, ${ty})`;
+					? `matrix(${-a}, ${-b}, ${c}, ${d}, ${offsetX + a * width + tx}, ${b * width + ty})`
+					: `matrix(${-a}, ${b}, ${-c}, ${d}, ${offsetX + width - tx}, ${ty})`;
 			page.style.clipPath =
 				polygon.length < 3
 					? "polygon(0px 0px, 0px 0px, 0px 0px)"
 					: `polygon(${polygon.map((point) => `${point.x.toFixed(3)}px ${point.y.toFixed(3)}px`).join(", ")})`;
-			page.style.zIndex = this.getSurfaceZIndex(page, position, side, true);
+			page.style.zIndex = this.getSurfaceZIndex(
+				page,
+				position,
+				backwardPreview ? 1 - side : side,
+				true,
+			);
 			if (this.bookProperties.pageShadow) {
 				this.applyCreaseShading(
 					page,

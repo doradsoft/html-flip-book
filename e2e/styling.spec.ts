@@ -1,5 +1,33 @@
 import { expect, test } from "@playwright/test";
 
+for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: enables shadows throughout the examples except No shadow`, async ({
+		page,
+	}) => {
+		await page.goto(`/?example=${direction}-comprehensive&test-initialTurnedLeaves=0`);
+		const section = page.locator(".examples-nav-section").filter({
+			has: page.getByText(direction.toUpperCase(), { exact: true }),
+		});
+		const examples = section.getByRole("button");
+		for (const example of await examples.all()) {
+			const label = await example.innerText();
+			await example.click();
+			const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
+			await expect(book.locator('.page[data-page-index="2"]')).toBeVisible();
+			if (label === "No shadow") {
+				await expect(book).toHaveClass(/flipbook--no-page-shadow/);
+			} else {
+				await expect(book).not.toHaveClass(/flipbook--no-page-shadow/);
+			}
+		}
+		await page.goto(`/?example=${direction}-shadow&test-initialTurnedLeaves=0`);
+		await expect(section.getByRole("button", { name: "Buffer", exact: true })).toHaveClass(
+			/active/,
+		);
+		await expect(page.locator(".flipbook")).not.toHaveClass(/flipbook--no-page-shadow/);
+	});
+}
+
 test.describe("FlipBook Page Classes", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto("/?example=rtl-comprehensive");

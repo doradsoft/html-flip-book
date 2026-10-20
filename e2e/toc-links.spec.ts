@@ -1,5 +1,37 @@
 import { expect, test } from "@playwright/test";
 
+for (const direction of ["ltr", "rtl"] as const) {
+	for (const example of ["comprehensive", "buffer"] as const) {
+		test(`${direction} ${example}: keeps complete TOC titles and page numbers inside the scroll area`, async ({
+			page,
+		}) => {
+			await page.goto(`/?example=${direction}-${example}&test-initialTurnedLeaves=0`);
+			const toc = page.locator(`.${direction === "ltr" ? "en" : "he"}-book .toc-page`);
+			await expect(toc.locator(".toc-link").first()).toBeVisible();
+			const clippedEntries = await toc.locator(".toc-page__scroll").evaluate((scroll) => {
+				const viewport = scroll.getBoundingClientRect();
+				const left = viewport.left + scroll.clientLeft;
+				const right = left + scroll.clientWidth;
+				return Array.from(scroll.querySelectorAll(".toc-title, .toc-page-num"))
+					.filter((part) => {
+						const range = document.createRange();
+						range.selectNodeContents(part);
+						const bounds = range.getBoundingClientRect();
+						return (
+							bounds.left < left - 1 ||
+							bounds.right > right + 1 ||
+							part.scrollWidth > part.clientWidth + 1
+						);
+					})
+					.map((part) => part.textContent);
+			});
+			expect(clippedEntries).toEqual([]);
+			await toc.locator(".toc-link").last().scrollIntoViewIfNeeded();
+			await expect(toc.locator(".toc-link").last()).toBeInViewport();
+		});
+	}
+}
+
 test("TOC links preserve in-book clicks and allow browser modifier navigation", async ({
 	page,
 	isMobile,

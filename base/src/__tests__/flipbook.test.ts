@@ -2313,6 +2313,93 @@ describe("FlipBook", () => {
 	});
 
 	describe("hover shadow", () => {
+		it("keeps queued hover updates cleared after leaving and allows a later preview", async () => {
+			vi.useFakeTimers();
+			const pages = createPages(4);
+			const book = new FlipBook({ pagesCount: 4 });
+			try {
+				book.render(".flipbook-container");
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 800, 600));
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 750, clientY: 100 }));
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 751, clientY: 100 }));
+				container.dispatchEvent(new MouseEvent("mouseleave"));
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(false);
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 750, clientY: 100 }));
+				await vi.advanceTimersByTimeAsync(20);
+				expect(pages[0].classList.contains("page--folded")).toBe(true);
+			} finally {
+				book.destroy();
+				vi.useRealTimers();
+			}
+		});
+
+		it.each([
+			{ direction: "ltr" as const, side: "left", scale: 1, isForward: false, edgeSign: -1 },
+			{ direction: "ltr" as const, side: "right", scale: 1, isForward: true, edgeSign: 1 },
+			{ direction: "rtl" as const, side: "left", scale: 0.5, isForward: true, edgeSign: -1 },
+			{ direction: "rtl" as const, side: "right", scale: 0.5, isForward: false, edgeSign: 1 },
+		])("$direction $side: confines hover previews to the visible page edge", async ({
+			direction,
+			scale,
+			isForward,
+			edgeSign,
+		}) => {
+			vi.useFakeTimers();
+			Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+			const pages = createPages(8);
+			const onPageChanged = vi.fn();
+			const book = new FlipBook({
+				pagesCount: 8,
+				direction,
+				initialTurnedLeaves: [0, 1],
+				onPageChanged,
+			});
+			try {
+				book.render(".flipbook-container");
+				onPageChanged.mockClear();
+				vi.spyOn(container, "getBoundingClientRect").mockReturnValue(
+					new DOMRect(100, 50, 1200 * scale, 600 * scale),
+				);
+				const page = isForward ? pages[4] : pages[3];
+				const width = Number.parseFloat(page.style.width);
+				const height = Number.parseFloat(page.style.height);
+				const top = Number.parseFloat(page.style.top);
+				const edgeX = 600 + edgeSign * width;
+				const insideX = edgeX - edgeSign * 3;
+				const move = async (x: number, y: number) => {
+					container.dispatchEvent(
+						new MouseEvent("mousemove", { clientX: 100 + x * scale, clientY: 50 + y * scale }),
+					);
+					await vi.advanceTimersByTimeAsync(20);
+				};
+
+				for (const [x, y] of [
+					[600 + edgeSign * 590, 300],
+					[edgeX + edgeSign * 5, 300],
+					[insideX, top - 5],
+					[insideX, top + height + 5],
+					[600, 300],
+				]) {
+					await move(x, y);
+					expect(pages.some((element) => element.classList.contains("page--folded"))).toBe(false);
+				}
+				for (let i = 0; i < 3; i++) {
+					await move(insideX, top + height * 0.1);
+					expect(page.classList.contains("page--folded")).toBe(true);
+				}
+				await move(edgeX + edgeSign * 5, 300);
+				expect(pages.some((element) => element.classList.contains("page--folded"))).toBe(false);
+				await move(insideX, top + height * 0.9);
+				expect(page.classList.contains("page--folded")).toBe(true);
+				expect(onPageChanged).not.toHaveBeenCalled();
+			} finally {
+				book.destroy();
+				vi.useRealTimers();
+			}
+		});
+
 		/** Helper to get book element with assertion - safe after render() is called */
 		function getBookElement(flipBook: FlipBook): HTMLElement {
 			expect(flipBook.bookElement).toBeDefined();
@@ -2333,8 +2420,9 @@ describe("FlipBook", () => {
 					left: 0,
 					top: 0,
 					width: 800,
+					height: 600,
 				} as DOMRect);
-				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 750, clientY: 100 }));
 				expect(pages[0].classList.contains("page--folded")).toBe(true);
 
 				excluded.dispatchEvent(
@@ -2342,7 +2430,7 @@ describe("FlipBook", () => {
 				);
 				expect(pages[0].classList.contains("page--folded")).toBe(false);
 				container.dispatchEvent(
-					new MouseEvent("mousemove", { buttons: 1, clientX: 790, clientY: 200 }),
+					new MouseEvent("mousemove", { buttons: 1, clientX: 750, clientY: 200 }),
 				);
 				await vi.advanceTimersByTimeAsync(20);
 				expect(pages[0].classList.contains("page--folded")).toBe(false);
@@ -2352,7 +2440,7 @@ describe("FlipBook", () => {
 
 				excluded.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0, buttons: 0 }));
 				container.dispatchEvent(
-					new MouseEvent("mousemove", { buttons: 0, clientX: 790, clientY: 200 }),
+					new MouseEvent("mousemove", { buttons: 0, clientX: 750, clientY: 200 }),
 				);
 				await vi.advanceTimersByTimeAsync(20);
 				expect(pages[0].classList.contains("page--folded")).toBe(true);
@@ -2376,8 +2464,9 @@ describe("FlipBook", () => {
 					left: 0,
 					top: 0,
 					width: 800,
+					height: 600,
 				} as DOMRect);
-				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 750, clientY: 100 }));
 				expect(pages[0].classList.contains("page--folded")).toBe(true);
 
 				flipBook.setMouseMode("select");
@@ -2387,7 +2476,7 @@ describe("FlipBook", () => {
 				const restingTransform = pages[0].style.transform;
 				text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
 				text.dispatchEvent(
-					new MouseEvent("mousemove", { bubbles: true, buttons: 1, clientX: 790, clientY: 300 }),
+					new MouseEvent("mousemove", { bubbles: true, buttons: 1, clientX: 750, clientY: 300 }),
 				);
 				await vi.advanceTimersByTimeAsync(20);
 
@@ -2398,7 +2487,7 @@ describe("FlipBook", () => {
 				expect(getFlipBookInternals(flipBook).activeFlips.size).toBe(0);
 
 				flipBook.setMouseMode("turn");
-				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 790, clientY: 100 }));
+				container.dispatchEvent(new MouseEvent("mousemove", { clientX: 750, clientY: 100 }));
 				await vi.advanceTimersByTimeAsync(20);
 				expect(pages[0].classList.contains("page--folded")).toBe(true);
 				flipBook.destroy();
@@ -2429,12 +2518,13 @@ describe("FlipBook", () => {
 					left: 0,
 					top: 0,
 					width: 800,
+					height: 600,
 				} as DOMRect);
 				const leaf = getFlipBookInternals(flipBook).leaves[0];
 				const restingPosition = backward ? 1 : 0;
 
 				container.dispatchEvent(
-					new MouseEvent("mousemove", { clientX: backward ? 10 : 790, clientY: 100 }),
+					new MouseEvent("mousemove", { clientX: backward ? 50 : 750, clientY: 100 }),
 				);
 				expect(leaf.flipPosition).toBe(restingPosition);
 				expect(pages[0].classList.contains("page--folded")).toBe(true);
@@ -2471,13 +2561,14 @@ describe("FlipBook", () => {
 				left: 0,
 				top: 90,
 				width: 800,
+				height: 600,
 			} as DOMRect);
 			pages[0].style.top = "40px";
 			pages[0].style.height = "400px";
 			const origin = vi.spyOn(getFlipBookInternals(flipBook).leaves[0], "setFoldOrigin");
 
 			container.dispatchEvent(
-				new MouseEvent("mousemove", { clientX: 790, clientY: 130 + normalizedY * 400 }),
+				new MouseEvent("mousemove", { clientX: 750, clientY: 130 + normalizedY * 400 }),
 			);
 
 			expect(origin).toHaveBeenCalledExactlyOnceWith(normalizedY);
@@ -2501,9 +2592,9 @@ describe("FlipBook", () => {
 				height: 600,
 			});
 
-			// Simulate mouse move to right edge (within 18% of width = 144px from right)
+			// Simulate mouse movement inside the visible page edge.
 			const event = new MouseEvent("mousemove", {
-				clientX: 750, // 50px from right edge, within edge zone
+				clientX: 750, // inside the page edge zone
 				clientY: 300,
 				bubbles: true,
 			});
@@ -2679,7 +2770,7 @@ describe("FlipBook", () => {
 		});
 
 		it("calculates correct hover strength based on distance from edge", () => {
-			createPages(4);
+			const pages = createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
 			flipBook.render(".flipbook-container");
 
@@ -2693,10 +2784,10 @@ describe("FlipBook", () => {
 				height: 600,
 			});
 
-			// At the very edge (x=800), hover strength should be max
+			// Hover just inside the physical page edge.
 			bookElement.dispatchEvent(
 				new MouseEvent("mousemove", {
-					clientX: 800, // at edge
+					clientX: 400 + Number.parseFloat(pages[0].style.width) - 1,
 					clientY: 300,
 					bubbles: true,
 				}),
