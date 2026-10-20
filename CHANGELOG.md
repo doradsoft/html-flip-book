@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Dragging images and links turns pages without starting a competing native browser drag; selection mode and excluded areas retain native dragging.
 - Backward hover hints curl a small corner while the page body stays still, matching forward hover hints.
 - Page-edge hover previews stay within the visible page instead of triggering in empty space around the book.
 - Table of contents entries keep full titles and page numbers visible in both reading directions.

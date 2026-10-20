@@ -280,6 +280,13 @@ class FlipBook {
 		}
 	};
 
+	/** Keep native image/link dragging from taking over a page-turn gesture. */
+	private handlePageDragStart = (event: Event): void => {
+		if (this.mouseMode === "turn" && !this.isInsideNoFlipZone(event.target)) {
+			event.preventDefault();
+		}
+	};
+
 	/** Download config (handlers and filename hints). Used by toolbar. */
 	getDownloadConfig(): DownloadConfig | undefined {
 		return this.downloadConfig;
@@ -354,6 +361,7 @@ class FlipBook {
 		for (const page of this.pageElements) {
 			page.addEventListener("pointerdown", this.handlePageMouseDown);
 			page.addEventListener("mousedown", this.handlePageMouseDown);
+			page.addEventListener("dragstart", this.handlePageDragStart, true);
 		}
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
@@ -1313,6 +1321,7 @@ class FlipBook {
 			for (const page of this.pageElements) {
 				page.removeEventListener("pointerdown", this.handlePageMouseDown);
 				page.removeEventListener("mousedown", this.handlePageMouseDown);
+				page.removeEventListener("dragstart", this.handlePageDragStart, true);
 			}
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);

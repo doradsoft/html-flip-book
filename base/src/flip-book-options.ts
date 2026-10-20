@@ -14,7 +14,7 @@ export interface FlipPageSemantic {
 /** Direction of the flip for callback params. */
 export type PageFlipDirection = "forward" | "backward";
 
-/** Mouse interaction on page content. Touch always turns pages. */
+/** Mouse interaction on page content, including text, images, and links. Touch always turns pages. */
 export type MouseMode = "turn" | "select";
 
 /**
