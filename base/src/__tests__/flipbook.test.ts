@@ -2336,14 +2336,14 @@ describe("FlipBook", () => {
 		});
 
 		it.each([
-			{ direction: "ltr" as const, side: "left", scale: 1, pageIndex: 3, edgeSign: -1 },
-			{ direction: "ltr" as const, side: "right", scale: 1, pageIndex: 4, edgeSign: 1 },
-			{ direction: "rtl" as const, side: "left", scale: 0.5, pageIndex: 4, edgeSign: -1 },
-			{ direction: "rtl" as const, side: "right", scale: 0.5, pageIndex: 3, edgeSign: 1 },
+			{ direction: "ltr" as const, side: "left", scale: 1, isForward: false, edgeSign: -1 },
+			{ direction: "ltr" as const, side: "right", scale: 1, isForward: true, edgeSign: 1 },
+			{ direction: "rtl" as const, side: "left", scale: 0.5, isForward: true, edgeSign: -1 },
+			{ direction: "rtl" as const, side: "right", scale: 0.5, isForward: false, edgeSign: 1 },
 		])("$direction $side: confines hover previews to the visible page edge", async ({
 			direction,
 			scale,
-			pageIndex,
+			isForward,
 			edgeSign,
 		}) => {
 			vi.useFakeTimers();
@@ -2362,7 +2362,7 @@ describe("FlipBook", () => {
 				vi.spyOn(container, "getBoundingClientRect").mockReturnValue(
 					new DOMRect(100, 50, 1200 * scale, 600 * scale),
 				);
-				const page = pages[pageIndex];
+				const page = isForward ? pages[4] : pages[3];
 				const width = Number.parseFloat(page.style.width);
 				const height = Number.parseFloat(page.style.height);
 				const top = Number.parseFloat(page.style.top);
