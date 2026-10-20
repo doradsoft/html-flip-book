@@ -36,12 +36,8 @@ async function expectSmallCurl(flap: Locator) {
 		const xs = points.map((point) => point[0]);
 		const ys = points.map((point) => point[1]);
 		return {
-			width:
-				(Math.max(...xs) - Math.min(...xs)) /
-				Number.parseFloat((element as HTMLElement).style.width),
-			height:
-				(Math.max(...ys) - Math.min(...ys)) /
-				Number.parseFloat((element as HTMLElement).style.height),
+			width: (Math.max(...xs) - Math.min(...xs)) / element.clientWidth,
+			height: (Math.max(...ys) - Math.min(...ys)) / element.clientHeight,
 		};
 	});
 	expect(curlSize.width).toBeLessThan(0.15);
@@ -73,23 +69,27 @@ async function checkCorners(
 	const edgeX = bounds.x + ((edgeSign + 1) * bounds.width) / 2;
 	const insideX = edgeX - edgeSign * 3;
 	for (const cornerY of [0.1, 0.9]) {
-		for (let i = 0; i < 3; i++) {
-			await move(page, insideX, bounds.y + bounds.height * cornerY + i);
-			await expect.poll(() => snapshot(surfaces)).not.toEqual(resting);
+		try {
+			for (let i = 0; i < 3; i++) {
+				await move(page, insideX, bounds.y + bounds.height * cornerY + i);
+				await expect.poll(() => snapshot(surfaces)).not.toEqual(resting);
+			}
+			if (frontIndex > 2) {
+				const hoveredContent = await boundsOf(content);
+				expect(hoveredContent.x).toBeCloseTo(contentBounds.x, 0);
+				expect(hoveredContent.y).toBeCloseTo(contentBounds.y, 0);
+				const flap = book.locator(
+					`.page[data-page-index="${isForward ? frontIndex + 1 : frontIndex - 2}"]`,
+				);
+				await expectSmallCurl(flap);
+				await captureCorner(surface, direction, side, cornerY);
+			}
+			await move(page, edgeX + edgeSign * 5, bounds.y + bounds.height * cornerY);
+			await expect.poll(() => snapshot(surfaces)).toEqual(resting);
+			await expect(book.locator(".page--folded, .page--flipping")).toHaveCount(0);
+		} catch (cause) {
+			throw new Error(`${direction} ${side} preview failed at corner ratio ${cornerY}`, { cause });
 		}
-		if (frontIndex > 2) {
-			const hoveredContent = await boundsOf(content);
-			expect(hoveredContent.x).toBeCloseTo(contentBounds.x, 0);
-			expect(hoveredContent.y).toBeCloseTo(contentBounds.y, 0);
-			const flap = book.locator(
-				`.page[data-page-index="${isForward ? frontIndex + 1 : frontIndex - 2}"]`,
-			);
-			await expectSmallCurl(flap);
-			await captureCorner(surface, direction, side, cornerY);
-		}
-		await move(page, edgeX + edgeSign * 5, bounds.y + bounds.height * cornerY);
-		await expect.poll(() => snapshot(surfaces)).toEqual(resting);
-		await expect(book.locator(".page--folded, .page--flipping")).toHaveCount(0);
 	}
 }
 
