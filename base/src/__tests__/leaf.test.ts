@@ -687,11 +687,13 @@ describe("Leaf", () => {
 
 		it("omits crease shading when page shadows are disabled", () => {
 			const leaf = createPaperLeaf(true, false);
-			leaf.setManualPosition(0.4);
-
-			for (const page of leaf.pages) {
-				expect(page?.classList.contains("page--folded")).toBe(true);
-				expect(page?.style.getPropertyValue("--fold-shading")).toBe("");
+			for (const position of [0.4, 1]) {
+				leaf.setManualPosition(position);
+				if (position === 1) leaf.setHoverShadow(0.12);
+				for (const page of leaf.pages) {
+					expect(page?.classList.contains("page--folded")).toBe(true);
+					expect(page?.style.getPropertyValue("--fold-shading")).toBe("");
+				}
 			}
 		});
 
@@ -722,6 +724,56 @@ describe("Leaf", () => {
 			leaf.setHoverShadow(0);
 			expect(mockPage1.classList.contains("page--folded")).toBe(false);
 			expect(mockPage1.style.clipPath).toBe("");
+		});
+
+		it.each([
+			[true, 0.1],
+			[true, 0.9],
+			[false, 0.1],
+			[false, 0.9],
+		] as const)("keeps both hover hints equally small for isLTR=%s at height %s", (isLTR, origin) => {
+			const leaf = createPaperLeaf(isLTR);
+			const clippedArea = (page: HTMLElement) => {
+				const points = page.style.clipPath
+					.slice("polygon(".length, -1)
+					.split(",")
+					.map((point) => point.trim().split(/\s+/).map(Number.parseFloat));
+				return (
+					Math.abs(
+						points.reduce((sum, point, index) => {
+							const next = points[(index + 1) % points.length];
+							return sum + point[0] * next[1] - point[1] * next[0];
+						}, 0),
+					) / 2
+				);
+			};
+			const flapAreas: number[] = [];
+			for (const endpoint of [0, 1]) {
+				leaf.setHoverShadow(0);
+				leaf.flipPosition = endpoint;
+				leaf.applyTransform(endpoint);
+				leaf.setFoldOrigin(origin);
+				leaf.setHoverShadow(0.12);
+				const surface = endpoint === 0 ? mockPage1 : mockPage2;
+				const flap = endpoint === 0 ? mockPage2 : mockPage1;
+				const flapArea = clippedArea(flap);
+				expect(clippedArea(surface)).toBeGreaterThan(320 * 480 * 0.99);
+				expect(flapArea).toBeGreaterThan(0);
+				expect(flapArea).toBeLessThan(320 * 480 * 0.01);
+				expect(surface.style.transform).toBe(
+					`translateX(${endpoint === 1 ? 0 : isLTR ? 320 : -320}px)`,
+				);
+				expect(Number(flap.style.zIndex)).toBeGreaterThan(Number(surface.style.zIndex));
+				expect(leaf.flipPosition).toBe(endpoint);
+				expect(onTurnedMock).not.toHaveBeenCalled();
+				flapAreas.push(flapArea);
+			}
+			expect(flapAreas[1]).toBeCloseTo(flapAreas[0], 2);
+			leaf.setHoverShadow(0);
+			for (const page of leaf.pages) {
+				expect(page?.style.clipPath).toBe("");
+				expect(page?.classList.contains("page--folded")).toBe(false);
+			}
 		});
 
 		it("preserves live controls and scroll positions throughout a fold", () => {
