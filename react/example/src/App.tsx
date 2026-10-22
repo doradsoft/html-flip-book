@@ -159,9 +159,10 @@ export const App: FC = () => {
 	const rtlExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "RTL"), []);
 
 	const isLtr = selectedId.startsWith("ltr-");
+	const isBookmarkExample = selectedId.endsWith("-bookmarks");
 
 	return (
-		<div className={selectedId.endsWith("-bookmarks") ? "app app--bookmark-example" : "app"}>
+		<div className={isBookmarkExample ? "app app--bookmark-example" : "app"}>
 			<header>
 				<h1>HTML Flip Book Example</h1>
 			</header>
@@ -201,8 +202,14 @@ export const App: FC = () => {
 					</div>
 				</nav>
 				<section className="example-container" aria-live="polite">
-					{selectedId.endsWith("-bookmarks") ? (
-						<BookmarkExample key={selectedId} direction={isLtr ? "ltr" : "rtl"} />
+					{isBookmarkExample ? (
+						<BookmarkExample
+							key={selectedId}
+							direction={isLtr ? "ltr" : "rtl"}
+							config={
+								isLtr ? getEnBookConfig("ltr-comprehensive") : getHeBookConfig("rtl-comprehensive")
+							}
+						/>
 					) : isLtr ? (
 						<div className="en-book-container" key={selectedId}>
 							<EnBook config={getEnBookConfig(selectedId)} />

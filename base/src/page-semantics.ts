@@ -74,4 +74,13 @@ export interface PageSemantics {
 	 * - Index 5 → "Chapter 2: Getting Started"
 	 */
 	indexToTitle: (pageIndex: number) => string;
+
+	/**
+	 * Gets an optional compact title for space-constrained page navigation.
+	 * Return a meaningful word or phrase, such as "Introduction" or "Transactions".
+	 * The full title remains available through indexToTitle for expanded previews,
+	 * table of contents entries, and accessible descriptions. An empty result lets
+	 * the consumer fall back to the full title.
+	 */
+	indexToShortTitle?: (pageIndex: number) => string;
 }

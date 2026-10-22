@@ -1,6 +1,7 @@
 // EnBook.tsx
 
 import {
+	type BookmarkProvider,
 	FlipBook,
 	type FlipBookHandle,
 	type HistoryMapper,
@@ -8,6 +9,7 @@ import {
 	TocPage,
 } from "html-flip-book-react";
 import {
+	BookmarkToggleButton,
 	DownloadDropdown,
 	FirstPageButton,
 	FullscreenButton,
@@ -90,12 +92,40 @@ function titleFromMarkdownFirstLine(firstLine: string): string {
 	return trimmed;
 }
 
+const shortChapterTitles: Record<string, string> = {
+	"About the book": "Introduction",
+	"Tables and columns": "Tables",
+	"Basic Syntax": "Syntax",
+	"Sorting with ORDER and GROUP BY": "ORDER / GROUP",
+	"SQL | DDL, DQL, DML, DCL and TCL Commands": "SQL Commands",
+	"SQL Sub Queries": "Subqueries",
+	"SQL - UNIONS CLAUSE": "UNIONS",
+	"Relational Keys- Keys in a Relational Database": "Keys",
+	"Logical Operator Keywords": "Operators",
+	"`HAVING` Clause": "HAVING",
+	"Essential MySQL Functions": "Functions",
+	"Triggers In SQL": "Triggers",
+	"`Transaction Control Language`": "Transactions",
+	"`Data Control Language`": "Permissions",
+	"The MySQL dump command": "Backups",
+	"Learn Materialize by running streaming SQL on your nginx logs": "Streaming SQL",
+};
+
 function createEnPageSemantics(
 	totalPages: number,
 	contentTitles: Record<number, string>,
 ): PageSemantics {
 	const firstContent = 3;
-	const lastContent = totalPages - 4;
+	const lastContent = totalPages - 3;
+	const titleAt = (pageIndex: number): string => {
+		if (pageIndex === 0) return "Front Cover";
+		if (pageIndex === 1 || pageIndex === 2) return "";
+		if (pageIndex >= firstContent && pageIndex <= lastContent) {
+			return contentTitles[pageIndex] ?? "";
+		}
+		if (pageIndex === totalPages - 1) return "Back Cover";
+		return "";
+	};
 
 	return {
 		indexToSemanticName(pageIndex: number): string {
@@ -107,15 +137,11 @@ function createEnPageSemantics(
 			const num = parseInt(semanticPageName, 10);
 			return Number.isNaN(num) ? null : num;
 		},
-		indexToTitle(pageIndex: number): string {
-			if (pageIndex === 0) return "Front Cover";
-			if (pageIndex === 1) return "";
-			if (pageIndex === 2) return ""; // TOC page
-			if (pageIndex >= firstContent && pageIndex <= lastContent) {
-				return contentTitles[pageIndex] ?? "";
-			}
-			if (pageIndex === totalPages - 1) return "Back Cover";
-			return "";
+		indexToTitle: titleAt,
+		indexToShortTitle(pageIndex: number): string {
+			if (pageIndex === 2) return "Contents";
+			const title = titleAt(pageIndex);
+			return shortChapterTitles[title] ?? title.split(/\s+/).slice(0, 3).join(" ");
 		},
 	};
 }
@@ -150,6 +176,14 @@ function useTestParams() {
 }
 
 export interface EnBookConfig {
+	/** Bookmarks are opt-in, including when a custom provider is supplied. */
+	enableBookmarks?: boolean;
+	/** Add bookmarks using this book's page titles and existing navigation. */
+	createBookmarkProvider?: (
+		pageSemantics: PageSemantics,
+		jumpToPage: (pageIndex: number) => void,
+		metadata: { pagesCount: number; coverPageIndices: readonly number[] },
+	) => BookmarkProvider;
 	leavesBuffer?: number;
 	debug?: boolean;
 	/** Page shadows are enabled unless explicitly disabled. */
@@ -165,6 +199,8 @@ export interface EnBookConfig {
 }
 
 export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
+	const configuredBookmarks = config?.enableBookmarks ?? false;
+	const [bookmarksEnabled, setBookmarksEnabled] = useState(configuredBookmarks);
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
 	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
 	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
@@ -172,6 +208,10 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	const [pagePdfData, setPagePdfData] = useState<(string | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
+
+	useEffect(() => {
+		setBookmarksEnabled(configuredBookmarks);
+	}, [configuredBookmarks]);
 
 	useEffect(() => {
 		const loadMarkdownFiles = async () => {
@@ -225,7 +265,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				null, // back cover
 			];
 
-			const totalPages = 6 + contentPages.length;
+			const totalPages = 5 + contentPages.length;
 			const semantics = createEnPageSemantics(totalPages, contentTitles);
 
 			const toc = (
@@ -263,6 +303,21 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	}, []);
 
 	const containerRef = useRef<HTMLDivElement>(null);
+	const createBookmarkProvider = config?.createBookmarkProvider;
+	const bookmarkProvider = useMemo(
+		() =>
+			enPageSemantics && enPages.length > 0
+				? createBookmarkProvider?.(
+						enPageSemantics,
+						(pageIndex) => flipBookRef.current?.jumpToPage(pageIndex),
+						{
+							pagesCount: enPages.length,
+							coverPageIndices: [0, 1, enPages.length - 2, enPages.length - 1],
+						},
+					)
+				: undefined,
+		[createBookmarkProvider, enPageSemantics, enPages.length],
+	);
 
 	const enDownloadConfig = useMemo(
 		() => ({
@@ -315,6 +370,8 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				snapshotDuringFlip={config?.snapshotDuringFlip}
 				pages={enPages}
 				pageSemantics={enPageSemantics}
+				bookmarkProvider={bookmarkProvider}
+				enableBookmarks={bookmarksEnabled}
 				tocPageIndex={2}
 				debug={config?.debug ?? true}
 				leavesBuffer={config?.leavesBuffer}
@@ -337,6 +394,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
 					<TocButton />
+					<BookmarkToggleButton enabled={bookmarksEnabled} onChange={setBookmarksEnabled} />
 					<MouseModeButton />
 				</div>
 				<div className="flipbook-toolbar-nav-cluster">

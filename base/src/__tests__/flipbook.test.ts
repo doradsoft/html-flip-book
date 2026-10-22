@@ -2411,6 +2411,7 @@ describe("FlipBook", () => {
 				pagesCount: 8,
 				direction: configuration.direction,
 				initialTurnedLeaves: [0, 1],
+				enableBookmarks: true,
 				bookmarkProvider: {
 					getBookmarks: () => [{ id: "chapter", pageIndex: 4, label: "Chapter" }],
 					placement: configuration.placement,
@@ -2491,6 +2492,7 @@ describe("FlipBook", () => {
 		let visible = true;
 		const book = new FlipBook({
 			pagesCount: 8,
+			enableBookmarks: true,
 			bookmarkProvider: {
 				getBookmarks: () => (visible ? [{ id: "chapter", pageIndex: 4, label: "Chapter" }] : []),
 				placement: "left",
@@ -2513,11 +2515,12 @@ describe("FlipBook", () => {
 	it.each([
 		false,
 		true,
-	])("attaches bookmarks to the resting outer edge with covers=%s", (covers) => {
+	])("attaches bookmarks to the resting paper edge with covers=%s", (covers) => {
 		const pages = createPages(8);
 		const book = new FlipBook({
 			pagesCount: 8,
 			coverPageIndices: covers ? "auto" : undefined,
+			enableBookmarks: true,
 			bookmarkProvider: {
 				getBookmarks: () => [{ id: "chapter", pageIndex: 4, label: "Chapter" }],
 				placement: "left",
@@ -2527,7 +2530,7 @@ describe("FlipBook", () => {
 		const rail = container.querySelector<HTMLElement>('[data-edge="left"]');
 		if (!rail) throw new Error("Left bookmark rail is missing");
 		const edge = Number.parseFloat(rail.style.left) + Number.parseFloat(rail.style.width);
-		expect(edge).toBeCloseTo(Number.parseFloat(pages[0].style.left));
+		expect(edge).toBeCloseTo(Number.parseFloat(pages[4].style.left));
 		book.destroy();
 	});
 

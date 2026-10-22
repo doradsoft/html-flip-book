@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Bookmark providers add chapter tabs with custom content, placement, ordering, styling, and click actions, with LTR and RTL examples.
+- Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
+- Optional short page titles complement full titles in page metadata. A toolbar control shows or hides bookmarks without changing navigation.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
 - Paper pages fold from the grabbed corner with crease shading.
 

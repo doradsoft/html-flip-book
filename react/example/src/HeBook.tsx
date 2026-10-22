@@ -2,6 +2,7 @@
 
 import { toLetters, toNumber } from "gematry";
 import {
+	type BookmarkProvider,
 	FlipBook,
 	type FlipBookHandle,
 	type HistoryMapper,
@@ -9,6 +10,7 @@ import {
 	TocPage,
 } from "html-flip-book-react";
 import {
+	BookmarkToggleButton,
 	DownloadDropdown,
 	FirstPageButton,
 	FullscreenButton,
@@ -79,6 +81,14 @@ function createHePageSemantics(
 	const specialTitles = getSpecialPageTitles(totalPages);
 	const firstContent = 3;
 	const lastContent = totalPages - 4;
+	const titleAt = (pageIndex: number): string => {
+		if (pageIndex >= firstContent && pageIndex <= lastContent) {
+			const perekNum = pageIndex - 2;
+			const title = perekTitles[perekNum];
+			return title ?? `פרק ${toLetters(perekNum, { addQuotes: true })}`;
+		}
+		return specialTitles[pageIndex] ?? "";
+	};
 
 	return {
 		indexToSemanticName(pageIndex: number): string {
@@ -91,13 +101,13 @@ function createHePageSemantics(
 			if (num === 0) return null;
 			return num + 2; // content starts at index 3
 		},
-		indexToTitle(pageIndex: number): string {
-			if (pageIndex >= firstContent && pageIndex <= lastContent) {
-				const perekNum = pageIndex - 2;
-				const title = perekTitles[perekNum];
-				return title ?? `פרק ${toLetters(perekNum, { addQuotes: true })}`;
-			}
-			return specialTitles[pageIndex] ?? "";
+		indexToTitle: titleAt,
+		indexToShortTitle(pageIndex: number): string {
+			if (pageIndex === 2) return "שער";
+			const title = titleAt(pageIndex);
+			if (title.startsWith("גן בעדן")) return "גן עדן";
+			const firstPhrase = title.split(/[,;]/, 1)[0];
+			return firstPhrase.trim().split(/\s+/).slice(0, 3).join(" ");
 		},
 	};
 }
@@ -122,6 +132,14 @@ function useTestParams() {
 }
 
 export interface HeBookConfig {
+	/** Bookmarks are opt-in, including when a custom provider is supplied. */
+	enableBookmarks?: boolean;
+	/** Add bookmarks using this book's page titles and existing navigation. */
+	createBookmarkProvider?: (
+		pageSemantics: PageSemantics,
+		jumpToPage: (pageIndex: number) => void,
+		metadata: { pagesCount: number; coverPageIndices: readonly number[] },
+	) => BookmarkProvider;
 	leavesBuffer?: number;
 	debug?: boolean;
 	/** Page shadows are enabled unless explicitly disabled. */
@@ -137,12 +155,32 @@ export interface HeBookConfig {
 }
 
 export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
+	const configuredBookmarks = config?.enableBookmarks ?? false;
+	const [bookmarksEnabled, setBookmarksEnabled] = useState(configuredBookmarks);
 	const [hePages, setHePages] = useState<ReactElement[]>([]);
 	const [hePageSemantics, setHePageSemantics] = useState<PageSemantics | null>(null);
 	const [hePageContents, setHePageContents] = useState<(string | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const createBookmarkProvider = config?.createBookmarkProvider;
+	useEffect(() => {
+		setBookmarksEnabled(configuredBookmarks);
+	}, [configuredBookmarks]);
+	const bookmarkProvider = useMemo(
+		() =>
+			hePageSemantics && hePages.length > 0
+				? createBookmarkProvider?.(
+						hePageSemantics,
+						(pageIndex) => flipBookRef.current?.jumpToPage(pageIndex),
+						{
+							pagesCount: hePages.length,
+							coverPageIndices: [0, 1, hePages.length - 2, hePages.length - 1],
+						},
+					)
+				: undefined,
+		[createBookmarkProvider, hePageSemantics, hePages.length],
+	);
 
 	useEffect(() => {
 		loadHebrewFont();
@@ -309,6 +347,8 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 				pages={hePages}
 				direction="rtl"
 				pageSemantics={hePageSemantics}
+				bookmarkProvider={bookmarkProvider}
+				enableBookmarks={bookmarksEnabled}
 				of="נ"
 				tocPageIndex={2}
 				debug={config?.debug ?? true}
@@ -333,6 +373,7 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
 					<TocButton />
+					<BookmarkToggleButton enabled={bookmarksEnabled} onChange={setBookmarksEnabled} />
 					<MouseModeButton />
 				</div>
 				<div className="flipbook-toolbar-nav-cluster">

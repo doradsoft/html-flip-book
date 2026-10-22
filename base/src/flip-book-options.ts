@@ -74,6 +74,8 @@ export interface FlipBookOptions {
 	pageSemantics?: PageSemantics;
 	/** Optional page bookmarks, including content, placement, ordering, and click actions. */
 	bookmarkProvider?: BookmarkProvider;
+	/** Enable bookmarks. Default: false. With no provider, use TOC and its titled entries. */
+	enableBookmarks?: boolean;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
 	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */

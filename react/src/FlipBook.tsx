@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 export type BookmarkProvider = BaseBookmarkProvider<React.ReactNode>;
 
 interface BookmarkSlot {
+	key: string;
 	bookmark: Bookmark;
 	element: HTMLElement;
 	renderer: BookmarkProvider["renderBookmark"];
@@ -130,6 +131,8 @@ export interface FlipBookProps {
 	pageSemantics?: PageSemantics;
 	/** Page bookmark content, placement, ordering, and optional click behavior. */
 	bookmarkProvider?: BookmarkProvider;
+	/** Opt in to bookmarks. Without a custom provider, use the TOC and its chapter entries. Default: false. */
+	enableBookmarks?: boolean;
 	/** Enable debug mode */
 	debug?: boolean;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left) */
@@ -242,6 +245,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			mouseModeStorageKey,
 			pageSemantics = undefined,
 			bookmarkProvider,
+			enableBookmarks = false,
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
@@ -322,6 +326,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const flipBook = useRef(
 			new FlipBookBase({
 				pageSemantics: pageSemantics,
+				enableBookmarks,
 				pagesCount: pages.length,
 				direction: direction,
 				mouseMode,
@@ -402,6 +407,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			};
 		}, [className, debug, mouseModeStorageKey]);
 
+		const previousBookmarksEnabled = useRef(enableBookmarks);
+		useEffect(() => {
+			if (previousBookmarksEnabled.current === enableBookmarks) return;
+			previousBookmarksEnabled.current = enableBookmarks;
+			flipBook.current.setBookmarksEnabled(enableBookmarks);
+		}, [enableBookmarks]);
+
 		useEffect(() => {
 			const currentFlipBook = flipBook.current;
 			if (!bookmarkProvider) {
@@ -410,13 +422,30 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			}
 			let active = true;
 			const slots = new Map<string, BookmarkSlot>();
+			const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
+				const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
+				let slot = slots.get(key);
+				if (!slot) {
+					slot = {
+						key,
+						bookmark,
+						element: document.createElement("span"),
+						renderer: expanded
+							? bookmarkProvider.renderExpandedBookmark
+							: bookmarkProvider.renderBookmark,
+					};
+					slots.set(key, slot);
+				}
+				slot.bookmark = bookmark;
+				return slot.element;
+			};
 			const provider: BaseBookmarkProvider = {
 				...bookmarkProvider,
 				getBookmarks: (context) => {
 					const bookmarks = bookmarkProvider.getBookmarks(context);
 					const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
-					for (const id of slots.keys()) {
-						if (!ids.has(id)) slots.delete(id);
+					for (const [key, slot] of slots) {
+						if (!ids.has(slot.bookmark.id)) slots.delete(key);
 					}
 					// The base renderer creates the slots synchronously after this query.
 					queueMicrotask(() => {
@@ -428,19 +457,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					});
 					return bookmarks;
 				},
-				renderBookmark: (bookmark) => {
-					let slot = slots.get(bookmark.id);
-					if (!slot) {
-						slot = {
-							bookmark,
-							element: document.createElement("span"),
-							renderer: bookmarkProvider.renderBookmark,
-						};
-						slots.set(bookmark.id, slot);
-					}
-					slot.bookmark = bookmark;
-					return slot.element;
-				},
+				renderBookmark: (bookmark) => renderSlot(bookmark, false),
+				renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
+					? (bookmark) => renderSlot(bookmark, true)
+					: undefined,
 			};
 			currentFlipBook.setBookmarkProvider(provider);
 			return () => {
@@ -579,8 +599,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						{renderPageContent(index)}
 					</div>
 				))}
-				{bookmarkSlots.map(({ bookmark, element, renderer }) =>
-					createPortal(renderer ? renderer(bookmark) : bookmark.label, element, bookmark.id),
+				{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
+					createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
 				)}
 			</div>
 		);

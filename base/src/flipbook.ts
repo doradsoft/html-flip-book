@@ -5,6 +5,7 @@ import Hammer from "hammerjs";
 import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
 import { BookmarkLayer, type BookmarkProvider } from "./bookmarks";
+import { createDefaultBookmarkProvider } from "./default-bookmarks";
 import type { DownloadConfig } from "./download/types";
 import type {
 	FlipBookOptions,
@@ -86,6 +87,8 @@ class FlipBook {
 	private readonly _historyOwner = `${historyOwnerEpoch}-${++nextHistoryOwner}`;
 	private readonly pageSemantics: PageSemantics | undefined;
 	private bookmarkProvider: BookmarkProvider | undefined;
+	private bookmarksEnabled: boolean;
+	private defaultBookmarkProvider: BookmarkProvider | undefined;
 	private bookmarkLayer: BookmarkLayer | undefined;
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
@@ -152,7 +155,7 @@ class FlipBook {
 	}
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
-		if (this.bookmarkProvider && this.bookmarkLayer) {
+		if (this.bookmarksEnabled && this.bookmarkLayer) {
 			this.bookmarkLayer.refresh();
 			if (Object.values(this.bookmarkLayer.getInsets()).join() !== this.bookmarkClearance) {
 				this.recalculateSizes();
@@ -242,6 +245,7 @@ class FlipBook {
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
 		this.pageSemantics = options.pageSemantics;
 		this.bookmarkProvider = options.bookmarkProvider;
+		this.bookmarksEnabled = options.enableBookmarks ?? false;
 		this.onPageChanged = options.onPageChanged;
 		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
@@ -266,7 +270,46 @@ class FlipBook {
 	/** Replace or remove bookmarks without recreating the book or changing its current spread. */
 	setBookmarkProvider(provider?: BookmarkProvider): void {
 		this.bookmarkProvider = provider;
-		this.bookmarkLayer?.setProvider(provider);
+		this.applyBookmarkProvider();
+	}
+
+	/** Bookmarks are opt-in; enabling without a provider uses TOC metadata. */
+	setBookmarksEnabled(enabled: boolean): void {
+		this.bookmarksEnabled = enabled;
+		this.applyBookmarkProvider();
+		this.observeBookmarkLeaves();
+	}
+
+	private getBookmarkProvider(): BookmarkProvider | undefined {
+		if (!this.bookmarksEnabled) return undefined;
+		if (this.bookmarkProvider) return this.bookmarkProvider;
+		if (this.defaultBookmarkProvider) return this.defaultBookmarkProvider;
+		const coverPageIndices = this.buildCoverPageIndicesSet();
+		this.pageElements.forEach((page, index) => {
+			if (page.classList.contains("page--cover")) coverPageIndices.add(index);
+		});
+		this.defaultBookmarkProvider ??= createDefaultBookmarkProvider({
+			pagesCount: this.pagesCount,
+			tocPageIndex: this._tocPageIndex,
+			pageSemantics: this.pageSemantics,
+			direction: this.direction,
+			coverPageIndices: [...coverPageIndices],
+		});
+		return this.defaultBookmarkProvider;
+	}
+
+	private observeBookmarkLeaves(): void {
+		for (const leaf of this.leaves) {
+			leaf.onTransform = this.bookmarksEnabled
+				? (frame) => this.bookmarkLayer?.updateLeaf(leaf.index, frame, leaf.pages[0])
+				: undefined;
+			const frame = this.bookmarksEnabled ? leaf.transformFrame : undefined;
+			if (frame) this.bookmarkLayer?.updateLeaf(leaf.index, frame, leaf.pages[0]);
+		}
+	}
+
+	private applyBookmarkProvider(): void {
+		this.bookmarkLayer?.setProvider(this.getBookmarkProvider());
 		this.recalculateSizes();
 	}
 
@@ -361,9 +404,11 @@ class FlipBook {
 		for (const leaf of this.leaves) {
 			leaf.applyTransform(leaf.flipPosition);
 		}
-		const outerSize = this.pageElements.some((page) => page.dataset.isCoverPage === "1")
-			? coverSize
-			: leafSize;
+		const outerSize =
+			this.getBookmarkProvider()?.attachment === "pinned" &&
+			this.pageElements.some((page) => page.dataset.isCoverPage === "1")
+				? coverSize
+				: leafSize;
 		this.bookmarkLayer?.layout({
 			left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
 			top: insets.top + (containerHeight - outerSize.height) / 2,
@@ -522,8 +567,9 @@ class FlipBook {
 			(pageIndex) => this.jumpToPage(pageIndex),
 			this.pagesCount,
 		);
-		this.bookmarkLayer.setProvider(this.bookmarkProvider);
-		if (this.bookmarkProvider) this.recalculateSizes();
+		this.bookmarkLayer.setProvider(this.getBookmarkProvider());
+		if (this.bookmarksEnabled) this.recalculateSizes();
+		this.observeBookmarkLeaves();
 
 		// Observe container size changes and re-layout automatically.
 		if (typeof ResizeObserver !== "undefined") {
@@ -1071,7 +1117,10 @@ class FlipBook {
 	 * the flip animation AND the element's click handler.
 	 */
 	private handleClickAfterDrag = (e: Event) => {
-		if (e.target instanceof Element && e.target.closest(".flipbook-bookmarks")) {
+		if (
+			e.target instanceof Element &&
+			e.target.closest(".flipbook-bookmarks, .flipbook-bookmark-surface")
+		) {
 			this._suppressNextClick = false;
 			return;
 		}
@@ -1401,6 +1450,7 @@ class FlipBook {
 
 export { FlipBook, type PageSemantics };
 export type { Bookmark, BookmarkContext, BookmarkPlacement, BookmarkProvider } from "./bookmarks";
+export { createDefaultBookmarkProvider } from "./default-bookmarks";
 export type {
 	FlipPageSemantic,
 	HistoryMapper,
