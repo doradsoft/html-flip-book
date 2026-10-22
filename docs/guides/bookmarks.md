@@ -149,7 +149,7 @@ const bookmarkProvider: BookmarkProvider = {
 };
 ```
 
-Tabs occupy separate slots along each rail. When they cannot all fit, that rail scrolls instead of stacking tabs on top of each other.
+Side rails fit as many tabs as their height allows, then continue in stepped ranges without vertical scrolling. For example, 60 tabs with 20 rows per range form three layers. Earlier ranges sit above later ones. Alternating ranges shift vertically by half a row, revealing rear tabs through the gaps as well as their outward tips. Each tab stays anchored to the page edge. Outward steps prefer 30% of the configured tab depth and can use unused space beside the book; they shrink when space is tight. Crowded parallel rails shorten their exposed tips when needed to keep each layer reachable; their full strips retain the same size. Adding ranges does not increase the book's reserved clearance, resize the pages, or shift the book. Top and bottom rails continue to scroll horizontally when needed.
 
 There is at most one bookmark per facing spread: pages `1–2`, `3–4`, and so on, with page `0` standing alone. For example, `DELETE` on page index `13` and `JOIN` on page index `14` share a bookmark; `UPDATE` on page index `12` belongs to the preceding spread. These are facing pages in the open book, rather than the two sides of one physical leaf.
 
@@ -195,6 +195,7 @@ During expansion, the original button temporarily moves into a wrapper under `do
   --flipbook-bookmark-depth: 56px;
   --flipbook-bookmark-length: 26px;
   --flipbook-bookmark-gap: 6px;
+  --flipbook-bookmark-stack-step: 20px;
   --flipbook-bookmark-full-length: 320px;
 }
 
@@ -223,9 +224,10 @@ The sizing variables name physical dimensions relative to the edge:
 
 | CSS variable | Perpendicular default | Parallel default | Purpose |
 | --- | --- | --- | --- |
-| `--flipbook-bookmark-depth` | `52px` | `28px` | Exposed outward distance from the edge |
+| `--flipbook-bookmark-depth` | `52px` | `28px` | Base outward distance reserved beside the page |
 | `--flipbook-bookmark-length` | `24px` | `72px` | Exposed size along the edge |
 | `--flipbook-bookmark-gap` | `4px` | `4px` | Space between tabs |
+| `--flipbook-bookmark-stack-step` | 30% of depth | 30% of depth | Preferred outward step between side-rail ranges; uses available gutter space and shrinks when needed |
 | `--flipbook-bookmark-full-length` | `220px` | `220px` | Fixed full strip length, capped to the viewport before hovering |
 
 The book reserves tab depth in its layout. Rail selectors are `.flipbook-bookmarks__rail[data-edge="top"]` (also `right`, `bottom`, and `left`); the brief content wrapper is `.flipbook-bookmark__content`.

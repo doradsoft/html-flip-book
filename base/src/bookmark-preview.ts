@@ -257,6 +257,9 @@ export class BookmarkPreview {
 	private copyAppearance(source: HTMLElement): void {
 		const style = this.view?.getComputedStyle(source);
 		if (!style) return;
+		// A font shorthand can be empty even when its resolved family is available.
+		// Capture the longhand before writing styles, then retain it across reparenting.
+		const fontFamily = style.getPropertyValue("font-family");
 		for (const property of [
 			"font",
 			"color",
@@ -275,5 +278,6 @@ export class BookmarkPreview {
 		]) {
 			source.style.setProperty(property, style.getPropertyValue(property));
 		}
+		source.style.setProperty("font-family", fontFamily);
 	}
 }

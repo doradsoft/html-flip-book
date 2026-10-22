@@ -146,6 +146,34 @@ describe("bookmark previews", () => {
 		expect(document.activeElement).toBe(source);
 	});
 
+	it("retains the Hebrew font family when the computed font shorthand cannot be serialized", () => {
+		host.style.fontFamily = "Arial, sans-serif";
+		source.style.fontFamily = "Tahoma, Arial, sans-serif";
+		source.style.fontSize = "12px";
+		source.dir = "rtl";
+		source.textContent = "בריאת העולם";
+		const originalStyle = source.style.cssText;
+		const family = window.getComputedStyle(source).fontFamily;
+		const computedStyle = window.getComputedStyle.bind(window);
+		vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+			const style = computedStyle(element, pseudo);
+			if (element !== source) return style;
+			return new Proxy(style, {
+				get(target, property) {
+					if (property === "getPropertyValue")
+						return (name: string) => (name === "font" ? "" : target.getPropertyValue(name));
+					return Reflect.get(target, property, target);
+				},
+			});
+		});
+		preview.open(source, content, "left");
+		expect(window.getComputedStyle(source).fontFamily).toBe(family);
+		expect(window.getComputedStyle(content).fontFamily).toBe(family);
+		preview.close();
+		expect(source.style.cssText).toBe(originalStyle);
+		expect(window.getComputedStyle(source).fontFamily).toBe(family);
+	});
+
 	it("slides the original rectangle back behind its tip without shrinking it", async () => {
 		preview.open(source, content, "right");
 		await vi.advanceTimersByTimeAsync(32);

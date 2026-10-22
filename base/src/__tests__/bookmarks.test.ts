@@ -332,6 +332,52 @@ describe("BookmarkLayer", () => {
 		expect(right?.style.left).toBe("440px");
 	});
 
+	it("keeps stacked range positions stable across turns and clears them on horizontal placement", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.layout({ left: 52, top: 0, width: 400, height: 52 });
+		const first = tabButton("first").parentElement;
+		const middle = tabButton("middle").parentElement;
+		const later = tabButton("later").parentElement;
+		expect(later?.dataset.stackLayer).toBe("2");
+		expect(later?.dataset.stackRow).toBe("0");
+		expect(first?.style.width).toBe("31.2px");
+		expect(middle?.style.top).toBe("14px");
+		expect(later?.style.width).toBe("52px");
+		expect(Number(first?.style.zIndex)).toBeGreaterThan(Number(later?.style.zIndex));
+		context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
+		layer.refresh();
+		expect(later?.dataset.stackLayer).toBe("2");
+		expect(later?.style.top).toBe("0px");
+		expect(later?.parentElement?.dataset.edge).toBe("left");
+		layer.layout({ left: 52, top: 0, width: 400, height: 80 });
+		expect(later?.dataset.stackLayer).toBe("0");
+		expect(later?.style.top).toBe("56px");
+		expect(later?.style.width).toBe("52px");
+		layer.setProvider({ getBookmarks: () => bookmarks, placement: "top" });
+		expect(later?.dataset.stackLayer).toBeUndefined();
+		expect(later?.style.width).toBe("");
+		expect(later?.style.top).toBe("");
+		expect(later?.style.getPropertyValue("--bookmark-exposed-depth")).toBe("");
+	});
+
+	it("places each rail at its resting leaf depth above the backing cover", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.layout({ left: 52, top: 0, width: 400, height: 300 });
+		const left = host.querySelector<HTMLElement>('.flipbook-bookmarks__rail[data-edge="left"]');
+		const right = host.querySelector<HTMLElement>('.flipbook-bookmarks__rail[data-edge="right"]');
+		expect(left?.style.zIndex).toBe("1");
+		expect(right?.style.zIndex).toBe("8");
+		context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
+		layer.refresh();
+		expect(left?.style.zIndex).toBe("7");
+		expect(right?.style.zIndex).toBe("0");
+		context = { ...context, currentPageIndex: 0, currentLeafIndex: 0 };
+		layer.refresh();
+		expect(right?.style.zIndex).toBe("12");
+		// The root precedes the pages, so this equal depth remains underneath a closed cover.
+		expect(host.firstElementChild?.className).toBe("flipbook-bookmarks");
+	});
+
 	it("jumps to the clicked page by default", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
 		host.querySelector<HTMLButtonElement>('[data-bookmark-id="middle"]')?.click();

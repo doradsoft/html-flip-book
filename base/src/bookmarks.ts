@@ -2,6 +2,7 @@ import "./bookmarks.scss";
 import type { BookmarkLeafFrame } from "./bookmark-fold";
 import { BookmarkMotion } from "./bookmark-motion";
 import { BookmarkPreview } from "./bookmark-preview";
+import { calculateBookmarkStack } from "./bookmark-stack";
 import type { MouseMode } from "./flip-book-options";
 
 /** A bookmark identifies a zero-based page and keeps consumer data intact. */
@@ -231,6 +232,7 @@ export class BookmarkLayer {
 		item.button.dataset.orientation = this.provider?.orientation ?? "perpendicular";
 		item.slot.dataset.edge = item.edge;
 		item.slot.dataset.orientation = item.button.dataset.orientation;
+		if (!fixedSide) this.clearStackSlot(item.slot);
 		item.button.dataset.leafIndex = String(this.getLeafIndex(bookmark));
 		item.button.style.setProperty("--bookmark-slot", String(slot + 1));
 		item.slot.style.setProperty("--bookmark-slot", String(slot + 1));
@@ -300,7 +302,86 @@ export class BookmarkLayer {
 			rail.style.width = `${Math.max(0, horizontal ? bounds.width : depth)}px`;
 			rail.style.height = `${Math.max(0, horizontal ? depth : bounds.height)}px`;
 		}
+		this.layoutSideStacks(bounds, depth);
 		for (const [index, pose] of this.leafFrames) this.updateLeaf(index, pose.frame, pose.page);
+	}
+
+	private layoutSideStacks(bounds: BookmarkBounds, depth: number): void {
+		const length = this.getSize(
+			"--flipbook-bookmark-length",
+			"height",
+			this.provider?.orientation === "parallel" ? 72 : 24,
+		);
+		const preferredStep = this.getSize("--flipbook-bookmark-stack-step", "marginTop", depth * 0.3);
+		const view = this.host.ownerDocument.defaultView;
+		for (const edge of ["left", "right"] as const) {
+			const rail = this.rails.get(edge);
+			if (!rail) continue;
+			const rawGap = Number.parseFloat(view?.getComputedStyle(rail).rowGap ?? "");
+			const gap = Number.isFinite(rawGap) && rawGap >= 0 ? rawGap : 4;
+			const stack = calculateBookmarkStack(
+				this.orderedLeafIds.length,
+				bounds.height,
+				length,
+				depth,
+				gap,
+				preferredStep,
+				edge === "left" ? bounds.left : this.host.clientWidth - bounds.left - bounds.width,
+				this.provider?.orientation === "parallel" ? 1 : 0,
+			);
+			rail.dataset.stackCapacity = String(stack.capacity);
+			rail.dataset.stackLayers = String(stack.layers);
+			rail.dataset.stackPitch = String(stack.pitch);
+			rail.dataset.stackStagger = String(stack.stagger);
+			rail.style.width = `${stack.depth}px`;
+			rail.style.zIndex = String(this.getRestingRailZIndex(edge));
+			if (edge === "left") rail.style.left = `${bounds.left - stack.depth}px`;
+			this.orderedLeafIds.forEach((id, rank) => {
+				const item = this.items.get(id);
+				if (!item || item.edge !== edge) return;
+				const layer = Math.floor(rank / stack.capacity);
+				const row = rank % stack.capacity;
+				const width = stack.frontDepth + layer * stack.step;
+				const slot = item.slot;
+				slot.dataset.stackLayer = String(layer);
+				slot.dataset.stackRow = String(row);
+				slot.dataset.stackPeek = String(layer === 0 ? width : stack.step);
+				slot.style.setProperty("--bookmark-exposed-depth", `${width}px`);
+				slot.style.setProperty("--bookmark-exposed-length", `${stack.length}px`);
+				slot.style.top = `${row * stack.pitch + (layer % 2) * stack.stagger}px`;
+				slot.style.width = `${width}px`;
+				slot.style.height = `${stack.length}px`;
+				slot.style.zIndex = String(stack.layers - layer);
+			});
+		}
+	}
+
+	private getRestingRailZIndex(edge: Edge): number {
+		const context = this.getContext();
+		let depth = 0;
+		for (const item of this.items.values()) {
+			if (item.edge !== edge || item.button.hidden) continue;
+			const page = this.getLeafIndex(item.bookmark) * 2;
+			depth = Math.max(
+				depth,
+				this.isTurned(item.bookmark, context) ? page + 1 : this.pagesCount - page,
+			);
+		}
+		// The earlier root keeps equal-depth tabs beneath paper, above the backing board.
+		return depth;
+	}
+
+	private clearStackSlot(slot: HTMLElement): void {
+		for (const key of ["stackLayer", "stackRow", "stackPeek"]) delete slot.dataset[key];
+		for (const property of [
+			"--bookmark-exposed-depth",
+			"--bookmark-exposed-length",
+			"top",
+			"width",
+			"height",
+			"z-index",
+		])
+			slot.style.removeProperty(property);
 	}
 
 	/** Receive the same geometry used to draw the leaf, including its live crease. */
@@ -633,17 +714,25 @@ export class BookmarkLayer {
 	}
 
 	private getDepth(): number {
+		return this.getSize(
+			"--flipbook-bookmark-depth",
+			"width",
+			this.provider?.orientation === "parallel" ? DEFAULT_DEPTH : 52,
+		);
+	}
+
+	private getSize(
+		property: string,
+		dimension: "width" | "height" | "marginTop",
+		fallback: number,
+	): number {
 		const view = this.host.ownerDocument.defaultView;
-		if (!view) return this.provider?.orientation === "parallel" ? DEFAULT_DEPTH : 52;
+		if (!view) return fallback;
 		const raw =
-			view.getComputedStyle(this.element).getPropertyValue("--flipbook-bookmark-depth") ||
-			view.getComputedStyle(this.host).getPropertyValue("--flipbook-bookmark-depth");
+			view.getComputedStyle(this.element).getPropertyValue(property) ||
+			view.getComputedStyle(this.host).getPropertyValue(property);
 		if (/^\s*\d+(\.\d+)?(px)?\s*$/.test(raw)) return Number.parseFloat(raw);
-		const resolved = Number.parseFloat(view.getComputedStyle(this.depthMeasure).width);
-		return Number.isFinite(resolved) && resolved >= 0
-			? resolved
-			: this.provider?.orientation === "parallel"
-				? DEFAULT_DEPTH
-				: 52;
+		const resolved = Number.parseFloat(view.getComputedStyle(this.depthMeasure)[dimension]);
+		return Number.isFinite(resolved) && resolved >= 0 ? resolved : fallback;
 	}
 }
