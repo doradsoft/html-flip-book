@@ -10,6 +10,12 @@ type Attachment = NonNullable<BookmarkProvider["attachment"]>;
 type Order = "page" | "reverse-page" | "title";
 type Action = "default" | "inspect" | "navigate";
 type Provider = "default" | "custom";
+interface ExampleBookmarkData {
+	chapter: number;
+	pageIndices: number[];
+	shortTitle: string;
+	semanticName: string;
+}
 
 const TAB_COLORS = ["sand", "moss", "sea", "violet", "clay", "slate"];
 
@@ -32,23 +38,55 @@ export default function BookmarkExample({
 	const createBookmarkProvider = useCallback<NonNullable<EnBookConfig["createBookmarkProvider"]>>(
 		(pageSemantics, jumpToPage, { pagesCount, coverPageIndices }) => {
 			const covers = new Set(coverPageIndices);
-			const bookmarks = Array.from({ length: pagesCount }, (_, index) => index).flatMap<Bookmark>(
-				(pageIndex) => {
-					if (covers.has(pageIndex)) return [];
-					const title = pageSemantics.indexToTitle(pageIndex);
-					if (title.length === 0 && pageIndex !== 2) return [];
-					const leafIndex = Math.floor(pageIndex / 2);
-					return [
-						{
-							id: `page-${pageIndex}`,
-							pageIndex,
-							label: title || (isRtl ? "תוכן העניינים" : "Table of Contents"),
-							className: `example-bookmark--${TAB_COLORS[(leafIndex - 1 + TAB_COLORS.length) % TAB_COLORS.length]}`,
-							data: { chapter: leafIndex + 1 },
-						},
-					];
-				},
-			);
+			const pageBookmarks = Array.from(
+				{ length: pagesCount },
+				(_, index) => index,
+			).flatMap<Bookmark>((pageIndex) => {
+				if (covers.has(pageIndex)) return [];
+				const title = pageSemantics.indexToTitle(pageIndex);
+				if (title.length === 0 && pageIndex !== 2) return [];
+				return [
+					{
+						id: `page-${pageIndex}`,
+						pageIndex,
+						label: title || (isRtl ? "תוכן העניינים" : "Table of Contents"),
+					},
+				];
+			});
+			const spreads = new Map<number, Bookmark[]>();
+			for (const bookmark of pageBookmarks) {
+				const spreadIndex = Math.floor((bookmark.pageIndex + 1) / 2);
+				const facing = spreads.get(spreadIndex) ?? [];
+				facing.push(bookmark);
+				spreads.set(spreadIndex, facing);
+			}
+			const bookmarks: Bookmark[] = Array.from(spreads, ([spreadIndex, facing]) => {
+				const contents = facing.find((bookmark) => bookmark.pageIndex === 2);
+				const start = spreadIndex === 0 ? 0 : spreadIndex * 2 - 1;
+				const data: ExampleBookmarkData = {
+					chapter: spreadIndex + 1,
+					pageIndices: facing.map((bookmark) => bookmark.pageIndex),
+					shortTitle: facing
+						.map(
+							(bookmark) => pageSemantics.indexToShortTitle?.(bookmark.pageIndex) || bookmark.label,
+						)
+						.join(" / "),
+					semanticName: facing
+						.map(
+							(bookmark) =>
+								pageSemantics.indexToSemanticName(bookmark.pageIndex) ||
+								String(bookmark.pageIndex + 1),
+						)
+						.join("–"),
+				};
+				return {
+					id: contents ? "contents" : `spread-${spreadIndex}`,
+					pageIndex: contents?.pageIndex ?? start,
+					label: facing.map((bookmark) => bookmark.label).join(" / "),
+					className: `example-bookmark--${TAB_COLORS[(spreadIndex - 1 + TAB_COLORS.length) % TAB_COLORS.length]}`,
+					data,
+				};
+			});
 			return {
 				getBookmarks: ({ currentPageIndex }: BookmarkContext) =>
 					bookmarks.filter((bookmark) => !onlyUpcoming || bookmark.pageIndex >= currentPageIndex),
@@ -60,9 +98,7 @@ export default function BookmarkExample({
 				className: "example-bookmarks",
 				renderBookmark: (bookmark) => (
 					<span className="example-bookmark-brief" dir={direction}>
-						<strong>
-							{pageSemantics.indexToShortTitle?.(bookmark.pageIndex) || bookmark.label}
-						</strong>
+						<strong>{(bookmark.data as ExampleBookmarkData).shortTitle}</strong>
 					</span>
 				),
 				renderExpandedBookmark: (bookmark) => (
@@ -70,7 +106,7 @@ export default function BookmarkExample({
 						<strong>{bookmark.label}</strong>
 						<small>
 							{isRtl ? "עמוד " : "Page "}
-							{pageSemantics.indexToSemanticName(bookmark.pageIndex) || bookmark.pageIndex + 1}
+							{(bookmark.data as ExampleBookmarkData).semanticName}
 						</small>
 					</span>
 				),

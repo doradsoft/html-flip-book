@@ -4,7 +4,7 @@ Bookmark providers add rectangular tabs outside the pages. By default, tabs poin
 
 Bookmarks are disabled by default: set `enableBookmarks: true` in vanilla or `enableBookmarks={true}` in React to enable them. Providing a custom provider does not enable them by itself. When enabled without a custom provider, the built-in provider includes the table of contents and every page with a nonempty title, using the book's `pageSemantics` and `tocPageIndex`. This matches `TocPage`'s default title filter; a custom `TocPage.filter` does not change the bookmark provider.
 
-Configured cover pages are excluded. The built-in provider includes the entire table of contents, with separate entries for each titled page. The library pairs the two sides of a physical leaf into the front and back of one tab. Brief content uses meaningful short titles from `pageSemantics.indexToShortTitle`, falling back to the full title from `indexToTitle`. Expanded content shows that face's full title and its semantic page name as secondary information.
+Configured cover pages are excluded. The built-in provider includes the entire table of contents, with one shared bookmark for each pair of facing pages. Brief content combines meaningful short titles from `pageSemantics.indexToShortTitle`, falling back to full titles from `indexToTitle`. Expanded content combines the full titles and shows the actual semantic page range as secondary information.
 
 The example app includes **LTR → Bookmarks** and **RTL → Bookmarks**, using the same SQL tutorial and Hebrew book as the other examples. Their covers, shadows, history, downloads, toolbar, and page buffering are preserved. They start with custom compact HTML for every table of contents entry, using the book's short titles. The **Provider** control also offers the built-in table of contents provider. Custom controls configure placement, orientation, attachment, ordering, actions, and showing only upcoming chapters.
 
@@ -92,7 +92,7 @@ book.render(".my-book");
 
 `orientation: "perpendicular"` is the default: the rectangle's long axis extends out from the page edge. Set `orientation: "parallel"` for tabs whose long axis runs along the edge.
 
-`renderBookmark` supplies the brief content shown at rest. Supply `renderExpandedBookmark` to show richer content when the tab is hovered or receives keyboard focus. The same tab button extends outward from the page while transitioning from brief to expanded content, keeping its click action. The expanded tab stays within the viewport when there is insufficient space beyond the edge. It appears without animation when the user requests reduced motion. Both renderers return React content in the React package, or an `HTMLElement` or text string in the vanilla package.
+`renderBookmark` supplies the brief content shown at rest. Supply `renderExpandedBookmark` to show richer content when the tab is hovered or receives keyboard focus. A slot conceals the inner portion of a fixed-size strip. Hover slides that same button along its long axis to reveal the full strip; its dimensions, font, and padding stay unchanged. The revealed position is constrained to the viewport. Parallel tabs move past neighboring tabs when space permits; a crowded viewport may require overlap. Reduced motion skips the animation. Both renderers return React content in the React package, or an `HTMLElement` or text string in the vanilla package.
 
 ```tsx
 const bookmarkProvider = useMemo<BookmarkProvider>(() => ({
@@ -110,9 +110,11 @@ const bookmarkProvider = useMemo<BookmarkProvider>(() => ({
 
 The button keeps its `label` as its accessible name in either state. Keep both brief and expanded content noninteractive; the surrounding button handles activation.
 
+In the default page-turn mode, dragging a bookmark turns the current page, just like dragging page text or a TOC link. Releasing a drag does not also activate the bookmark. A normal click opens the target spread or invokes `onClick`. Text-selection mode preserves selection without starting a page turn.
+
 ## Turn with the leaf or stay pinned
 
-`attachment: "leaf"` is the default. A bookmark follows its target leaf during page turns, including folding and settling back after a canceled drag. Set `attachment: "pinned"` to keep tabs on the book's resting edge while pages turn.
+`attachment: "leaf"` is the default. A bookmark follows the leaf carrying the start of its facing spread, including folding and settling back after a canceled drag. Set `attachment: "pinned"` to keep tabs on the book's resting edge while pages turn.
 
 With leaf attachment, `left` and `right` show only tabs whose target leaves currently occupy that side. Those tabs follow their leaf while it turns and disappear from that rail when the turn finishes on the opposite side. Use `sides` to keep tabs available on both sides, or pinned attachment to keep every tab on a fixed left-only or right-only rail.
 
@@ -149,7 +151,11 @@ const bookmarkProvider: BookmarkProvider = {
 
 Tabs occupy separate slots along each rail. When they cannot all fit, that rail scrolls instead of stacking tabs on top of each other.
 
-There is at most one physical tab per leaf, whose page indices are `2n` and `2n + 1`. Return separate bookmark objects for those pages: the even page supplies the front face and the odd page supplies the back face. The tab exposes the corresponding title, HTML, and click destination as that leaf turns. If only one side has an entry, its content is used on both faces. Each face's original object and `data` are passed unchanged to rendering and click callbacks.
+There is at most one bookmark per facing spread: pages `1–2`, `3–4`, and so on, with page `0` standing alone. For example, `DELETE` on page index `13` and `JOIN` on page index `14` share a bookmark; `UPDATE` on page index `12` belongs to the preceding spread. These are facing pages in the open book, rather than the two sides of one physical leaf.
+
+Return one bookmark object for that spread, combining its short HTML and full HTML as needed. If a custom provider returns several entries for the same spread, the first in its configured order is used. Its `pageIndex` targets the odd starting page, except that a spread containing the table of contents targets the actual TOC page. The default provider exposes the included page indices through `bookmark.data.pageIndices`. The custom example also includes this metadata. The same original bookmark object and `data` are passed unchanged to rendering and click callbacks.
+
+Keyboard Tab traversal follows the configured bookmark order across rails. At either end it leaves the bookmark navigation for the surrounding controls or page content.
 
 ## Use the current page
 
@@ -189,8 +195,7 @@ During expansion, the original button temporarily moves into a wrapper under `do
   --flipbook-bookmark-depth: 56px;
   --flipbook-bookmark-length: 26px;
   --flipbook-bookmark-gap: 6px;
-  --flipbook-bookmark-expanded-width: 220px;
-  --flipbook-bookmark-expanded-height: 100px;
+  --flipbook-bookmark-full-length: 320px;
 }
 
 .chapter-tabs .flipbook-bookmark {
@@ -218,10 +223,9 @@ The sizing variables name physical dimensions relative to the edge:
 
 | CSS variable | Perpendicular default | Parallel default | Purpose |
 | --- | --- | --- | --- |
-| `--flipbook-bookmark-depth` | `52px` | `28px` | Outward distance from the edge |
-| `--flipbook-bookmark-length` | `24px` | `72px` | Size along the edge |
+| `--flipbook-bookmark-depth` | `52px` | `28px` | Exposed outward distance from the edge |
+| `--flipbook-bookmark-length` | `24px` | `72px` | Exposed size along the edge |
 | `--flipbook-bookmark-gap` | `4px` | `4px` | Space between tabs |
-| `--flipbook-bookmark-expanded-width` | `220px` | `220px` | Expanded view width, subject to viewport bounds |
-| `--flipbook-bookmark-expanded-height` | `100px` | `100px` | Expanded view height, subject to viewport bounds |
+| `--flipbook-bookmark-full-length` | `220px` | `220px` | Fixed full strip length, capped to the viewport before hovering |
 
 The book reserves tab depth in its layout. Rail selectors are `.flipbook-bookmarks__rail[data-edge="top"]` (also `right`, `bottom`, and `left`); the brief content wrapper is `.flipbook-bookmark__content`.

@@ -16,9 +16,28 @@ describe("BookmarkLayer", () => {
 			(button) => button.dataset.bookmarkId,
 		);
 	const railIds = (edge: string) =>
-		Array.from(host.querySelectorAll<HTMLButtonElement>(`[data-edge="${edge}"] button`)).map(
-			(button) => button.dataset.bookmarkId,
-		);
+		Array.from(
+			host.querySelectorAll<HTMLButtonElement>(
+				`.flipbook-bookmarks__rail[data-edge="${edge}"] button`,
+			),
+		).map((button) => button.dataset.bookmarkId);
+	const pressTab = (button: HTMLButtonElement, shiftKey = false) => {
+		const event = new KeyboardEvent("keydown", {
+			key: "Tab",
+			shiftKey,
+			bubbles: true,
+			cancelable: true,
+		});
+		button.dispatchEvent(event);
+		return event;
+	};
+	const tabButton = (id: string) => {
+		const button = host.querySelector<HTMLButtonElement>(`[data-bookmark-id="${id}"]`);
+		if (!button) throw new Error(`Missing bookmark ${id}`);
+		const slot = button.closest<HTMLElement>(".flipbook-bookmark-slot");
+		if (slot) slot.scrollIntoView = vi.fn();
+		return button;
+	};
 
 	beforeEach(() => {
 		host = document.createElement("div");
@@ -56,6 +75,78 @@ describe("BookmarkLayer", () => {
 		expect(buttonIds()).toEqual(["first", "later", "middle"]);
 	});
 
+	it("traverses the provider order across physical rails in both directions", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		expect(buttonIds()).toEqual(["middle", "later", "first"]);
+		const first = tabButton("first");
+		const middle = tabButton("middle");
+		const later = tabButton("later");
+		first.focus();
+		expect(pressTab(first).defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(middle);
+		pressTab(middle, true);
+		expect(document.activeElement).toBe(first);
+		layer.setProvider({ getBookmarks: () => bookmarks, order: "reverse-page" });
+		later.focus();
+		pressTab(later);
+		expect(document.activeElement).toBe(middle);
+		layer.setProvider({
+			getBookmarks: () => bookmarks,
+			order: (a, b) => a.label.localeCompare(b.label),
+		});
+		first.focus();
+		pressTab(first);
+		expect(document.activeElement).toBe(later);
+		expect([first, middle, later].map((button) => button.getAttribute("tabindex"))).toEqual([
+			null,
+			null,
+			null,
+		]);
+	});
+
+	it("skips hidden fixed-side tabs and exits to native controls around the navigation", () => {
+		layer.setProvider({
+			getBookmarks: () => [{ id: "cover", pageIndex: 0, label: "Cover" }, ...bookmarks],
+			placement: "left",
+		});
+		const before = document.createElement("button");
+		const after = document.createElement("button");
+		const hidden = document.createElement("button");
+		hidden.hidden = true;
+		host.prepend(before);
+		host.append(hidden, after);
+		const rect = new DOMRect(0, 0, 40, 40);
+		for (const external of [before, after, hidden])
+			vi.spyOn(external, "getClientRects").mockReturnValue(
+				Object.assign([rect], { item: (index: number) => (index === 0 ? rect : null) }),
+			);
+		const cover = tabButton("cover");
+		const first = tabButton("first");
+		expect(tabButton("middle").hidden).toBe(true);
+		expect(tabButton("later").hidden).toBe(true);
+		cover.focus();
+		pressTab(cover);
+		expect(document.activeElement).toBe(first);
+		pressTab(first);
+		expect(document.activeElement).toBe(after);
+		cover.focus();
+		pressTab(cover, true);
+		expect(document.activeElement).toBe(before);
+	});
+
+	it("allows native Tab to leave the document when there is no external focus target", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		const last = tabButton("later");
+		last.tabIndex = 0;
+		last.focus();
+		expect(pressTab(last).defaultPrevented).toBe(false);
+		expect(tabButton("first").tabIndex).toBe(-1);
+		expect(tabButton("middle").tabIndex).toBe(-1);
+		expect(last.tabIndex).toBe(-1);
+		layer.destroy();
+		expect(last.getAttribute("tabindex")).toBe("0");
+	});
+
 	it("ignores duplicate identities and targets outside the book", () => {
 		layer.setProvider({
 			getBookmarks: () => [
@@ -72,29 +163,30 @@ describe("BookmarkLayer", () => {
 		expect(buttonIds()).toEqual(["first", "middle", "later"]);
 	});
 
-	it("pairs front and back entries into the same tab and activates the original face object", () => {
-		const first = { id: "recto", pageIndex: 2, label: "Recto", data: { side: "front" } };
-		const second = { id: "verso", pageIndex: 3, label: "Verso", data: { side: "back" } };
+	it("shares one stable tab between facing pages and keeps the original provider object", () => {
+		const first = { id: "delete", pageIndex: 3, label: "Delete", data: { chapter: 1 } };
+		const second = { id: "join", pageIndex: 4, label: "Join", data: { chapter: 2 } };
 		const onClick = vi.fn();
 		context = { ...context, currentPageIndex: 1, currentLeafIndex: 0 };
 		layer.setProvider({ getBookmarks: () => [second, first], placement: "top", onClick });
-		expect(buttonIds()).toEqual(["recto"]);
+		expect(buttonIds()).toEqual(["delete"]);
 		const button = host.querySelector<HTMLButtonElement>(".flipbook-bookmark");
 		button?.click();
 		expect(onClick).toHaveBeenLastCalledWith(context.currentLeafIndex, first);
 		context = { ...context, currentPageIndex: 3, currentLeafIndex: 1 };
 		layer.refresh();
 		expect(host.querySelector(".flipbook-bookmark")).toBe(button);
-		expect(buttonIds()).toEqual(["verso"]);
+		expect(buttonIds()).toEqual(["delete"]);
 		button?.click();
-		expect(onClick).toHaveBeenLastCalledWith(context.currentLeafIndex, second);
+		expect(onClick).toHaveBeenLastCalledWith(context.currentLeafIndex, first);
+		expect(button?.dataset.spreadIndex).toBe("2");
 		layer.setProvider({
 			getBookmarks: () => [first, second],
 			placement: "top",
 			order: "reverse-page",
 			onClick,
 		});
-		expect(buttonIds()).toEqual(["verso"]);
+		expect(buttonIds()).toEqual(["join"]);
 		host.querySelector<HTMLButtonElement>(".flipbook-bookmark")?.click();
 		expect(onClick).toHaveBeenLastCalledWith(context.currentLeafIndex, second);
 	});
@@ -109,23 +201,21 @@ describe("BookmarkLayer", () => {
 		expect(railIds("left")).toEqual(["middle", "later"]);
 	});
 
-	it("orders paired tabs using their displayed faces", () => {
+	it("sorts spread tabs consistently without changing labels when pages turn", () => {
 		context = { ...context, currentPageIndex: 1, currentLeafIndex: 0 };
 		layer.setProvider({
 			getBookmarks: () => [
-				{ id: "front-a", pageIndex: 2, label: "Zebra" },
-				{ id: "back-a", pageIndex: 3, label: "Alpha" },
-				{ id: "front-b", pageIndex: 4, label: "Beta" },
-				{ id: "back-b", pageIndex: 5, label: "Yankee" },
+				{ id: "spread-a", pageIndex: 3, label: "Zebra" },
+				{ id: "spread-b", pageIndex: 5, label: "Beta" },
 			],
 			placement: "top",
 			attachment: "pinned",
 			order: (a, b) => a.label.localeCompare(b.label),
 		});
-		expect(buttonIds()).toEqual(["front-b", "front-a"]);
+		expect(buttonIds()).toEqual(["spread-b", "spread-a"]);
 		context = { ...context, currentPageIndex: 5, currentLeafIndex: 2 };
 		layer.refresh();
-		expect(buttonIds()).toEqual(["back-a", "back-b"]);
+		expect(buttonIds()).toEqual(["spread-b", "spread-a"]);
 	});
 
 	it("redistributes pinned top-bottom bookmarks with the turned leaves", () => {
@@ -170,16 +260,16 @@ describe("BookmarkLayer", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks, placement: "top" });
 		const first = host.querySelector<HTMLElement>('[data-bookmark-id="first"]');
 		const middle = host.querySelector<HTMLElement>('[data-bookmark-id="middle"]');
-		expect(first?.parentElement?.dataset.leafSide).toBe("left");
-		expect(middle?.parentElement?.dataset.leafSide).toBe("right");
+		expect(first?.parentElement?.parentElement?.dataset.leafSide).toBe("left");
+		expect(middle?.parentElement?.parentElement?.dataset.leafSide).toBe("right");
 		const slot = middle?.style.getPropertyValue("--bookmark-slot");
 		context = { ...context, currentPageIndex: 7, currentLeafIndex: 3 };
 		layer.refresh();
-		expect(middle?.parentElement?.dataset.leafSide).toBe("left");
+		expect(middle?.parentElement?.parentElement?.dataset.leafSide).toBe("left");
 		expect(middle?.style.getPropertyValue("--bookmark-slot")).toBe(slot);
 		context = { ...context, direction: "rtl" };
 		layer.refresh();
-		expect(middle?.parentElement?.dataset.leafSide).toBe("right");
+		expect(middle?.parentElement?.parentElement?.dataset.leafSide).toBe("right");
 	});
 
 	it.each([
@@ -246,6 +336,27 @@ describe("BookmarkLayer", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
 		host.querySelector<HTMLButtonElement>('[data-bookmark-id="middle"]')?.click();
 		expect(jump).toHaveBeenCalledExactlyOnceWith(5);
+	});
+
+	it("keeps selecting bookmark text from activating its navigation action", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.setMouseMode("select");
+		const button = host.querySelector<HTMLButtonElement>('[data-bookmark-id="middle"]');
+		const content = button?.querySelector<HTMLElement>(".flipbook-bookmark__content");
+		expect(content?.inert).toBe(false);
+		if (!button || !content) throw new Error("Expected selectable bookmark content");
+		const range = document.createRange();
+		range.selectNodeContents(content);
+		const selection = document.getSelection();
+		selection?.removeAllRanges();
+		selection?.addRange(range);
+		button.click();
+		expect(jump).not.toHaveBeenCalled();
+		selection?.removeAllRanges();
+		button.click();
+		expect(jump).toHaveBeenCalledExactlyOnceWith(5);
+		layer.setMouseMode("turn");
+		expect(content.inert).toBe(true);
 	});
 
 	it("calls custom actions with the latest leaf and original bookmark object", () => {

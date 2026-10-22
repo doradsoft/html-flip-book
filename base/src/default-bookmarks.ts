@@ -51,9 +51,35 @@ function entriesForBook(options: DefaultBookmarkOptions): DefaultEntry[] {
 	return entries;
 }
 
-/** Build every contents entry once; the book pairs the two sides of each physical leaf. */
+function entryForSpread(spreadIndex: number, entries: DefaultEntry[]): DefaultEntry {
+	const contents = entries.find((entry) => entry.bookmark.id === "contents");
+	const start = spreadIndex === 0 ? 0 : spreadIndex * 2 - 1;
+	return {
+		bookmark: {
+			id: contents ? "contents" : `spread-${spreadIndex}`,
+			pageIndex: contents?.bookmark.pageIndex ?? start,
+			label: entries.map((entry) => entry.bookmark.label).join(" / "),
+			data: { pageIndices: entries.map((entry) => entry.bookmark.pageIndex) },
+		},
+		shortTitle: entries.map((entry) => entry.shortTitle).join(" / "),
+		semanticName: entries.map((entry) => entry.semanticName).join("–"),
+	};
+}
+
+function entriesBySpread(entries: DefaultEntry[]): DefaultEntry[] {
+	const spreads = new Map<number, DefaultEntry[]>();
+	for (const entry of entries) {
+		const spreadIndex = Math.floor((entry.bookmark.pageIndex + 1) / 2);
+		const facing = spreads.get(spreadIndex) ?? [];
+		facing.push(entry);
+		spreads.set(spreadIndex, facing);
+	}
+	return Array.from(spreads, ([spreadIndex, facing]) => entryForSpread(spreadIndex, facing));
+}
+
+/** Build one bookmark shared by the two facing pages in every titled spread. */
 export function createDefaultBookmarkProvider(options: DefaultBookmarkOptions): BookmarkProvider {
-	const entries = entriesForBook(options);
+	const entries = entriesBySpread(entriesForBook(options));
 	const bookmarks = entries.map((entry) => entry.bookmark);
 	const entriesById = new Map(entries.map((entry) => [entry.bookmark.id, entry]));
 	const pageName = (bookmark: Bookmark) =>

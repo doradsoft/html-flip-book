@@ -104,6 +104,7 @@ class FlipBook {
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
 	private gestureStartedInNoFlipZone = false;
+	private cancelBookmarkPointerDrag: (() => void) | undefined;
 	/** Set after a drag ends; the next click event is suppressed so child buttons/links don't fire. */
 	private _suppressNextClick = false;
 	private hoveredLeaf: Leaf | undefined;
@@ -318,7 +319,9 @@ class FlipBook {
 	}
 
 	setMouseMode(mode: MouseMode): void {
+		this.cancelBookmarkPointerDrag?.();
 		this.mouseMode = mode;
+		this.bookmarkLayer?.setMouseMode(mode);
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
 		if (mode === "select") this.clearHoverShadow();
 	}
@@ -347,6 +350,88 @@ class FlipBook {
 		if (this.mouseMode === "turn" && !this.isInsideNoFlipZone(event.target)) {
 			event.preventDefault();
 		}
+	};
+
+	/** Tabs use the same current-page gesture, including when the preview is outside the book. */
+	private handleBookmarkPointerDown = (event: PointerEvent): void => {
+		this.cancelBookmarkPointerDrag?.();
+		const button = event.currentTarget;
+		if (!(button instanceof HTMLElement)) return;
+		delete button.dataset.bookmarkDragged;
+		this._suppressNextClick = false;
+		const turnPages = this.mouseMode === "turn";
+		if (event.button !== 0 || (turnPages && this.currentManualFlip)) return;
+		if (event.isPrimary === false) return;
+		if (turnPages && event.pointerType !== "touch") event.preventDefault();
+		this.touchDirectionLock = "none";
+		const document = button.ownerDocument;
+		const view = document.defaultView;
+		let started = false;
+		let previous = event;
+		let velocityX = 0;
+		const input = (pointer: PointerEvent) =>
+			({
+				center: { x: pointer.clientX, y: pointer.clientY },
+				deltaX: pointer.clientX - event.clientX,
+				deltaY: pointer.clientY - event.clientY,
+				velocityX,
+				pointerType: pointer.pointerType || "mouse",
+				srcEvent: pointer,
+			}) as HammerInput;
+		const cleanup = () => {
+			document.removeEventListener("pointermove", move);
+			document.removeEventListener("pointerup", end);
+			document.removeEventListener("pointercancel", pointerCancel);
+			view?.removeEventListener("blur", cancel);
+			this.cancelBookmarkPointerDrag = undefined;
+		};
+		const finish = (pointer: PointerEvent, cancelled: boolean) => {
+			cleanup();
+			if (started) {
+				if (pointer.timeStamp - previous.timeStamp > 50) velocityX = 0;
+				button.dataset.bookmarkDragged = "true";
+				if (turnPages) this.onDragEnd(input(pointer), cancelled);
+				else this._suppressNextClick = true;
+			}
+			this.touchDirectionLock = "none";
+		};
+		const move = (pointer: PointerEvent) => {
+			if (pointer.pointerId !== event.pointerId) return;
+			const dx = pointer.clientX - event.clientX;
+			const dy = pointer.clientY - event.clientY;
+			if (!started && Math.max(Math.abs(dx), Math.abs(dy)) <= FlipBook.DIRECTION_LOCK_THRESHOLD)
+				return;
+			if (!started && pointer.pointerType === "touch" && Math.abs(dy) > Math.abs(dx)) {
+				cleanup();
+				return;
+			}
+			if (!turnPages) {
+				started = true;
+				button.dataset.bookmarkDragged = "true";
+				return;
+			}
+			velocityX =
+				(pointer.clientX - previous.clientX) / Math.max(1, pointer.timeStamp - previous.timeStamp);
+			previous = pointer;
+			pointer.preventDefault();
+			if (!started) {
+				started = true;
+				button.dataset.bookmarkDragged = "true";
+				this.onDragStart(input(pointer), true);
+			} else this.onDragUpdate(input(pointer), true);
+		};
+		const end = (pointer: PointerEvent) => {
+			if (pointer.pointerId === event.pointerId) finish(pointer, false);
+		};
+		const cancel = () => finish(previous, true);
+		const pointerCancel = (pointer: PointerEvent) => {
+			if (pointer.pointerId === event.pointerId) cancel();
+		};
+		this.cancelBookmarkPointerDrag = cancel;
+		document.addEventListener("pointermove", move, { passive: false });
+		document.addEventListener("pointerup", end);
+		document.addEventListener("pointercancel", pointerCancel);
+		view?.addEventListener("blur", cancel);
 	};
 
 	/** Download config (handlers and filename hints). Used by toolbar. */
@@ -417,6 +502,33 @@ class FlipBook {
 		});
 	}
 
+	private configurePageScrollport(pageElement: HTMLElement, pageIndex: number): void {
+		const spineOnLeft = (pageIndex % 2 === 0) === this.isLTR;
+		pageElement.dataset.scrollbarSide = spineOnLeft ? "left" : "right";
+		const explicitDirection = pageElement.style.direction || pageElement.dir;
+		const computedDirection =
+			pageElement.ownerDocument.defaultView?.getComputedStyle(pageElement).direction;
+		const originalDirection = explicitDirection || computedDirection;
+		const readingDirection =
+			originalDirection === "ltr" || originalDirection === "rtl"
+				? originalDirection
+				: this.direction;
+		pageElement.dataset.readingDirection = readingDirection;
+		if (pageElement.querySelector(":scope > .flipbook-page-scrollport")) return;
+		const document = pageElement.ownerDocument;
+		const scrollTop = pageElement.scrollTop;
+		const content = document.createElement("div");
+		content.className = "flipbook-page-content";
+		content.dir = readingDirection;
+		content.append(...Array.from(pageElement.childNodes));
+		const scrollport = document.createElement("div");
+		scrollport.className = "flipbook-page-scrollport";
+		scrollport.append(content);
+		pageElement.append(scrollport);
+		pageElement.style.overflow = "hidden";
+		scrollport.scrollTop = scrollTop;
+	}
+
 	render(selector: string, debug = false) {
 		const bookElement = document.querySelector(selector);
 		if (!bookElement) {
@@ -453,6 +565,7 @@ class FlipBook {
 		// to apply the correct cover vs leaf dimensions on the very first layout pass.
 		this.pageElements.forEach((pageElement, pageIndex) => {
 			pageElement.dataset.pageIndex = pageIndex.toString();
+			this.configurePageScrollport(pageElement, pageIndex);
 			pageElement.dataset.pageSemanticName =
 				this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
 			pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? "";
@@ -566,7 +679,9 @@ class FlipBook {
 			}),
 			(pageIndex) => this.jumpToPage(pageIndex),
 			this.pagesCount,
+			this.handleBookmarkPointerDown,
 		);
+		this.bookmarkLayer.setMouseMode(this.mouseMode);
 		this.bookmarkLayer.setProvider(this.getBookmarkProvider());
 		if (this.bookmarksEnabled) this.recalculateSizes();
 		this.observeBookmarkLeaves();
@@ -737,7 +852,8 @@ class FlipBook {
 		return undefined;
 	}
 
-	private onDragStart(event: HammerInput) {
+	private onDragStart(event: HammerInput, fromBookmark = false) {
+		if (fromBookmark) this.gestureStartedInNoFlipZone = false;
 		const isTouch = event.pointerType === "touch" || event.srcEvent?.type.startsWith("touch");
 		if (isTouch && this.touchDirectionLock === "none") {
 			const dx = Number.isFinite(event.deltaX) ? Math.abs(event.deltaX) : 0;
@@ -753,8 +869,8 @@ class FlipBook {
 		}
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
 		if (
-			this.gestureStartedInNoFlipZone ||
-			this.isInsideNoFlipZone(event.srcEvent?.target ?? null)
+			!fromBookmark &&
+			(this.gestureStartedInNoFlipZone || this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
 		) {
 			this.gestureStartedInNoFlipZone = true;
 			return;
@@ -779,11 +895,11 @@ class FlipBook {
 			(Number.isFinite(event.deltaX) && event.deltaX !== 0) ||
 			(Number.isFinite(event.deltaY) && event.deltaY !== 0)
 		) {
-			this.onDragUpdate(event);
+			this.onDragUpdate(event, fromBookmark);
 		}
 	}
 
-	private onDragUpdate(event: HammerInput) {
+	private onDragUpdate(event: HammerInput, fromBookmark = false) {
 		if (this.gestureStartedInNoFlipZone) return;
 		// Reject pan events that belong to a touch gesture locked to vertical.
 		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
@@ -792,7 +908,8 @@ class FlipBook {
 
 		// Get or create the current manual flip state
 		let flipState = this.currentManualFlip;
-		if (!flipState && this.isInsideNoFlipZone(event.srcEvent?.target ?? null)) return;
+		if (!fromBookmark && !flipState && this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
+			return;
 
 		const currentPos = event.center.x;
 		const bookWidth = this.bookElement?.clientWidth ?? 0;
@@ -1122,6 +1239,12 @@ class FlipBook {
 			e.target.closest(".flipbook-bookmarks, .flipbook-bookmark-surface")
 		) {
 			this._suppressNextClick = false;
+			const button = e.target.closest<HTMLElement>(".flipbook-bookmark");
+			if (button?.dataset.bookmarkDragged === "true") {
+				delete button.dataset.bookmarkDragged;
+				e.stopPropagation();
+				e.preventDefault();
+			}
 			return;
 		}
 		if (this._suppressNextClick) {
@@ -1412,6 +1535,7 @@ class FlipBook {
 	 * Should be called when the FlipBook is no longer needed.
 	 */
 	destroy() {
+		this.cancelBookmarkPointerDrag?.();
 		this.bookmarkLayer?.destroy();
 		this.bookmarkLayer = undefined;
 		if (typeof window !== "undefined" && this._boundPopstate) {

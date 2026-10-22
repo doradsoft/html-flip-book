@@ -60,7 +60,7 @@
   align-content: start;
   grid-template-rows: repeat(var(--bookmark-count), var(--flipbook-bookmark-length, var(--bookmark-default-length)));
 
-  > .flipbook-bookmark { grid-column: 1; grid-row: var(--bookmark-slot); }
+  > .flipbook-bookmark-slot { grid-column: 1; grid-row: var(--bookmark-slot); }
 }
 
 .flipbook-bookmarks[data-attachment="leaf"] .flipbook-bookmarks__rail--top,
@@ -85,7 +85,62 @@
 
   &[data-leaf-side="left"] { direction: rtl; order: 0; }
   &[data-leaf-side="right"] { direction: ltr; order: 1; }
-  > .flipbook-bookmark { grid-column: var(--bookmark-slot); grid-row: 1; }
+  > .flipbook-bookmark-slot { grid-column: var(--bookmark-slot); grid-row: 1; }
+}
+
+/* The rail clips a tip of a full-size strip. Hover reveals material; it never resizes it. */
+.flipbook-bookmark-slot {
+  --bookmark-exposed-depth: var(--flipbook-bookmark-depth, var(--bookmark-default-depth, 52px));
+  --bookmark-exposed-length: var(--flipbook-bookmark-length, var(--bookmark-default-length, 24px));
+  --bookmark-exposed-major: var(--bookmark-exposed-depth);
+  --bookmark-full-horizontal: max(var(--bookmark-exposed-major), min(var(--flipbook-bookmark-full-length, 220px), calc(100vw - 16px)));
+  --bookmark-full-vertical: max(var(--bookmark-exposed-major), min(var(--flipbook-bookmark-full-length, 220px), calc(100vh - 16px)));
+  position: relative;
+  flex: 0 0 var(--bookmark-exposed-length);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+
+  &[data-orientation="parallel"] { --bookmark-exposed-major: var(--bookmark-exposed-length); }
+
+  > .flipbook-bookmark {
+    position: absolute;
+    inset: auto;
+    top: 0;
+    left: 0;
+    width: var(--bookmark-full-horizontal);
+    height: 100%;
+    flex: none;
+  }
+}
+
+.flipbook:not(.flipbook--select-text) .flipbook-bookmark-slot,
+.flipbook:not(.flipbook--select-text) .flipbook-bookmark { touch-action: pan-y; }
+
+.flipbook--select-text .flipbook-bookmark-slot,
+.flipbook--select-text .flipbook-bookmark { touch-action: auto; }
+
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="left"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="top"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark {
+  width: 100%;
+  height: var(--bookmark-full-vertical);
+}
+
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="bottom"] > .flipbook-bookmark {
+  left: auto;
+  right: 0;
+}
+
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark {
+  top: auto;
+  bottom: 0;
 }
 
 .flipbook-bookmark {
@@ -121,7 +176,15 @@
 }
 
 .flipbook-bookmark__content {
-  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: var(--bookmark-exposed-major, 52px);
+  height: 100%;
+  box-sizing: border-box;
+  padding: 3px;
   max-width: 100%;
   max-height: 100%;
   min-width: 0;
@@ -136,12 +199,36 @@
 
 .flipbook-bookmark__content[hidden] { display: none; }
 
-.flipbook-bookmark[data-orientation="parallel"][data-edge="left"] > .flipbook-bookmark__content,
-.flipbook-bookmark[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark__content,
-.flipbook-bookmark[data-orientation="perpendicular"][data-edge="top"] > .flipbook-bookmark__content,
-.flipbook-bookmark[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark__content {
-  writing-mode: vertical-rl;
+.flipbook-bookmark[data-mouse-mode="turn"] { touch-action: pan-y; }
+
+.flipbook-bookmark[data-mouse-mode="select"] {
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: auto;
+
+  .flipbook-bookmark__content,
+  .flipbook-bookmark__expanded-content {
+    contain: layout;
+    pointer-events: auto;
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
+
+.flipbook-bookmark[data-orientation="parallel"][data-edge="left"],
+.flipbook-bookmark[data-orientation="parallel"][data-edge="right"],
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="top"],
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="bottom"] {
+  writing-mode: vertical-rl;
+
+  > .flipbook-bookmark__content { width: 100%; height: var(--bookmark-exposed-major, 52px); }
+}
+
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="right"] > .flipbook-bookmark__content,
+.flipbook-bookmark[data-orientation="parallel"][data-edge="bottom"] > .flipbook-bookmark__content { left: auto; right: 0; }
+
+.flipbook-bookmark[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark__content,
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark__content { top: auto; bottom: 0; }
 
 .flipbook-bookmark[data-preview-open="true"] > .flipbook-bookmark__content { opacity: 0; }
 
@@ -149,40 +236,34 @@
   position: fixed;
   z-index: 2147483000;
   pointer-events: auto;
-	transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease;
+	transition: left 180ms ease, top 180ms ease, clip-path 180ms ease;
 }
 
 .flipbook-bookmark-preview[hidden] { display: none; }
 .flipbook-bookmark-preview[data-open="false"] .flipbook-bookmark__content { opacity: 1; }
 
 .flipbook-bookmark--expanded {
-  position: relative;
+  position: absolute;
   width: 100%;
   height: 100%;
-	padding: 3px;
-  text-align: start;
-  white-space: normal;
-  writing-mode: horizontal-tb;
-	transition: padding 180ms ease;
-
-	> .flipbook-bookmark__content { position: absolute; inset: 3px; display: grid; place-items: center; }
 }
 
-.flipbook-bookmark-preview[data-open="true"] .flipbook-bookmark--expanded { padding: 8px; }
-
 .flipbook-bookmark__expanded-content {
-  display: block;
-  width: 100%;
-  max-height: 100%;
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
-  white-space: normal;
-  writing-mode: horizontal-tb;
+  white-space: nowrap;
+  writing-mode: inherit;
   opacity: 0;
   transition: opacity 180ms ease;
 }
 
 .flipbook-bookmark__expanded-content[hidden] { display: none; }
-.flipbook-bookmark-default { display: grid; gap: 6px; }
+.flipbook-bookmark-default { display: flex; align-items: baseline; gap: 6px; }
 .flipbook-bookmark-default small { opacity: 0.7; }
 .flipbook-bookmark-preview[data-open="true"] .flipbook-bookmark__expanded-content { opacity: 1; }
 

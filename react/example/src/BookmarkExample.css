@@ -62,6 +62,10 @@
 	--flipbook-bookmark-length: 28px;
 }
 
+.example-bookmarks {
+	--flipbook-bookmark-full-length: 320px;
+}
+
 .example-bookmarks .flipbook-bookmark {
 	border: 1px solid #00000012;
 	border-radius: 3px;
@@ -93,14 +97,23 @@
 
 .example-bookmark-full {
 	display: flex;
-	flex-direction: column;
-	gap: 5px;
+	align-items: baseline;
+	gap: 8px;
+	min-inline-size: 0;
+	max-inline-size: 100%;
 	font-size: 12px;
 	text-align: start;
-	white-space: normal;
+	white-space: nowrap;
+}
+
+.example-bookmark-full strong {
+	min-inline-size: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .example-bookmark-full small {
+	flex-shrink: 0;
 	font-size: 10px;
 	opacity: 0.7;
 }

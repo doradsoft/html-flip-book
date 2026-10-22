@@ -1,14 +1,17 @@
 type Edge = "top" | "right" | "bottom" | "left";
 type Bounds = { left: number; top: number; width: number; height: number };
 
-/** The original tab grows outside page clipping while retaining its content, focus, and events. */
+/** Reveal the same fixed-size strip outside its resting slot without changing its material size. */
 export class BookmarkPreview {
 	private readonly element: HTMLDivElement;
 	private source: HTMLButtonElement | undefined;
 	private content: HTMLElement | undefined;
 	private placeholder: HTMLSpanElement | undefined;
+	private anchor: HTMLElement | undefined;
 	private sourceStyle = "";
 	private compact: Bounds | undefined;
+	private revealed: Bounds | undefined;
+	private compactClip = "inset(0px)";
 	private animationFrame = 0;
 	private hoverTimer: number | undefined;
 	private closeTimer: number | undefined;
@@ -16,13 +19,14 @@ export class BookmarkPreview {
 	private readonly view: Window | null;
 
 	constructor(
-		private readonly host: HTMLElement,
+		host: HTMLElement,
 		private readonly storage: HTMLElement,
 	) {
 		const document = host.ownerDocument;
 		this.view = document.defaultView;
 		this.element = document.createElement("div");
 		this.element.className = "flipbook-bookmark-preview";
+		this.element.setAttribute("data-flipbook-no-flip", "");
 		this.element.hidden = true;
 		this.element.addEventListener("pointerenter", this.resume);
 		this.element.addEventListener("pointerleave", this.pointerLeave);
@@ -42,14 +46,27 @@ export class BookmarkPreview {
 		this.content = content;
 		this.sourceStyle = source.style.cssText;
 		this.compact = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+		const slot = source.closest<HTMLElement>(".flipbook-bookmark-slot");
+		this.anchor = slot ?? undefined;
+		this.anchor?.addEventListener("pointerenter", this.resume);
+		this.anchor?.addEventListener("pointerleave", this.pointerLeave);
+		const exposed = slot?.getBoundingClientRect() ?? rect;
+		this.compactClip = this.clip(rect, exposed);
+		this.revealed = this.place(rect, exposed, edge, source);
 		this.placeholder = this.reserveSlot(source, rect);
 		this.element.className = `flipbook-bookmark-preview ${className}`.trim();
 		this.element.dataset.bookmarkId = source.dataset.bookmarkId;
 		this.element.dataset.edge = edge;
 		this.element.dataset.open = "false";
 		this.setBounds(this.compact);
+		this.element.style.clipPath = this.compactClip;
 		this.element.hidden = false;
 		this.copyAppearance(source);
+		source.style.position = "absolute";
+		source.style.inset = "0px";
+		source.style.width = "100%";
+		source.style.height = "100%";
+		source.style.transform = "none";
 		source.dataset.previewOpen = "true";
 		source.classList.add("flipbook-bookmark--expanded");
 		content.hidden = false;
@@ -59,18 +76,13 @@ export class BookmarkPreview {
 		this.element.append(source);
 		if (focused) source.focus({ preventScroll: true });
 		this.transferring = false;
-		const bounds = this.place(
-			rect,
-			edge,
-			this.dimension("--flipbook-bookmark-expanded-width", 220),
-			this.dimension("--flipbook-bookmark-expanded-height", 100),
-		);
-		// Animate dimensions rather than scaling text or creating a second tab.
+		// Material size is fixed before hover; only its position and concealed portion change.
 		void this.element.offsetWidth;
 		this.animationFrame =
 			this.view?.requestAnimationFrame(() => {
 				this.element.dataset.open = "true";
-				this.setBounds(bounds);
+				this.element.style.clipPath = "inset(0px)";
+				if (this.revealed) this.setPosition(this.revealed);
 			}) ?? 0;
 	}
 
@@ -86,7 +98,12 @@ export class BookmarkPreview {
 
 	leave(target: EventTarget | null): void {
 		if (this.transferring) return;
-		if (target instanceof Node && (this.element.contains(target) || this.source?.contains(target)))
+		if (
+			target instanceof Node &&
+			(this.element.contains(target) ||
+				this.source?.contains(target) ||
+				this.anchor?.contains(target))
+		)
 			return;
 		this.close(false);
 	}
@@ -105,7 +122,8 @@ export class BookmarkPreview {
 			this.compact &&
 			!this.view?.matchMedia("(prefers-reduced-motion: reduce)").matches
 		) {
-			this.setBounds(this.compact);
+			this.setPosition(this.compact);
+			this.element.style.clipPath = this.compactClip;
 			this.closeTimer = this.view?.setTimeout(() => this.restore(), 180);
 			return;
 		}
@@ -124,19 +142,16 @@ export class BookmarkPreview {
 		this.view?.clearTimeout(this.closeTimer);
 		this.closeTimer = undefined;
 		this.element.dataset.open = "true";
-		this.setBounds(
-			this.place(
-				new DOMRect(this.compact.left, this.compact.top, this.compact.width, this.compact.height),
-				this.element.dataset.edge as Edge,
-				this.dimension("--flipbook-bookmark-expanded-width", 220),
-				this.dimension("--flipbook-bookmark-expanded-height", 100),
-			),
-		);
+		this.element.style.clipPath = "inset(0px)";
+		if (this.revealed) this.setPosition(this.revealed);
 	};
 	private pointerLeave = (event: PointerEvent): void => this.leave(event.relatedTarget);
 
 	private restore(): void {
 		this.transferring = true;
+		this.anchor?.removeEventListener("pointerenter", this.resume);
+		this.anchor?.removeEventListener("pointerleave", this.pointerLeave);
+		this.anchor = undefined;
 		if (this.source) {
 			const focused = this.source === this.source.ownerDocument.activeElement;
 			delete this.source.dataset.previewOpen;
@@ -154,6 +169,7 @@ export class BookmarkPreview {
 		this.source = undefined;
 		this.placeholder = undefined;
 		this.compact = undefined;
+		this.revealed = undefined;
 		this.closeTimer = undefined;
 		this.transferring = false;
 	}
@@ -179,37 +195,63 @@ export class BookmarkPreview {
 			this.element.style[key] = `${bounds[key]}px`;
 	}
 
-	private dimension(name: string, fallback: number): number {
-		const raw = this.view?.getComputedStyle(this.host).getPropertyValue(name) ?? "";
-		const number = Number.parseFloat(raw);
-		return Number.isFinite(number) && number > 0 ? number : fallback;
+	private setPosition(bounds: Bounds): void {
+		this.element.style.left = `${bounds.left}px`;
+		this.element.style.top = `${bounds.top}px`;
 	}
 
-	private place(
-		rect: DOMRect,
-		edge: Edge,
-		requestedWidth: number,
-		requestedHeight: number,
-	): Bounds {
-		const viewportWidth = this.view?.innerWidth ?? requestedWidth;
-		const viewportHeight = this.view?.innerHeight ?? requestedHeight;
-		const width = Math.max(rect.width, Math.min(requestedWidth, Math.max(1, viewportWidth - 16)));
-		const height = Math.max(
-			rect.height,
-			Math.min(requestedHeight, Math.max(1, viewportHeight - 16)),
-		);
-		let left = rect.left + (rect.width - width) / 2;
-		let top = rect.top + (rect.height - height) / 2;
-		if (edge === "right") left = rect.left;
-		if (edge === "left") left = rect.right - width;
-		if (edge === "top") top = rect.bottom - height;
-		if (edge === "bottom") top = rect.top;
-		return {
-			left: Math.max(8, Math.min(left, viewportWidth - width - 8)),
-			top: Math.max(8, Math.min(top, viewportHeight - height - 8)),
-			width,
-			height,
-		};
+	private clip(rect: DOMRect, exposed: DOMRect): string {
+		const top = Math.max(0, exposed.top - rect.top);
+		const right = Math.max(0, rect.right - exposed.right);
+		const bottom = Math.max(0, rect.bottom - exposed.bottom);
+		const left = Math.max(0, exposed.left - rect.left);
+		return `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+	}
+
+	private place(rect: DOMRect, exposed: DOMRect, edge: Edge, source: HTMLButtonElement): Bounds {
+		const bounds = { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+		const horizontal = rect.width >= rect.height;
+		const axis = horizontal ? "left" : "top";
+		const extent = horizontal ? rect.width : rect.height;
+		const visible = horizontal ? exposed.width : exposed.height;
+		const distance = Math.max(0, extent - visible) || extent;
+		const sign = edge === "left" || edge === "top" ? -1 : 1;
+		const viewport = horizontal ? this.view?.innerWidth : this.view?.innerHeight;
+		const limit = (viewport ?? extent + 16) - extent - 8;
+		const outside =
+			source.dataset.orientation === "parallel"
+				? this.outsideFriends(source, horizontal, extent, sign, limit)
+				: undefined;
+		bounds[axis] = outside ?? Math.max(8, Math.min(rect[axis] + sign * distance, limit));
+		return bounds;
+	}
+
+	private outsideFriends(
+		source: HTMLButtonElement,
+		horizontal: boolean,
+		extent: number,
+		sign: number,
+		limit: number,
+	): number | undefined {
+		const rail = source.closest<HTMLElement>(".flipbook-bookmarks__rail");
+		if (!rail) return undefined;
+		const slot = source.closest(".flipbook-bookmark-slot");
+		const railBox = rail.getBoundingClientRect();
+		const start = horizontal ? "left" : "top";
+		const end = horizontal ? "right" : "bottom";
+		const visible = Array.from(rail.querySelectorAll<HTMLElement>(".flipbook-bookmark-slot"))
+			.filter((friend) => friend !== slot)
+			.map((friend) => friend.getBoundingClientRect())
+			.filter(
+				(box) =>
+					box.width > 0 && box.height > 0 && box[end] > railBox[start] && box[start] < railBox[end],
+			);
+		if (visible.length === 0) return undefined;
+		const before =
+			Math.max(railBox[start], Math.min(...visible.map((box) => box[start]))) - extent - 4;
+		const after = Math.min(railBox[end], Math.max(...visible.map((box) => box[end]))) + 4;
+		const candidates = sign < 0 ? [before, after] : [after, before];
+		return candidates.find((position) => position >= 8 && position <= limit);
 	}
 
 	private copyAppearance(source: HTMLElement): void {
@@ -222,6 +264,14 @@ export class BookmarkPreview {
 			"border",
 			"border-radius",
 			"box-shadow",
+			"--flipbook-bookmark-depth",
+			"--flipbook-bookmark-length",
+			"--flipbook-bookmark-full-length",
+			"--bookmark-default-depth",
+			"--bookmark-default-length",
+			"--bookmark-exposed-depth",
+			"--bookmark-exposed-length",
+			"--bookmark-exposed-major",
 		]) {
 			source.style.setProperty(property, style.getPropertyValue(property));
 		}

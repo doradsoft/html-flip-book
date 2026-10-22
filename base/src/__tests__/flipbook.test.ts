@@ -373,6 +373,84 @@ describe("FlipBook", () => {
 			});
 		});
 
+		it.each([
+			{ direction: "ltr" as const, sides: ["left", "right", "left", "right"] },
+			{ direction: "rtl" as const, sides: ["right", "left", "right", "left"] },
+		])("places every $direction page scrollbar at its spine edge", ({ direction, sides }) => {
+			const pages = createPages(4);
+			const originalDirections = pages.map(
+				(page) => window.getComputedStyle(page).direction || direction,
+			);
+			const book = new FlipBook({ pagesCount: 4, direction });
+			book.render(".flipbook-container");
+			expect(pages.map((page) => page.dataset.scrollbarSide)).toEqual(sides);
+			expect(pages.map((page) => page.dataset.readingDirection)).toEqual(originalDirections);
+			book.destroy();
+		});
+
+		it("preserves explicit page reading directions and the original consumer nodes", () => {
+			const pages = createPages(4);
+			pages[0].dir = "rtl";
+			pages[1].style.direction = "rtl";
+			const consumer = document.createElement("article");
+			consumer.dir = "rtl";
+			consumer.textContent = "תוכן מקורי";
+			pages[0].append(consumer);
+			const book = new FlipBook({ pagesCount: 4, direction: "ltr" });
+			book.render(".flipbook-container");
+			expect(pages[0].dataset.readingDirection).toBe("rtl");
+			expect(pages[1].dataset.readingDirection).toBe("rtl");
+			expect(pages[0].querySelector(".flipbook-page-content")?.firstElementChild).toBe(consumer);
+			expect(consumer.dir).toBe("rtl");
+			expect(pages[0].dataset.scrollbarSide).toBe("left");
+			book.destroy();
+		});
+
+		it("wraps plain DOM text and elements once while preserving their identity and event listeners", () => {
+			const pages = createPages(4);
+			const text = document.createTextNode("Direct original text ");
+			const link = document.createElement("a");
+			link.href = "#chapter";
+			link.dir = "rtl";
+			link.textContent = "פרק";
+			const click = vi.fn();
+			link.addEventListener("click", click);
+			pages[0].append(text, link);
+			const book = new FlipBook({ pagesCount: 4 });
+			book.render(".flipbook-container");
+			const content = pages[0].querySelector(".flipbook-page-content");
+			expect(content?.firstChild).toBe(text);
+			expect(content?.lastChild).toBe(link);
+			expect(link.dir).toBe("rtl");
+			link.click();
+			expect(click).toHaveBeenCalledTimes(1);
+			expect(pages[0].style.overflow).toBe("hidden");
+			book.render(".flipbook-container");
+			expect(pages[0].querySelectorAll(".flipbook-page-scrollport")).toHaveLength(1);
+			expect(pages[0].querySelectorAll(".flipbook-page-content")).toHaveLength(1);
+			expect(content?.lastChild).toBe(link);
+			book.destroy();
+		});
+
+		it("keeps declaratively supplied scrollports and content in place", () => {
+			const pages = createPages(4);
+			const scrollport = document.createElement("div");
+			scrollport.className = "flipbook-page-scrollport";
+			const content = document.createElement("div");
+			content.className = "flipbook-page-content";
+			content.dir = "rtl";
+			content.textContent = "Declared content";
+			scrollport.append(content);
+			pages[0].append(scrollport);
+			const book = new FlipBook({ pagesCount: 4 });
+			book.render(".flipbook-container");
+			expect(pages[0].firstElementChild).toBe(scrollport);
+			expect(scrollport.firstElementChild).toBe(content);
+			expect(content.dir).toBe("rtl");
+			expect(pages[0].querySelectorAll(".flipbook-page-scrollport")).toHaveLength(1);
+			book.destroy();
+		});
+
 		it("should mark first page as current-page", () => {
 			const pages = createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });

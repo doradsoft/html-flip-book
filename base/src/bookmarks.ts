@@ -2,6 +2,7 @@ import "./bookmarks.scss";
 import type { BookmarkLeafFrame } from "./bookmark-fold";
 import { BookmarkMotion } from "./bookmark-motion";
 import { BookmarkPreview } from "./bookmark-preview";
+import type { MouseMode } from "./flip-book-options";
 
 /** A bookmark identifies a zero-based page and keeps consumer data intact. */
 export interface Bookmark {
@@ -68,6 +69,7 @@ interface BookmarkItem {
 	reverseBookmark: Bookmark;
 	renderer: BookmarkProvider["renderBookmark"];
 	button: HTMLButtonElement;
+	slot: HTMLDivElement;
 	content: HTMLSpanElement;
 	reverse: HTMLSpanElement;
 	expanded: HTMLSpanElement;
@@ -90,6 +92,9 @@ export class BookmarkLayer {
 	private readonly rails = new Map<Edge, HTMLDivElement>();
 	private readonly groups = new Map<string, HTMLDivElement>();
 	private readonly items = new Map<string, BookmarkItem>();
+	private orderedLeafIds: string[] = [];
+	private pendingTabRestore: (() => void) | undefined;
+	private tabRestoreTimer: number | undefined;
 	private readonly storage: HTMLDivElement;
 	private readonly preview: BookmarkPreview;
 	private readonly motion: BookmarkMotion;
@@ -97,12 +102,14 @@ export class BookmarkLayer {
 	private provider: BookmarkProvider | undefined;
 	private bounds: BookmarkBounds | undefined;
 	private destroyed = false;
+	private mouseMode: MouseMode = "turn";
 
 	constructor(
 		private readonly host: HTMLElement,
 		private readonly getContext: () => BookmarkContext,
 		private readonly jump: (pageIndex: number) => void,
 		private readonly pagesCount: number,
+		private readonly onPointerDown?: (event: PointerEvent) => void,
 	) {
 		const document = host.ownerDocument;
 		this.element = document.createElement("div");
@@ -132,7 +139,9 @@ export class BookmarkLayer {
 			this.rails.set(edge, rail);
 			this.element.append(rail);
 		}
-		host.append(this.element);
+		// Equal-depth bookmark material stays below its paper surface, including covers.
+		const firstPage = Array.from(host.children).find((child) => child.matches(".page"));
+		host.insertBefore(this.element, firstPage ?? null);
 	}
 
 	setProvider(provider?: BookmarkProvider): void {
@@ -141,14 +150,28 @@ export class BookmarkLayer {
 		this.refresh();
 	}
 
+	setMouseMode(mode: MouseMode): void {
+		this.mouseMode = mode;
+		for (const item of this.items.values()) this.applyMouseMode(item);
+	}
+
+	private applyMouseMode(item: BookmarkItem): void {
+		item.button.dataset.mouseMode = this.mouseMode;
+		item.content.inert = this.mouseMode === "turn";
+		item.reverse.inert = this.mouseMode === "turn";
+		item.expanded.inert = this.mouseMode === "turn";
+	}
+
 	/** Re-read provider data after navigation or a consumer configuration update. */
 	refresh(): void {
 		if (this.destroyed) return;
+		this.restoreTabStops();
 		this.motion.restoreAll();
 		this.preview.close();
 		const provider = this.provider;
 		const context = this.getContext();
 		const bookmarks = this.getValidBookmarks(context);
+		this.orderedLeafIds = bookmarks.map((leaf) => leaf.id);
 		const focused = this.element.querySelector<HTMLButtonElement>(".flipbook-bookmark:focus");
 		this.element.className = `flipbook-bookmarks ${provider?.className ?? ""}`.trim();
 		this.element.dataset.orientation = provider?.orientation ?? "perpendicular";
@@ -174,7 +197,7 @@ export class BookmarkLayer {
 			if (!retainedIds.has(id)) {
 				this.motion.restore(id);
 				item.button.removeEventListener("click", item.click);
-				item.button.remove();
+				item.slot.remove();
 				item.reverse.remove();
 				item.expanded.remove();
 				this.items.delete(id);
@@ -193,6 +216,7 @@ export class BookmarkLayer {
 		item.button.className = `flipbook-bookmark ${bookmark.className ?? ""}`.trim();
 		item.button.dataset.pageIndex = String(bookmark.pageIndex);
 		item.button.dataset.bookmarkId = bookmark.id;
+		item.button.dataset.spreadIndex = String(Math.floor((bookmark.pageIndex + 1) / 2));
 		item.button.dataset.face = this.isTurned(bookmark, context) ? "1" : "0";
 		item.button.setAttribute("aria-label", bookmark.label);
 		item.button.dir = context.direction;
@@ -202,16 +226,19 @@ export class BookmarkLayer {
 			this.provider?.attachment !== "pinned" &&
 			fixedSide &&
 			item.edge !== this.getLeafSide(bookmark, context);
+		item.slot.hidden = item.button.hidden;
 		item.button.dataset.edge = item.edge;
 		item.button.dataset.orientation = this.provider?.orientation ?? "perpendicular";
-		item.button.dataset.leafIndex = String(Math.floor(bookmark.pageIndex / 2));
+		item.slot.dataset.edge = item.edge;
+		item.slot.dataset.orientation = item.button.dataset.orientation;
+		item.button.dataset.leafIndex = String(this.getLeafIndex(bookmark));
 		item.button.style.setProperty("--bookmark-slot", String(slot + 1));
+		item.slot.style.setProperty("--bookmark-slot", String(slot + 1));
 		const current =
-			bookmark.pageIndex === context.currentPageIndex ||
-			bookmark.pageIndex === context.currentPageIndex + 1;
+			Math.floor((bookmark.pageIndex + 1) / 2) === Math.floor((context.currentPageIndex + 1) / 2);
 		if (current) item.button.setAttribute("aria-current", "page");
 		else item.button.removeAttribute("aria-current");
-		this.getItemRail(item.edge, bookmark, context)?.append(item.button);
+		this.getItemRail(item.edge, bookmark, context)?.append(item.slot);
 	}
 
 	private getItemRail(
@@ -259,6 +286,7 @@ export class BookmarkLayer {
 	layout(bounds: BookmarkBounds): void {
 		if (this.destroyed) return;
 		this.motion.restoreAll();
+		this.preview.close();
 		this.bounds = bounds;
 		const depth = this.getDepth();
 		for (const [edge, rail] of this.rails) {
@@ -279,7 +307,7 @@ export class BookmarkLayer {
 	updateLeaf(index: number, frame: BookmarkLeafFrame, page: HTMLElement): void {
 		this.leafFrames.set(index, { frame, page });
 		for (const item of this.items.values()) {
-			if (Math.floor(item.bookmark.pageIndex / 2) !== index) continue;
+			if (this.getLeafIndex(item.bookmark) !== index) continue;
 			item.button.style.zIndex = String(
 				frame.zIndices[this.isTurned(item.bookmark, this.getContext()) ? 1 : 0],
 			);
@@ -287,7 +315,7 @@ export class BookmarkLayer {
 			if (item.button.hidden) continue;
 			if (frame.fold || (frame.position > 0 && frame.position < 1)) this.preview.close();
 			this.motion.sync(
-				{ id: item.leaf.id, pageIndex: item.bookmark.pageIndex },
+				{ id: item.leaf.id, pageIndex: index * 2 },
 				item.button,
 				frame,
 				page,
@@ -303,6 +331,7 @@ export class BookmarkLayer {
 	}
 
 	destroy(): void {
+		this.restoreTabStops();
 		this.preview.destroy();
 		this.motion.destroy();
 		for (const item of this.items.values()) {
@@ -312,6 +341,7 @@ export class BookmarkLayer {
 			this.element.removeEventListener(event, stopBookGesture);
 		}
 		this.items.clear();
+		this.orderedLeafIds = [];
 		this.leafFrames.clear();
 		this.groups.clear();
 		this.element.remove();
@@ -332,25 +362,16 @@ export class BookmarkLayer {
 			const sign = order === "reverse-page" ? -1 : 1;
 			bookmarks.sort((a, b) => sign * (a.pageIndex - b.pageIndex));
 		}
-		const leaves = new Map<number, { front?: Bookmark; back?: Bookmark }>();
+		const spreads = new Map<number, Bookmark>();
 		for (const bookmark of bookmarks) {
-			const index = Math.floor(bookmark.pageIndex / 2);
-			const leaf = leaves.get(index) ?? {};
-			const face = bookmark.pageIndex % 2 === 0 ? "front" : "back";
-			leaf[face] ??= bookmark;
-			leaves.set(index, leaf);
+			const index = Math.floor((bookmark.pageIndex + 1) / 2);
+			if (!spreads.has(index)) spreads.set(index, bookmark);
 		}
-		const groups = Array.from(leaves, ([index, leaf]) => ({
-			id: `leaf-${index}`,
-			front: (leaf.front ?? leaf.back) as Bookmark,
-			back: (leaf.back ?? leaf.front) as Bookmark,
+		return Array.from(spreads, ([index, bookmark]) => ({
+			id: `spread-${index}`,
+			front: bookmark,
+			back: bookmark,
 		}));
-		if (typeof order === "function") {
-			const active = (leaf: BookmarkLeaf) =>
-				this.isTurned(leaf.front, context) ? leaf.back : leaf.front;
-			groups.sort((a, b) => order(active(a), active(b)));
-		}
-		return groups;
 	}
 
 	private isValidBookmark(bookmark: Bookmark): boolean {
@@ -380,7 +401,11 @@ export class BookmarkLayer {
 	}
 
 	private isTurned(bookmark: Bookmark, context: BookmarkContext): boolean {
-		return Math.floor(bookmark.pageIndex / 2) <= Math.floor((context.currentPageIndex - 1) / 2);
+		return this.getLeafIndex(bookmark) <= Math.floor((context.currentPageIndex - 1) / 2);
+	}
+
+	private getLeafIndex(bookmark: Bookmark): number {
+		return Math.max(0, Math.floor((bookmark.pageIndex - 1) / 2));
 	}
 
 	private getItem(
@@ -393,8 +418,11 @@ export class BookmarkLayer {
 		const reverseBookmark = turned ? leaf.front : leaf.back;
 		let item = this.items.get(leaf.id);
 		if (!item) {
+			const slot = this.host.ownerDocument.createElement("div");
+			slot.className = "flipbook-bookmark-slot";
 			const button = this.host.ownerDocument.createElement("button");
 			button.type = "button";
+			slot.append(button);
 			const content = this.host.ownerDocument.createElement("span");
 			content.className = "flipbook-bookmark__content";
 			content.inert = true;
@@ -409,6 +437,19 @@ export class BookmarkLayer {
 			this.storage.append(reverse, expanded);
 			const click = (event: MouseEvent) => {
 				event.preventDefault();
+				const selection = button.ownerDocument.getSelection();
+				if (
+					this.mouseMode === "select" &&
+					selection &&
+					!selection.isCollapsed &&
+					(button.contains(selection.anchorNode) || button.contains(selection.focusNode))
+				)
+					return;
+				if (button.dataset.bookmarkDragged === "true") {
+					delete button.dataset.bookmarkDragged;
+					event.stopPropagation();
+					return;
+				}
 				const current = this.items.get(leaf.id);
 				if (!current || this.destroyed) return;
 				const selected =
@@ -424,6 +465,7 @@ export class BookmarkLayer {
 				reverseBookmark,
 				renderer,
 				button,
+				slot,
 				content,
 				reverse,
 				click,
@@ -462,6 +504,7 @@ export class BookmarkLayer {
 			item.expanded.dataset.label = bookmark.label;
 		} else if (!expandedRenderer) item.expanded.replaceChildren();
 		item.expandedRenderer = expandedRenderer;
+		this.applyMouseMode(item);
 		return item;
 	}
 
@@ -479,7 +522,10 @@ export class BookmarkLayer {
 				this.preview.schedule(item.button, item.expanded, item.edge, this.provider?.className);
 			}
 		});
-		item.button.addEventListener("pointerdown", () => this.preview.cancelHover());
+		item.button.addEventListener("pointerdown", (event) => {
+			this.preview.cancelHover();
+			this.onPointerDown?.(event);
+		});
 		item.button.addEventListener("pointerleave", (event) =>
 			this.preview.leave(event.relatedTarget),
 		);
@@ -488,9 +534,102 @@ export class BookmarkLayer {
 		});
 		item.button.addEventListener("blur", (event) => this.preview.leave(event.relatedTarget));
 		item.button.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") delete item.button.dataset.bookmarkDragged;
 			if (event.key === "Escape") this.preview.close(false);
-			if (event.key === "Tab") this.preview.close();
+			if (event.key === "Tab") this.traverseBookmarks(item, event);
 		});
+	}
+
+	private traverseBookmarks(item: BookmarkItem, event: KeyboardEvent): void {
+		if (
+			event.defaultPrevented ||
+			event.altKey ||
+			event.ctrlKey ||
+			event.metaKey ||
+			event.target !== item.button
+		)
+			return;
+		this.restoreTabStops();
+		this.preview.close();
+		const ordered = this.orderedLeafIds
+			.map((id) => this.items.get(id))
+			.filter((entry): entry is BookmarkItem => Boolean(entry && this.isTabAvailable(entry)));
+		const index = ordered.indexOf(item);
+		if (index < 0) return;
+		const step = event.shiftKey ? -1 : 1;
+		const next = ordered[index + step];
+		if (next) {
+			event.preventDefault();
+			next.slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+			next.button.focus({ preventScroll: true });
+			return;
+		}
+		const external = this.externalTabStop(step);
+		if (external) {
+			event.preventDefault();
+			external.focus();
+			return;
+		}
+		// Native Tab may leave the document for browser chrome. Exclude sibling tabs
+		// for this one default action so physical rail order cannot wrap the navigation.
+		this.releaseNativeTab();
+	}
+
+	private isTabAvailable(item: BookmarkItem): boolean {
+		if (item.button.hidden || item.button.disabled || item.slot.closest("[hidden], [inert]"))
+			return false;
+		const style = this.host.ownerDocument.defaultView?.getComputedStyle(item.button);
+		return style?.display !== "none" && style?.visibility !== "hidden";
+	}
+
+	private externalTabStop(step: 1 | -1): HTMLElement | undefined {
+		const selector =
+			'a[href], area[href], button, input, select, textarea, summary, iframe, [tabindex], [contenteditable="true"]';
+		const side = step === 1 ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING;
+		const candidates = Array.from(this.host.ownerDocument.querySelectorAll<HTMLElement>(selector))
+			.filter((element) => this.isExternalTabStop(element))
+			.filter((element) => Boolean(this.element.compareDocumentPosition(element) & side));
+		return step === 1 ? candidates[0] : candidates.at(-1);
+	}
+
+	private isExternalTabStop(element: HTMLElement): boolean {
+		const tabbable =
+			element.tabIndex >= 0 || (element.isContentEditable && !element.hasAttribute("tabindex"));
+		if (
+			!tabbable ||
+			element.matches(":disabled") ||
+			this.element.contains(element) ||
+			element.closest("[hidden], [inert], .flipbook-bookmark-preview, .flipbook-bookmark-surface")
+		)
+			return false;
+		const style = this.host.ownerDocument.defaultView?.getComputedStyle(element);
+		return style?.visibility !== "hidden" && element.getClientRects().length > 0;
+	}
+
+	private releaseNativeTab(): void {
+		const saved = Array.from(this.items.values(), ({ button }) => ({
+			button,
+			attribute: button.getAttribute("tabindex"),
+		}));
+		for (const { button } of saved) button.tabIndex = -1;
+		this.pendingTabRestore = () => {
+			for (const { button, attribute } of saved) {
+				if (attribute === null) button.removeAttribute("tabindex");
+				else button.setAttribute("tabindex", attribute);
+			}
+		};
+		this.tabRestoreTimer = this.host.ownerDocument.defaultView?.setTimeout(
+			() => this.restoreTabStops(),
+			0,
+		);
+	}
+
+	private restoreTabStops(): void {
+		if (this.tabRestoreTimer !== undefined)
+			this.host.ownerDocument.defaultView?.clearTimeout(this.tabRestoreTimer);
+		this.tabRestoreTimer = undefined;
+		this.pendingTabRestore?.();
+		this.pendingTabRestore = undefined;
 	}
 
 	private getDepth(): number {

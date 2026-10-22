@@ -596,7 +596,11 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						key={`page-${index}`}
 						className={getPageClassName(index)}
 					>
-						{renderPageContent(index)}
+						<div className="flipbook-page-scrollport">
+							<div className="flipbook-page-content" dir={direction}>
+								{renderPageContent(index)}
+							</div>
+						</div>
 					</div>
 				))}
 				{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
