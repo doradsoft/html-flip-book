@@ -2,12 +2,14 @@
 import type { FC } from "react";
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
+import BookmarkExample from "./BookmarkExample";
 import type { EnBookConfig } from "./EnBook";
 import EnBook from "./EnBook";
 import type { HeBookConfig } from "./HeBook";
 import HeBook from "./HeBook";
 
 export type ExampleId =
+	| "ltr-bookmarks"
 	| "ltr-no-shadow"
 	| "ltr-buffer"
 	| "ltr-history"
@@ -16,6 +18,7 @@ export type ExampleId =
 	| "ltr-initial-position"
 	| "ltr-no-snapshot"
 	| "ltr-comprehensive"
+	| "rtl-bookmarks"
 	| "rtl-no-shadow"
 	| "rtl-buffer"
 	| "rtl-history"
@@ -26,6 +29,7 @@ export type ExampleId =
 	| "rtl-comprehensive";
 
 const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
+	{ section: "LTR", id: "ltr-bookmarks", label: "Bookmarks" },
 	{ section: "LTR", id: "ltr-no-shadow", label: "No shadow" },
 	{ section: "LTR", id: "ltr-buffer", label: "Buffer" },
 	{ section: "LTR", id: "ltr-history", label: "History mapping" },
@@ -34,6 +38,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-initial-position", label: "Initial position" },
 	{ section: "LTR", id: "ltr-no-snapshot", label: "No snapshot" },
 	{ section: "LTR", id: "ltr-comprehensive", label: "Comprehensive" },
+	{ section: "RTL", id: "rtl-bookmarks", label: "Bookmarks" },
 	{ section: "RTL", id: "rtl-no-shadow", label: "No shadow" },
 	{ section: "RTL", id: "rtl-buffer", label: "Buffer" },
 	{ section: "RTL", id: "rtl-history", label: "History mapping" },
@@ -156,7 +161,7 @@ export const App: FC = () => {
 	const isLtr = selectedId.startsWith("ltr-");
 
 	return (
-		<div className="app">
+		<div className={selectedId.endsWith("-bookmarks") ? "app app--bookmark-example" : "app"}>
 			<header>
 				<h1>HTML Flip Book Example</h1>
 			</header>
@@ -196,7 +201,9 @@ export const App: FC = () => {
 					</div>
 				</nav>
 				<section className="example-container" aria-live="polite">
-					{isLtr ? (
+					{selectedId.endsWith("-bookmarks") ? (
+						<BookmarkExample key={selectedId} direction={isLtr ? "ltr" : "rtl"} />
+					) : isLtr ? (
 						<div className="en-book-container" key={selectedId}>
 							<EnBook config={getEnBookConfig(selectedId)} />
 						</div>

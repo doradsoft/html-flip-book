@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Bookmark providers add chapter tabs with custom content, placement, ordering, styling, and click actions, with LTR and RTL examples.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
 - Paper pages fold from the grabbed corner with crease shading.
 

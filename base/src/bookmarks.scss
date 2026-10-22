@@ -1,0 +1,95 @@
+.flipbook-bookmarks {
+  position: absolute;
+  inset: 0;
+  z-index: var(--flipbook-bookmark-layer-z, 1000);
+  pointer-events: none;
+}
+
+.flipbook-bookmarks[hidden],
+.flipbook-bookmarks__rail[hidden] {
+  display: none;
+}
+
+.flipbook-bookmarks__measure {
+  position: absolute;
+  width: var(--flipbook-bookmark-depth, 28px);
+  height: 0;
+  visibility: hidden;
+}
+
+.flipbook-bookmarks__rail {
+  position: absolute;
+  display: flex;
+  gap: var(--flipbook-bookmark-gap, 4px);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  direction: ltr;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+  touch-action: pan-x pan-y;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.flipbook-bookmarks__rail--left,
+.flipbook-bookmarks__rail--right {
+  flex-direction: column;
+  overflow-x: hidden;
+
+  .flipbook-bookmark__content {
+    writing-mode: vertical-rl;
+  }
+}
+
+.flipbook-bookmarks__rail--top,
+.flipbook-bookmarks__rail--bottom {
+  flex-direction: row;
+  overflow-y: hidden;
+}
+
+.flipbook-bookmark {
+  flex: 0 0 var(--flipbook-bookmark-length, 72px);
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #71869c;
+  border-radius: 2px;
+  background: #dce8f4;
+  color: #20364b;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover,
+  &[aria-current="page"] {
+    background: #bfd5e9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #204f7b;
+    outline-offset: -3px;
+  }
+}
+
+.flipbook-bookmark__content {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  contain: layout paint;
+}

@@ -2396,6 +2396,141 @@ describe("FlipBook", () => {
 		});
 	});
 
+	describe("asymmetric bookmark geometry", () => {
+		const cases = [
+			{ direction: "ltr" as const, placement: "left" as const, scale: 1, side: "left" },
+			{ direction: "ltr" as const, placement: "right" as const, scale: 1, side: "right" },
+			{ direction: "rtl" as const, placement: "left" as const, scale: 0.5, side: "right" },
+			{ direction: "rtl" as const, placement: "right" as const, scale: 2, side: "left" },
+		];
+
+		function renderOffsetBook(configuration: (typeof cases)[number]) {
+			const pages = createPages(8);
+			container.style.setProperty("--flipbook-bookmark-depth", "80px");
+			const book = new FlipBook({
+				pagesCount: 8,
+				direction: configuration.direction,
+				initialTurnedLeaves: [0, 1],
+				bookmarkProvider: {
+					getBookmarks: () => [{ id: "chapter", pageIndex: 4, label: "Chapter" }],
+					placement: configuration.placement,
+				},
+			});
+			book.render(".flipbook-container");
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue(
+				new DOMRect(100, 50, 800 * configuration.scale, 600 * configuration.scale),
+			);
+			const page = pages[4];
+			const width = Number.parseFloat(page.style.width);
+			const spine =
+				configuration.direction === "ltr"
+					? Number.parseFloat(page.style.left) + width
+					: 800 - Number.parseFloat(page.style.right) - width;
+			return { book, pages, spine };
+		}
+
+		it.each(
+			cases,
+		)("$direction $placement: keeps scaled hover zones on the actual resting edges", async (configuration) => {
+			vi.useFakeTimers();
+			const { book, pages, spine } = renderOffsetBook(configuration);
+			try {
+				for (const sign of [-1, 1]) {
+					const forward = (sign === 1) === (configuration.direction === "ltr");
+					const page = pages[forward ? 4 : 3];
+					const edge = spine + sign * Number.parseFloat(page.style.width);
+					const y = Number.parseFloat(page.style.top) + Number.parseFloat(page.style.height) / 2;
+					const move = async (x: number) => {
+						container.dispatchEvent(
+							new MouseEvent("mousemove", {
+								clientX: 100 + x * configuration.scale,
+								clientY: 50 + y * configuration.scale,
+							}),
+						);
+						await vi.advanceTimersByTimeAsync(20);
+					};
+					await move(edge + sign * 5);
+					expect(pages.some((element) => element.classList.contains("page--folded"))).toBe(false);
+					await move(edge - sign * 2);
+					expect(page.classList.contains("page--folded")).toBe(true);
+				}
+			} finally {
+				book.destroy();
+				vi.useRealTimers();
+			}
+		});
+
+		it.each(
+			cases,
+		)("$direction $placement: chooses a vertical pull's page from the shifted scaled spine", (configuration) => {
+			const { book, spine } = renderOffsetBook(configuration);
+			try {
+				const right = configuration.side === "right";
+				const x = 100 + (spine + (right ? 10 : -10)) * configuration.scale;
+				const event = {
+					...createDragEvent("start", { x, y: 300 }),
+					deltaX: 0,
+					deltaY: 24,
+					pointerType: "mouse",
+				};
+				const internals = getFlipBookInternals(book);
+				internals.onDragStart(event);
+				const forward = right === (configuration.direction === "ltr");
+				expect(internals.flipDirection).toBe(
+					forward ? FlipDirection.Forward : FlipDirection.Backward,
+				);
+				expect(internals.currentLeaf?.index).toBe(forward ? 2 : 1);
+			} finally {
+				book.destroy();
+			}
+		});
+	});
+
+	it("keeps bookmark navigation from resizing every leaf unless its clearance changes", () => {
+		const pages = createPages(8);
+		let visible = true;
+		const book = new FlipBook({
+			pagesCount: 8,
+			bookmarkProvider: {
+				getBookmarks: () => (visible ? [{ id: "chapter", pageIndex: 4, label: "Chapter" }] : []),
+				placement: "left",
+			},
+		});
+		book.render(".flipbook-container");
+		const transforms = getFlipBookInternals(book).leaves.map((leaf) =>
+			vi.spyOn(leaf, "applyTransform"),
+		);
+		const width = pages[0].style.width;
+		book.jumpToPage(0);
+		for (const transform of transforms) expect(transform).not.toHaveBeenCalled();
+		visible = false;
+		book.jumpToPage(0);
+		expect(pages[0].style.width).not.toBe(width);
+		for (const transform of transforms) expect(transform).toHaveBeenCalledOnce();
+		book.destroy();
+	});
+
+	it.each([
+		false,
+		true,
+	])("attaches bookmarks to the resting outer edge with covers=%s", (covers) => {
+		const pages = createPages(8);
+		const book = new FlipBook({
+			pagesCount: 8,
+			coverPageIndices: covers ? "auto" : undefined,
+			bookmarkProvider: {
+				getBookmarks: () => [{ id: "chapter", pageIndex: 4, label: "Chapter" }],
+				placement: "left",
+			},
+		});
+		book.render(".flipbook-container");
+		const rail = container.querySelector<HTMLElement>('[data-edge="left"]');
+		if (!rail) throw new Error("Left bookmark rail is missing");
+		const edge = Number.parseFloat(rail.style.left) + Number.parseFloat(rail.style.width);
+		expect(edge).toBeCloseTo(Number.parseFloat(pages[0].style.left));
+		book.destroy();
+	});
+
 	describe("hover shadow", () => {
 		it("keeps queued hover updates cleared after leaving and allows a later preview", async () => {
 			vi.useFakeTimers();

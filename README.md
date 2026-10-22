@@ -34,6 +34,7 @@ npm install html-flip-book-react
 - **Concurrent Flip Animations** — Multiple pages can flip simultaneously
 - **Hover Effects** — Subtle inner-shadow preview on page edges
 - **Leaves Buffer** — Performance optimization for large books (only render nearby pages)
+- **Bookmark Providers** — Custom content, placement, ordering, and click actions for page tabs. See the [bookmark guide](docs/guides/bookmarks.md).
 
 ### React Component
 
