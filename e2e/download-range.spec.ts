@@ -9,7 +9,10 @@ test.describe("Download range (EN book)", () => {
 		await expect(page.locator(".en-book-container .en-book")).toBeVisible({ timeout: 15_000 });
 	});
 
-	test("should merge multiple chapter PDFs when downloading a page range", async ({ page }) => {
+	test("should merge multiple chapter PDFs when downloading a page range", async ({
+		page,
+		isMobile,
+	}) => {
 		// ── Open the EN book's download dropdown ──
 		const toolbar = page.locator(".en-book-container [role='toolbar']");
 		await expect(toolbar).toBeVisible();
@@ -21,10 +24,16 @@ test.describe("Download range (EN book)", () => {
 
 		const menu = page.locator(".flipbook-toolbar-download-menu[role='menu']").first();
 		await expect(menu).toBeVisible();
+		await expect(menu).toBeInViewport({ ratio: 1 });
 
 		// ── Switch to "Page range" mode ──
 		const rangeRadio = menu.locator('input[type="radio"]').last();
 		await rangeRadio.check();
+		await expect(menu).toBeInViewport({ ratio: 1 });
+		if (isMobile) {
+			await page.setViewportSize({ width: 360, height: 640 });
+			await expect(menu).toBeInViewport({ ratio: 1 });
+		}
 
 		// ── Set from=5 to=8 (four content pages → 4 chapter PDFs) ──
 		const selects = menu.locator("select.flipbook-toolbar-download-range-select");

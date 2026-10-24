@@ -30,7 +30,7 @@ async function openBookmarks(
 		.locator(".flipbook-bookmark[data-bookmark-id] > .flipbook-bookmark__content:not([hidden])")
 		.allTextContents();
 	expect(compact.every((text) => /[A-Za-z\u0590-\u05FF]/.test(text))).toBe(true);
-	await expect(book).toHaveClass(new RegExp(direction === "ltr" ? "en-book" : "he-book"));
+	await expect(book).toHaveClass(direction === "ltr" ? /en-book/ : /he-book/);
 	await expect(book.locator('.page[data-page-index="0"] h1')).toHaveText(
 		direction === "ltr" ? "SQL Tutorial" : "ספר בראשית",
 	);
@@ -547,7 +547,12 @@ async function openDenseBookmarks(
 		.locator(".page")
 		.evaluateAll((pages) => pages.map((element) => (element as HTMLElement).dataset.pageTitle));
 	await page.evaluate(
-		async ({ moduleUrl, direction, orientation, attachment }) => {
+		async ({ direction, orientation, attachment }) => {
+			// Reuse Vite's loaded URL, including its base path and platform-specific filesystem prefix.
+			const moduleUrl = performance
+				.getEntriesByType("resource")
+				.find((entry) => new URL(entry.name).pathname.endsWith("/base/src/flipbook.ts"))?.name;
+			if (!moduleUrl) throw new Error("The example's FlipBook module has not loaded");
 			const { FlipBook } = await import(moduleUrl);
 			const source = document.querySelector(
 				".flipbook .page[data-page-index='3'] .flipbook-page-content",
@@ -632,7 +637,6 @@ async function openDenseBookmarks(
 			book.render("#dense-bookmark-book");
 		},
 		{
-			moduleUrl: `/@fs/${process.cwd().replaceAll("\\", "/")}/base/src/flipbook.ts`,
 			direction,
 			orientation,
 			attachment,
@@ -1436,7 +1440,10 @@ for (const direction of ["ltr", "rtl"] as const) {
 		const surface = book.locator('.page[data-page-index="4"]');
 		await expect(tab).toBeVisible();
 		await expect(bookmarkForPage(page, 4)).toBeHidden();
-		await expect(book.locator(".flipbook-bookmark")).toHaveCount(count);
+		// A focused tab can be portaled into its preview; count source identities across both hosts.
+		await expect(page.locator(".flipbook-bookmark[data-bookmark-id]")).toHaveCount(count);
+		await page.keyboard.press("Escape");
+		await expect(page.locator(".flipbook-bookmark-preview")).toBeHidden();
 		const resting = await boundsOf(surface);
 		const before = await boundsOf(tab);
 		await pullUpperCorner(page, surface, direction, isMobile, 0.15, async () => {

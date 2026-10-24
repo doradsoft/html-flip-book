@@ -122,24 +122,41 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 		setOpen(false);
 	}, []);
 
-	// Keep dropdown menu inside viewport: open upward when near bottom
+	// Anchor to the trigger while keeping both axes inside the viewport, including scrolled toolbars.
 	useLayoutEffect(() => {
 		if (!open || !menuRef.current || !dropdownRef.current) return;
 		const menu = menuRef.current;
 		const trigger = dropdownRef.current.querySelector(".flipbook-toolbar-download-trigger");
-		const updateOpenUp = () => {
+		const updatePosition = () => {
 			const triggerRect = trigger?.getBoundingClientRect();
 			if (!triggerRect) return;
-			const menuHeight = menu.getBoundingClientRect().height;
-			const spaceBelow = window.innerHeight - triggerRect.bottom;
 			const padding = 8;
-			setOpenUp(spaceBelow < menuHeight + padding);
+			const gap = 6;
+			const spaceBelow = window.innerHeight - triggerRect.bottom - gap - padding;
+			const spaceAbove = triggerRect.top - gap - padding;
+			const desiredHeight = Math.min(menu.scrollHeight, window.innerHeight * 0.7, 480);
+			const above = spaceBelow < desiredHeight && spaceAbove > spaceBelow;
+			menu.style.maxHeight = `${Math.max(0, Math.min(desiredHeight, above ? spaceAbove : spaceBelow))}px`;
+			const bounds = menu.getBoundingClientRect();
+			const left = isRtl(locale) ? triggerRect.left : triggerRect.right - bounds.width;
+			menu.style.left = `${Math.max(padding, Math.min(left, window.innerWidth - bounds.width - padding))}px`;
+			const top = above ? triggerRect.top - gap - bounds.height : triggerRect.bottom + gap;
+			menu.style.top = `${Math.max(padding, Math.min(top, window.innerHeight - bounds.height - padding))}px`;
+			setOpenUp(above);
 		};
-		updateOpenUp();
-		const ro = new ResizeObserver(updateOpenUp);
+		updatePosition();
+		const ro = new ResizeObserver(updatePosition);
 		ro.observe(menu);
-		return () => ro.disconnect();
-	}, [open]);
+		const toolbar = dropdownRef.current.closest('[role="toolbar"]');
+		if (toolbar) ro.observe(toolbar);
+		window.addEventListener("resize", updatePosition);
+		window.addEventListener("scroll", updatePosition, true);
+		return () => {
+			ro.disconnect();
+			window.removeEventListener("resize", updatePosition);
+			window.removeEventListener("scroll", updatePosition, true);
+		};
+	}, [open, locale]);
 
 	useEffect(() => {
 		if (!open) return;
