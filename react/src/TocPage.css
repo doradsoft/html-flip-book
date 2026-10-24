@@ -20,6 +20,12 @@
 	overflow-y: auto;
 }
 
+/* Inside a book, the page scrollport supplies the spine-side scrollbar. */
+.flipbook-page-content .toc-page__scroll {
+	flex: 0 0 auto;
+	overflow: visible;
+}
+
 .toc-heading {
 	text-align: center;
 	overflow-wrap: anywhere;

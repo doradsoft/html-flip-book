@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
+- Optional short page titles complement full titles in page metadata. A toolbar control shows or hides bookmarks without changing navigation.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
 - Paper pages fold from the grabbed corner with crease shading.
 
 ### Fixed
 
+- Page scrollbars sit beside the spine without changing the content's reading direction, leaving outer edges clear for page-turn gestures.
+- Download menus stay within the viewport on narrow screens and follow their toolbar trigger when scrolling or resizing.
 - Dragging images and links turns pages without starting a competing native browser drag; selection mode and excluded areas retain native dragging.
 - Backward hover hints curl a small corner while the page body stays still, matching forward hover hints.
 - Page-edge hover previews stay within the visible page instead of triggering in empty space around the book.

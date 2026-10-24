@@ -1,0 +1,272 @@
+.flipbook-bookmarks {
+  --bookmark-default-depth: 52px;
+  --bookmark-default-length: 24px;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.flipbook-bookmarks[data-orientation="parallel"] {
+  --bookmark-default-depth: 28px;
+  --bookmark-default-length: 72px;
+}
+
+.flipbook-bookmarks[hidden],
+.flipbook-bookmarks__rail[hidden],
+.flipbook-bookmark[hidden] {
+  display: none;
+}
+
+.flipbook-bookmarks__measure {
+  position: absolute;
+  width: var(--flipbook-bookmark-depth, var(--bookmark-default-depth));
+  height: var(--flipbook-bookmark-length, var(--bookmark-default-length));
+  margin-top: var(--flipbook-bookmark-stack-step, calc(var(--flipbook-bookmark-depth, var(--bookmark-default-depth)) * 0.3));
+  visibility: hidden;
+}
+
+.flipbook-bookmarks__rail {
+  position: absolute;
+  display: flex;
+  gap: var(--flipbook-bookmark-gap, 4px);
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  direction: ltr;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+  touch-action: pan-x pan-y;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.flipbook-bookmarks__rail--left,
+.flipbook-bookmarks__rail--right {
+  display: block;
+  overflow: hidden;
+  z-index: 0;
+
+  > .flipbook-bookmark-slot { position: absolute; }
+}
+
+.flipbook-bookmarks__rail--left > .flipbook-bookmark-slot { right: 0; }
+.flipbook-bookmarks__rail--right > .flipbook-bookmark-slot { left: 0; }
+
+.flipbook-bookmarks__rail--top,
+.flipbook-bookmarks__rail--bottom {
+  flex-direction: row;
+  overflow-y: hidden;
+}
+
+.flipbook-bookmarks[data-attachment="leaf"] .flipbook-bookmarks__rail--top,
+.flipbook-bookmarks[data-attachment="leaf"] .flipbook-bookmarks__rail--bottom {
+  gap: 0;
+  overflow: hidden;
+}
+
+.flipbook-bookmarks__leaf-rail {
+  display: grid;
+  flex: 0 0 50%;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 100%;
+  gap: var(--flipbook-bookmark-gap, 4px);
+  grid-template-columns: repeat(var(--bookmark-count), var(--flipbook-bookmark-length, var(--bookmark-default-length)));
+  grid-template-rows: 100%;
+  overflow: auto;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+
+  &[data-leaf-side="left"] { direction: rtl; order: 0; }
+  &[data-leaf-side="right"] { direction: ltr; order: 1; }
+  > .flipbook-bookmark-slot { grid-column: var(--bookmark-slot); grid-row: 1; }
+}
+
+/* The rail clips a tip of a full-size strip. Hover reveals material; it never resizes it. */
+.flipbook-bookmark-slot {
+  --bookmark-exposed-depth: var(--flipbook-bookmark-depth, var(--bookmark-default-depth, 52px));
+  --bookmark-exposed-length: var(--flipbook-bookmark-length, var(--bookmark-default-length, 24px));
+  --bookmark-exposed-major: var(--bookmark-exposed-depth);
+  --bookmark-full-horizontal: max(var(--bookmark-exposed-major), min(var(--flipbook-bookmark-full-length, 220px), calc(100vw - 16px)));
+  --bookmark-full-vertical: max(var(--bookmark-exposed-major), min(var(--flipbook-bookmark-full-length, 220px), calc(100vh - 16px)));
+  position: relative;
+  flex: 0 0 var(--bookmark-exposed-length);
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+
+  &[data-orientation="parallel"] { --bookmark-exposed-major: var(--bookmark-exposed-length); }
+
+  > .flipbook-bookmark {
+    position: absolute;
+    inset: auto;
+    top: 0;
+    left: 0;
+    width: var(--bookmark-full-horizontal);
+    height: 100%;
+    flex: none;
+  }
+}
+
+.flipbook:not(.flipbook--select-text) .flipbook-bookmark-slot,
+.flipbook:not(.flipbook--select-text) .flipbook-bookmark { touch-action: pan-y; }
+
+.flipbook--select-text .flipbook-bookmark-slot,
+.flipbook--select-text .flipbook-bookmark { touch-action: auto; }
+
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="left"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="top"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark {
+  width: 100%;
+  height: var(--bookmark-full-vertical);
+}
+
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="bottom"] > .flipbook-bookmark {
+  left: auto;
+  right: 0;
+}
+
+.flipbook-bookmark-slot[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark,
+.flipbook-bookmark-slot[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark {
+  top: auto;
+  bottom: 0;
+}
+
+.flipbook-bookmark {
+  position: relative;
+  flex: 0 0 var(--flipbook-bookmark-length, var(--bookmark-default-length));
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #71869c;
+  border-radius: 2px;
+  background: #dce8f4;
+  color: #20364b;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover,
+  &[aria-current="page"] {
+    background: #bfd5e9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #204f7b;
+    outline-offset: -3px;
+  }
+}
+
+.flipbook-bookmark__content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: var(--bookmark-exposed-major, 52px);
+  height: 100%;
+  box-sizing: border-box;
+  padding: 3px;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  contain: layout paint;
+  transition: opacity 180ms ease;
+}
+
+.flipbook-bookmark__content[hidden] { display: none; }
+
+.flipbook-bookmark[data-mouse-mode="turn"] { touch-action: pan-y; }
+
+.flipbook-bookmark[data-mouse-mode="select"] {
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: auto;
+
+  .flipbook-bookmark__content,
+  .flipbook-bookmark__expanded-content {
+    contain: layout;
+    pointer-events: auto;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+.flipbook-bookmark[data-orientation="parallel"][data-edge="left"],
+.flipbook-bookmark[data-orientation="parallel"][data-edge="right"],
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="top"],
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="bottom"] {
+  writing-mode: vertical-rl;
+
+  > .flipbook-bookmark__content { width: 100%; height: var(--bookmark-exposed-major, 52px); }
+}
+
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="right"] > .flipbook-bookmark__content,
+.flipbook-bookmark[data-orientation="parallel"][data-edge="bottom"] > .flipbook-bookmark__content { left: auto; right: 0; }
+
+.flipbook-bookmark[data-orientation="parallel"][data-edge="right"] > .flipbook-bookmark__content,
+.flipbook-bookmark[data-orientation="perpendicular"][data-edge="bottom"] > .flipbook-bookmark__content { top: auto; bottom: 0; }
+
+.flipbook-bookmark[data-preview-open="true"] > .flipbook-bookmark__content { opacity: 0; }
+
+.flipbook-bookmark-preview {
+  position: fixed;
+  z-index: 2147483000;
+  pointer-events: auto;
+	transition: left 180ms ease, top 180ms ease, clip-path 180ms ease;
+}
+
+.flipbook-bookmark-preview[hidden] { display: none; }
+.flipbook-bookmark-preview[data-open="false"] .flipbook-bookmark__content { opacity: 1; }
+
+.flipbook-bookmark--expanded {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.flipbook-bookmark__expanded-content {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  writing-mode: inherit;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.flipbook-bookmark__expanded-content[hidden] { display: none; }
+.flipbook-bookmark-default { display: flex; align-items: baseline; gap: 6px; }
+.flipbook-bookmark-default small { opacity: 0.7; }
+.flipbook-bookmark-preview[data-open="true"] .flipbook-bookmark__expanded-content { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .flipbook-bookmark-preview,
+  .flipbook-bookmark--expanded,
+  .flipbook-bookmark__content,
+  .flipbook-bookmark__expanded-content { transition: none; }
+}

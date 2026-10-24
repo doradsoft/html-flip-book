@@ -1,4 +1,6 @@
 import {
+	type BookmarkProvider as BaseBookmarkProvider,
+	type Bookmark,
 	FlipBook as FlipBookBase,
 	type HistoryMapper,
 	type MouseMode,
@@ -9,6 +11,17 @@ import "../../base/src/mouse-mode.scss";
 import type { DownloadConfig } from "html-flip-book-vanilla/download";
 import type React from "react";
 import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+/** Bookmark content is rendered with React and keeps access to the consumer's contexts. */
+export type BookmarkProvider = BaseBookmarkProvider<React.ReactNode>;
+
+interface BookmarkSlot {
+	key: string;
+	bookmark: Bookmark;
+	element: HTMLElement;
+	renderer: BookmarkProvider["renderBookmark"];
+}
 
 /**
  * Imperative handle exposed via ref for programmatic control of the FlipBook.
@@ -116,6 +129,10 @@ export interface FlipBookProps {
 	className: string;
 	/** Define which pages are covers for special styling */
 	pageSemantics?: PageSemantics;
+	/** Page bookmark content, placement, ordering, and optional click behavior. */
+	bookmarkProvider?: BookmarkProvider;
+	/** Opt in to bookmarks. Without a custom provider, use the TOC and its chapter entries. Default: false. */
+	enableBookmarks?: boolean;
 	/** Enable debug mode */
 	debug?: boolean;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left) */
@@ -227,6 +244,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			mouseMode = "turn",
 			mouseModeStorageKey,
 			pageSemantics = undefined,
+			bookmarkProvider,
+			enableBookmarks = false,
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
@@ -263,6 +282,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			return 0;
 		});
 		const setPageIndexRef = useRef(setCurrentPageIndex);
+		const [bookmarkSlots, setBookmarkSlots] = useState<BookmarkSlot[]>([]);
 		setPageIndexRef.current = setCurrentPageIndex;
 		const ofRef = useRef(of);
 		ofRef.current = of;
@@ -306,6 +326,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const flipBook = useRef(
 			new FlipBookBase({
 				pageSemantics: pageSemantics,
+				enableBookmarks,
 				pagesCount: pages.length,
 				direction: direction,
 				mouseMode,
@@ -385,6 +406,68 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				currentFlipBook.destroy();
 			};
 		}, [className, debug, mouseModeStorageKey]);
+
+		const previousBookmarksEnabled = useRef(enableBookmarks);
+		useEffect(() => {
+			if (previousBookmarksEnabled.current === enableBookmarks) return;
+			previousBookmarksEnabled.current = enableBookmarks;
+			flipBook.current.setBookmarksEnabled(enableBookmarks);
+		}, [enableBookmarks]);
+
+		useEffect(() => {
+			const currentFlipBook = flipBook.current;
+			if (!bookmarkProvider) {
+				setBookmarkSlots([]);
+				return;
+			}
+			let active = true;
+			const slots = new Map<string, BookmarkSlot>();
+			const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
+				const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
+				let slot = slots.get(key);
+				if (!slot) {
+					slot = {
+						key,
+						bookmark,
+						element: document.createElement("span"),
+						renderer: expanded
+							? bookmarkProvider.renderExpandedBookmark
+							: bookmarkProvider.renderBookmark,
+					};
+					slots.set(key, slot);
+				}
+				slot.bookmark = bookmark;
+				return slot.element;
+			};
+			const provider: BaseBookmarkProvider = {
+				...bookmarkProvider,
+				getBookmarks: (context) => {
+					const bookmarks = bookmarkProvider.getBookmarks(context);
+					const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
+					for (const [key, slot] of slots) {
+						if (!ids.has(slot.bookmark.id)) slots.delete(key);
+					}
+					// The base renderer creates the slots synchronously after this query.
+					queueMicrotask(() => {
+						if (!active) return;
+						for (const [id, slot] of slots) {
+							if (!slot.element.isConnected) slots.delete(id);
+						}
+						setBookmarkSlots([...slots.values()]);
+					});
+					return bookmarks;
+				},
+				renderBookmark: (bookmark) => renderSlot(bookmark, false),
+				renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
+					? (bookmark) => renderSlot(bookmark, true)
+					: undefined,
+			};
+			currentFlipBook.setBookmarkProvider(provider);
+			return () => {
+				active = false;
+				currentFlipBook.setBookmarkProvider(undefined);
+			};
+		}, [bookmarkProvider]);
 
 		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
 		useEffect(() => {
@@ -513,9 +596,16 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						key={`page-${index}`}
 						className={getPageClassName(index)}
 					>
-						{renderPageContent(index)}
+						<div className="flipbook-page-scrollport">
+							<div className="flipbook-page-content" dir={direction}>
+								{renderPageContent(index)}
+							</div>
+						</div>
 					</div>
 				))}
+				{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
+					createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
+				)}
 			</div>
 		);
 	},
@@ -525,6 +615,9 @@ FlipBookReact.displayName = "FlipBook";
 
 export { FlipBookReact as FlipBook };
 export type {
+	Bookmark,
+	BookmarkContext,
+	BookmarkPlacement,
 	FlipPageSemantic,
 	HistoryMapper,
 	MouseMode,

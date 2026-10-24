@@ -1,5 +1,6 @@
 import { throttle } from "throttle-debounce";
 import type { IntRange } from "type-fest";
+import type { BookmarkLeafFrame } from "./bookmark-fold";
 import { FlipDirection } from "./flip-direction";
 import {
 	computePageFold,
@@ -27,6 +28,14 @@ export type FlipPosition = IntRange<0, 2>;
 export const FLIPPED = true;
 export const NOT_FLIPPED = false;
 export class Leaf {
+	/** Optional companion material renderer; invoked after each page transform is applied. */
+	onTransform: ((frame: BookmarkLeafFrame) => void) | undefined;
+	private wrappedTransformFrame: BookmarkLeafFrame | undefined;
+	private lastTransformWidth = 0;
+	private lastTransformHeight = 0;
+	private lastTransformPosition = 0;
+	private lastTransformFold: PageFold | undefined;
+	private lastBackwardPreview = false;
 	private currentAnimation: Promise<void> | null = null;
 	private targetFlipPosition: FlipPosition | null = null;
 	private wrappedFlipPosition: number;
@@ -135,6 +144,23 @@ export class Leaf {
 	}
 	get flipPosition(): number {
 		return this.wrappedFlipPosition;
+	}
+
+	get transformFrame(): BookmarkLeafFrame | undefined {
+		if (this.wrappedTransformFrame) return this.wrappedTransformFrame;
+		if (!(this.lastTransformWidth > 0 && this.lastTransformHeight > 0)) return undefined;
+		this.wrappedTransformFrame = {
+			width: this.lastTransformWidth,
+			height: this.lastTransformHeight,
+			position: this.lastTransformPosition,
+			restingPosition: this.flipPosition,
+			isLTR: this.bookProperties.isLTR,
+			kind: this.lastTransformFold ? "paper" : "rigid",
+			fold: this.lastTransformFold,
+			backwardPreview: this.lastBackwardPreview,
+			zIndices: [Number(this.pages[0].style.zIndex), Number(this.pages[1]?.style.zIndex ?? 0)],
+		};
+		return this.wrappedTransformFrame;
 	}
 
 	setHoverShadow(progress: number): void {
@@ -358,6 +384,26 @@ export class Leaf {
 				page.style.setProperty("--inner-shadow-edge", edge);
 			}
 		});
+		this.reportTransform(width, height, clampedPosition);
+	}
+
+	private reportTransform(
+		width: number,
+		height: number,
+		position: number,
+		fold?: PageFold,
+		backwardPreview = false,
+	): void {
+		this.lastTransformWidth = width;
+		this.lastTransformHeight = height;
+		this.lastTransformPosition = position;
+		this.lastTransformFold = fold;
+		this.lastBackwardPreview = backwardPreview;
+		this.wrappedTransformFrame = undefined;
+		if (this.onTransform) {
+			const frame = this.transformFrame;
+			if (frame) this.onTransform(frame);
+		}
 	}
 
 	private getPaperSize(): { width: number; height: number } | undefined {
@@ -456,6 +502,7 @@ export class Leaf {
 				);
 			}
 		}
+		this.reportTransform(width, height, position, fold, backwardPreview);
 	}
 
 	private applyCreaseShading(

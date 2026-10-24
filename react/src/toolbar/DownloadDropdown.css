@@ -10,11 +10,9 @@
 }
 
 .flipbook-toolbar-download-menu {
-	position: absolute;
-	top: 100%;
-	inset-inline-end: 0;
-	inset-inline-start: auto;
-	margin-top: 6px;
+	position: fixed;
+	margin: 0;
+	box-sizing: border-box;
 	min-width: min(320px, 90vw);
 	width: max-content;
 	max-width: min(400px, 95vw);
@@ -30,12 +28,9 @@
 	backdrop-filter: blur(12px);
 }
 
-/* Open upward when near viewport bottom so menu stays visible */
+/* Placement is measured from the trigger; keep this class available for consumer styling. */
 .flipbook-toolbar-download-menu--open-up {
-	top: auto;
-	bottom: 100%;
-	margin-top: 0;
-	margin-bottom: 6px;
+	margin: 0;
 }
 
 /* ── Radio fieldset (Entire / Range) ── */

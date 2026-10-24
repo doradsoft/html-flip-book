@@ -110,3 +110,41 @@
   // anti-padding bad effects
   box-sizing: border-box;
 }
+
+// Native scrollbars follow the scrollport's direction. Keep that separate
+// from the reading direction of the original, unmodified consumer content.
+.page[data-scrollbar-side="left"] { --flipbook-page-scroll-direction: rtl; }
+.page[data-scrollbar-side="right"] { --flipbook-page-scroll-direction: ltr; }
+.page[data-reading-direction="ltr"] { --flipbook-page-content-direction: ltr; }
+.page[data-reading-direction="rtl"] { --flipbook-page-content-direction: rtl; }
+
+.flipbook-page-scrollport {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  direction: var(--flipbook-page-scroll-direction, ltr);
+}
+
+.flipbook-page-content {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.flipbook-page-content:not([dir]) {
+  direction: var(--flipbook-page-content-direction, ltr);
+}
+
+// The scrollport owns page scrolling. Leave nested, consumer-defined scrolling
+// regions alone and keep explicit inline overflow choices available as overrides.
+.page .flipbook-page-content > * {
+  width: 100%;
+  min-height: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: none;
+  box-sizing: border-box;
+  overflow: visible;
+}

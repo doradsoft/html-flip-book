@@ -1,4 +1,5 @@
 import type { AspectRatio } from "./aspect-ratio";
+import type { BookmarkProvider } from "./bookmarks";
 import type { DownloadConfig } from "./download/types";
 import type { PageSemantics } from "./page-semantics";
 
@@ -71,6 +72,10 @@ export interface FlipBookOptions {
 	padding?: number;
 	/** Define which pages are covers for special styling */
 	pageSemantics?: PageSemantics;
+	/** Optional page bookmarks, including content, placement, ordering, and click actions. */
+	bookmarkProvider?: BookmarkProvider;
+	/** Enable bookmarks. Default: false. With no provider, use TOC and its titled entries. */
+	enableBookmarks?: boolean;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
 	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */

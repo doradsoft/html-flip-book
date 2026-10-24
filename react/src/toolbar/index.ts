@@ -37,6 +37,8 @@ export {
 } from "../icons";
 export type { ActionButtonProps } from "./ActionButton";
 export { ActionButton } from "./ActionButton";
+export type { BookmarkToggleButtonProps } from "./BookmarkToggleButton";
+export { BookmarkToggleButton } from "./BookmarkToggleButton";
 export type { DownloadDropdownProps } from "./DownloadDropdown";
 export { DownloadDropdown } from "./DownloadDropdown";
 export type { FirstPageButtonProps } from "./FirstPageButton";
