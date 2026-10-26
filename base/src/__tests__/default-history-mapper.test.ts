@@ -19,7 +19,7 @@ vi.mock("hammerjs", () => {
 	return { default: MockHammer };
 });
 
-const NAMES = new Map<number, string>([
+const NAMES = new Map([
 	[1, "א"],
 	[2, "ב"],
 	[3, "ג"],

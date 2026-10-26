@@ -4,11 +4,11 @@ import type { DownloadResult, SemanticPageInfo } from "../download/types";
 import { FlipBook } from "../flipbook";
 import type { PageSemantics } from "../page-semantics";
 
-const NAMES = new Map<number, string>([
+const NAMES = new Map([
 	[1, "א"],
 	[3, "ב"],
 ]);
-const TITLES = new Map<number, string>([
+const TITLES = new Map([
 	[0, "Cover"],
 	[3, "Chapter bet"],
 ]);
