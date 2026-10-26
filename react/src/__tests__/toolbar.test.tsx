@@ -227,8 +227,8 @@ describe("FullscreenButton", () => {
 			.mockResolvedValue(undefined);
 	};
 	const cleanupFullscreenApi = () => {
-		const proto = HTMLElement.prototype as { requestFullscreen?: unknown };
-		Reflect.deleteProperty(proto, "requestFullscreen");
+		const htmlProto = HTMLElement.prototype as { requestFullscreen?: unknown };
+		Reflect.deleteProperty(htmlProto, "requestFullscreen");
 	};
 	afterEach(cleanupFullscreenApi);
 
