@@ -64,7 +64,7 @@ export interface FlipBookHandle {
 	/** Current mouse interaction mode. Touch gestures are unaffected. */
 	getMouseMode: () => MouseMode;
 	/** Switch between continuous page turning and native text selection. */
-	setMouseMode: (mode: MouseMode) => void;
+	setMouseMode: (mode: MouseMode, options?: { persist?: boolean }) => void;
 }
 
 /**
@@ -372,9 +372,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				getDownloadConfig: () => flipBook.current.getDownloadConfig(),
 				getTocPageIndex: () => flipBook.current.getTocPageIndex(),
 				getMouseMode: () => flipBook.current.getMouseMode(),
-				setMouseMode: (mode: MouseMode) => {
+				setMouseMode: (mode: MouseMode, options?: { persist?: boolean }) => {
 					flipBook.current.setMouseMode(mode);
-					if (mouseModeStorageKey) {
+					if (mouseModeStorageKey && options?.persist !== false) {
 						try {
 							localStorage.setItem(mouseModeStorageKey, mode);
 						} catch {

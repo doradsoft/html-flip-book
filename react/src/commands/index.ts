@@ -3,6 +3,7 @@
  */
 
 export type {
+	ActionCommandDefinition,
 	Command,
 	CommandContext,
 	CommandData,
@@ -13,6 +14,7 @@ export type {
 	HotkeyBinding,
 	JumpNavCommand,
 	NavCommand,
+	ToggleCommandDefinition,
 } from "html-flip-book-vanilla/commands";
 export {
 	defaultCommands,
@@ -24,5 +26,6 @@ export {
 	goToTocCommand,
 	toggleDebugCommand,
 	toggleFullscreenCommand,
+	toggleTextSelectionCommand,
 } from "html-flip-book-vanilla/commands";
 export { CommandProvider, useCommands } from "./CommandContext";

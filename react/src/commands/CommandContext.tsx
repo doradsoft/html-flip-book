@@ -4,10 +4,20 @@ import {
 	type CommandOptions,
 	type CommandRegistry,
 	defaultCommands,
+	HoldHotkeyController,
 	hotkeyMatches,
+	type ToggleCommandDefinition,
 } from "html-flip-book-vanilla/commands";
 import type React from "react";
-import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+} from "react";
 import type { FlipBookHandle } from "../FlipBook";
 
 interface CommandProviderProps {
@@ -33,6 +43,8 @@ interface CommandsContextValue {
 	execute: (command: CommandDefinition, runData?: Record<string, unknown>) => void;
 	/** Check if a command can execute (for disabled state). */
 	canExecute: (command: CommandDefinition) => boolean;
+	/** Read the current state of a toggle command for its toolbar button. */
+	isActive: (command: ToggleCommandDefinition) => boolean;
 	/** Get all registered commands. */
 	getAllCommands: () => CommandDefinition[];
 }
@@ -53,6 +65,8 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 	disableHotkeys = false,
 	children,
 }) => {
+	const holds = useRef(new HoldHotkeyController()).current;
+	const [, refresh] = useReducer((value: number) => value + 1, 0);
 	const registry = useMemo<CommandRegistry>(() => {
 		const reg: CommandRegistry = {};
 
@@ -87,22 +101,30 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 
 	const execute = useCallback(
 		(command: CommandDefinition, runData?: Record<string, unknown>) => {
+			if (holds.has(command.id)) return;
 			const ctx = createCommandContext(command, runData);
 			if (command.canExecute && !command.canExecute(ctx)) {
 				return;
 			}
 
 			command.execute(ctx);
+			refresh();
 		},
-		[createCommandContext],
+		[createCommandContext, holds],
 	);
 
 	const canExecute = useCallback(
 		(command: CommandDefinition): boolean => {
+			if (holds.has(command.id)) return false;
 			const ctx = createCommandContext(command);
 			if (!command.canExecute) return true;
 			return command.canExecute(ctx);
 		},
+		[createCommandContext, holds],
+	);
+
+	const isActive = useCallback(
+		(command: ToggleCommandDefinition) => command.isActive(createCommandContext(command)),
 		[createCommandContext],
 	);
 
@@ -111,12 +133,24 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 		[registry],
 	);
 
-	const handleKeyDown = useCallback(
-		(event: KeyboardEvent) => {
-			const target = event.target as HTMLElement;
-			if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+	const latest = useRef({ registry, execute, createCommandContext, direction, disableHotkeys });
+	latest.current = { registry, execute, createCommandContext, direction, disableHotkeys };
+
+	useEffect(() => {
+		if (holds.reconcile(registry, disableHotkeys)) refresh();
+	}, [holds, registry, disableHotkeys]);
+
+	useEffect(() => {
+		const handleKeyDown = (event: KeyboardEvent) => {
+			const { registry, execute, createCommandContext, direction, disableHotkeys } = latest.current;
+			if (disableHotkeys || event.defaultPrevented) return;
+			const target = event.target;
+			if (
+				target instanceof HTMLElement &&
+				(target.isContentEditable ||
+					target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'))
+			)
 				return;
-			}
 
 			for (const entry of Object.values(registry)) {
 				if (entry.options.disableHotkeys) continue;
@@ -124,31 +158,46 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 				const hotkeys = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
 				for (const binding of hotkeys) {
 					if (hotkeyMatches(binding, event, direction)) {
-						event.preventDefault();
-						execute(entry.command);
+						if (binding.mode === "hold") {
+							if (entry.command.kind !== "toggle") continue;
+							const ctx = createCommandContext(entry.command);
+							if (entry.command.canExecute && !entry.command.canExecute(ctx)) continue;
+							if (!event.repeat && holds.press(entry.command, binding, ctx)) refresh();
+							// Keep modifier-only browser shortcuts (such as Ctrl+C) usable.
+							if (!["Control", "Shift", "Alt", "Meta"].includes(binding.key))
+								event.preventDefault();
+						} else {
+							event.preventDefault();
+							execute(entry.command);
+						}
 						return;
 					}
 				}
 			}
-		},
-		[registry, execute, direction],
-	);
-
-	useEffect(() => {
-		if (disableHotkeys) return;
-
+		};
+		const handleKeyUp = (event: KeyboardEvent) => {
+			if (holds.release(event, latest.current.direction)) refresh();
+		};
+		const restore = () => {
+			if (holds.clear()) refresh();
+		};
+		const handleVisibility = () => {
+			if (document.hidden) restore();
+		};
 		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [disableHotkeys, handleKeyDown]);
+		document.addEventListener("keyup", handleKeyUp);
+		window.addEventListener("blur", restore);
+		document.addEventListener("visibilitychange", handleVisibility);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+			document.removeEventListener("keyup", handleKeyUp);
+			window.removeEventListener("blur", restore);
+			document.removeEventListener("visibilitychange", handleVisibility);
+			holds.clear();
+		};
+	}, [holds]);
 
-	const value = useMemo<CommandsContextValue>(
-		() => ({
-			execute,
-			canExecute,
-			getAllCommands,
-		}),
-		[execute, canExecute, getAllCommands],
-	);
+	const value: CommandsContextValue = { execute, canExecute, isActive, getAllCommands };
 
 	return <CommandsContext.Provider value={value}>{children}</CommandsContext.Provider>;
 };

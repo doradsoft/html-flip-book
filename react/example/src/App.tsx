@@ -17,6 +17,7 @@ export type ExampleId =
 	| "ltr-download"
 	| "ltr-initial-position"
 	| "ltr-no-snapshot"
+	| "ltr-hold-hotkeys"
 	| "ltr-comprehensive"
 	| "rtl-bookmarks"
 	| "rtl-no-shadow"
@@ -26,6 +27,7 @@ export type ExampleId =
 	| "rtl-download"
 	| "rtl-initial-position"
 	| "rtl-no-snapshot"
+	| "rtl-hold-hotkeys"
 	| "rtl-comprehensive";
 
 const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
@@ -37,6 +39,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-download", label: "Download" },
 	{ section: "LTR", id: "ltr-initial-position", label: "Initial position" },
 	{ section: "LTR", id: "ltr-no-snapshot", label: "No snapshot" },
+	{ section: "LTR", id: "ltr-hold-hotkeys", label: "Hold hotkeys" },
 	{ section: "LTR", id: "ltr-comprehensive", label: "Comprehensive" },
 	{ section: "RTL", id: "rtl-bookmarks", label: "Bookmarks" },
 	{ section: "RTL", id: "rtl-no-shadow", label: "No shadow" },
@@ -46,11 +49,14 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "RTL", id: "rtl-download", label: "Download" },
 	{ section: "RTL", id: "rtl-initial-position", label: "Initial position" },
 	{ section: "RTL", id: "rtl-no-snapshot", label: "No snapshot" },
+	{ section: "RTL", id: "rtl-hold-hotkeys", label: "Hold hotkeys" },
 	{ section: "RTL", id: "rtl-comprehensive", label: "Comprehensive" },
 ];
 
 function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 	switch (id) {
+		case "ltr-hold-hotkeys":
+			return { mouseMode: "select", debug: false, enableHistory: false, enableDownload: false };
 		case "ltr-no-shadow":
 			return {
 				showPageShadow: false,
@@ -96,6 +102,8 @@ function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
 
 function getHeBookConfig(id: ExampleId): HeBookConfig | undefined {
 	switch (id) {
+		case "rtl-hold-hotkeys":
+			return { mouseMode: "select", debug: false, enableHistory: false, enableDownload: false };
 		case "rtl-no-shadow":
 			return {
 				leavesBuffer: 7,
@@ -202,6 +210,12 @@ export const App: FC = () => {
 					</div>
 				</nav>
 				<section className="example-container" aria-live="polite">
+					{(selectedId.endsWith("-hold-hotkeys") || selectedId.endsWith("-comprehensive")) && (
+						<p className="hold-hotkey-hint">
+							With text selection on, hold <kbd>Ctrl</kbd> to turn pages with the mouse. Release it
+							to restore selection. The text-selection button follows the held state.
+						</p>
+					)}
 					{isBookmarkExample ? (
 						<BookmarkExample
 							key={selectedId}
