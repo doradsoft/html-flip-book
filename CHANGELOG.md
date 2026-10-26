@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `html-flip-book-react` peer dependency range widened to `^18.0.0 || ^19.0.0` for `react` and `react-dom`, so the package installs cleanly on React 19 apps.
 - Demo examples show page shadows by default, with dedicated "No shadow" examples for each reading direction.
 - Page turns settle smoothly from the held fold while cover boards retain rigid rotation.
 
