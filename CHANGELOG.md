@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Built-in history and download defaults (#168). When `enableHistory` is not false and no `historyMapper` is provided, a hash-based mapper (`#page/{semantic-name-or-index}`) syncs page flips with the URL, including Back/Forward restore and deep-linking to the page named in the URL on load. When `enableDownload` is not false and no `downloadConfig` is provided, built-in "entire book" and "page range" handlers export a JSON index of the book's pages. Consumer-provided `historyMapper`/`downloadConfig` still take precedence; `enableHistory: false`/`enableDownload: false` disable the features entirely.
 - Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
 - Optional short page titles complement full titles in page metadata. A toolbar control shows or hides bookmarks without changing navigation.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `html-flip-book-react` peer dependency range widened to `^18.0.0 || ^19.0.0` for `react` and `react-dom`, so the package installs cleanly on React 19 apps.
 - Demo examples show page shadows by default, with dedicated "No shadow" examples for each reading direction.
 - Page turns settle smoothly from the held fold while cover boards retain rigid rotation.
 
