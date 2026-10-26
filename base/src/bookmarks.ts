@@ -394,7 +394,12 @@ export class BookmarkLayer {
 			);
 			if (this.provider?.attachment === "pinned") continue;
 			if (item.button.hidden) continue;
-			if (frame.fold || (frame.position > 0 && frame.position < 1)) this.preview.close();
+			// A resting page's corner hover should not curl its bookmark material.
+			if (frame.restingPosition === 0 || frame.restingPosition === 1) {
+				this.motion.restore(item.leaf.id);
+				continue;
+			}
+			this.preview.close();
 			this.motion.sync(
 				{ id: item.leaf.id, pageIndex: index * 2 },
 				item.button,

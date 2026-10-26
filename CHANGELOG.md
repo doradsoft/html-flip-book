@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.
 - Bookmark reveals keep a stationary page-edge clip during hover, closing, and reentry, even when movement and reveal timing differ.
 - Page scrollbars sit beside the spine without changing the content's reading direction, leaving outer edges clear for page-turn gestures.
 - Download menus stay within the viewport on narrow screens and follow their toolbar trigger when scrolling or resizing.
