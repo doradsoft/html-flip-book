@@ -69,6 +69,22 @@ await flipBook.flipToPage(5);
 flipBook.jumpToPage(0); // instant, no animation
 ```
 
+## Browser History and Downloads
+
+Both work out of the box — no configuration needed:
+
+- **History** (`enableHistory`, on by default): the book keeps the URL in sync while
+  flipping using the built-in hash mapper — routes look like `#page/4` (or the
+  page's semantic name when `pageSemantics` is set, e.g. `#page/%D7%92`). Back/Forward
+  restores pages, and opening a deep link jumps straight to the named page. Pass your
+  own `historyMapper` to customize the route scheme, or `enableHistory: false` to
+  disable URL writes entirely.
+- **Download** (`enableDownload`, on by default): `getDownloadConfig()` falls back to a
+  built-in config whose "entire book" and "page range" handlers export a JSON index of
+  the book's pages (`pageIndex`, `semanticName`, `title`). Pass your own
+  `downloadConfig` for richer formats (e.g. PDF), or `enableDownload: false` to
+  disable.
+
 ## Styling
 
 Import the base styles:
