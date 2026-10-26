@@ -18,18 +18,7 @@ type FrameSample = AnchorBox & {
 };
 
 async function exposePreviewClass(page: Page): Promise<void> {
-	const moduleUrl = await page.evaluate(
-		() =>
-			performance
-				.getEntriesByType("resource")
-				.find((entry) => new URL(entry.name).pathname.endsWith("/base/src/bookmark-preview.ts"))
-				?.name,
-	);
-	if (!moduleUrl) throw new Error("Bookmark preview module is unavailable");
-	await page.addScriptTag({
-		type: "module",
-		content: `import(${JSON.stringify(moduleUrl)}).then((m) => { window.__BookmarkPreview = m.BookmarkPreview; });`,
-	});
+	await page.addScriptTag({ type: "module", url: "/src/bookmark-preview-for-tests.ts" });
 	await page.waitForFunction(() => window.__BookmarkPreview !== undefined);
 }
 
