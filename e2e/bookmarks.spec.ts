@@ -1310,6 +1310,39 @@ for (const direction of ["ltr", "rtl"] as const) {
 		}
 	});
 
+	test(`${direction}: edge hover curls the page while attached bookmarks stay still`, async ({
+		page,
+		isMobile,
+	}, testInfo) => {
+		test.skip(isMobile, "Edge hover is a mouse interaction.");
+		const book = await openBookmarks(page, direction, 1000000, "0,1");
+		await page.mouse.move(0, 0);
+		await page.keyboard.press("Escape");
+		for (const turn of ["forward", "backward"] as const) {
+			const surface = book.locator(`.page[data-page-index="${turn === "forward" ? 4 : 3}"]`);
+			const tab = bookmarkForPage(page, turn === "forward" ? 6 : 4);
+			await surface.scrollIntoViewIfNeeded();
+			const bounds = await boundsOf(surface);
+			const before = await boundsOf(tab);
+			const onRight = (direction === "ltr") === (turn === "forward");
+			await page.mouse.move(
+				bounds.x + bounds.width * (onRight ? 0.98 : 0.02),
+				bounds.y + bounds.height * 0.1,
+			);
+			await expect(book.locator(".page--folded")).toHaveCount(2);
+			await expect(book.locator(".flipbook-bookmark-surface")).toHaveCount(0);
+			await expect(tab).not.toHaveAttribute("data-bookmark-motion", "true");
+			const hovered = await boundsOf(tab);
+			expect(hovered.x).toBeCloseTo(before.x, 1);
+			expect(hovered.y).toBeCloseTo(before.y, 1);
+			expect(hovered.width).toBeCloseTo(before.width, 1);
+			expect(hovered.height).toBeCloseTo(before.height, 1);
+			await page.screenshot({ path: testInfo.outputPath(`bookmarks-${turn}-edge-hover.png`) });
+			await page.mouse.move(0, 0);
+			await expect(book.locator(".page--folded")).toHaveCount(0);
+		}
+	});
+
 	test(`${direction}: dragging a bookmark turns the current page and suppresses its click`, async ({
 		page,
 		isMobile,
