@@ -590,10 +590,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						}
 						return (index: number) =>
 							inRange.has(index) || inflightLeavesRef.current.has(Math.floor(index / 2))
-								? pagesWithKeys[index]
+								? (pagesWithKeys.at(index) ?? null)
 								: null;
 					})()
-				: (index: number) => pagesWithKeys[index];
+				: (index: number) => pagesWithKeys.at(index) ?? null;
 
 		/** Wrap interior cover pages with the endpaper inset frame (3-sided: no inset on spine). */
 		const renderPageContent = (index: number) => {

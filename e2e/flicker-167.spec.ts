@@ -46,8 +46,7 @@ async function sampleRapidBackFlips(
 			const book = document.querySelector(".en-book.flipbook");
 			if (book) {
 				w.__samples.push(
-					Array.from(book.querySelectorAll(".page")).map((el) => {
-						const e = el as HTMLElement;
+					Array.from(book.querySelectorAll<HTMLElement>(".page")).map((e) => {
 						const cs = getComputedStyle(e);
 						return {
 							i: e.dataset.pageIndex,
@@ -81,13 +80,14 @@ async function sampleRapidBackFlips(
 	});
 }
 
+const isHidden = (p: PageSample) => p.disp === "none" || p.cv === "hidden";
+const isMidFlip = (p: PageSample) => p.folded || p.flipping || p.clip === 1;
+
 function hiddenMidFlip(samples: PageSample[][]): string[] {
 	const violations: string[] = [];
 	for (const pages of samples) {
 		for (const p of pages) {
-			const hidden = p.disp === "none" || p.cv === "hidden";
-			const midFlip = p.folded || p.flipping || p.clip === 1;
-			if (hidden && midFlip) {
+			if (isHidden(p) && isMidFlip(p)) {
 				violations.push(
 					`page ${p.i} disp=${p.disp} cv=${p.cv} folded=${p.folded} flipping=${p.flipping} z=${p.z}`,
 				);
