@@ -176,8 +176,9 @@ export interface FlipBookProps {
 	 */
 	handlers?: FlipBookHandlers;
 	/**
-	 * When set, syncs the flip-book with browser history: pushState on flip, restore page on back/forward.
-	 * Default: undefined.
+	 * When set, syncs the flip-book with browser history: pushState on flip, restore page on back/forward,
+	 * and adopt the page named by the current URL on mount.
+	 * When omitted and enableHistory is not false, the built-in `#page/{name}` hash mapper is used.
 	 */
 	historyMapper?: HistoryMapper;
 	/**
@@ -188,6 +189,7 @@ export interface FlipBookProps {
 	/**
 	 * Download configuration: entire book and page-range handlers plus filename hints.
 	 * Toolbar's DownloadDropdown reads this from the flipbook ref.
+	 * When omitted and enableDownload is not false, the built-in JSON page-index default is used.
 	 */
 	downloadConfig?: DownloadConfig;
 	/**
@@ -203,13 +205,14 @@ export interface FlipBookProps {
 	 */
 	snapshotDuringFlip?: boolean;
 	/**
-	 * When false, history integration is disabled. When true or omitted, the provided historyMapper
-	 * is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 * When false, history integration is disabled entirely. When true or omitted, the provided
+	 * historyMapper is used, or the built-in hash-based default when none is provided.
 	 */
 	enableHistory?: boolean;
 	/**
-	 * When false, download is disabled (getDownloadConfig returns undefined). When true or omitted,
-	 * the provided downloadConfig is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 * When false, download is disabled entirely (getDownloadConfig returns undefined). When true or
+	 * omitted, the provided downloadConfig is used, or the built-in JSON page-index default when none
+	 * is provided.
 	 */
 	enableDownload?: boolean;
 }
@@ -624,5 +627,6 @@ export type {
 	PageFlipParams,
 	PageSemantics,
 } from "html-flip-book-vanilla";
+export { createDefaultHistoryMapper } from "html-flip-book-vanilla";
 export type { TocEntry, TocPageProps } from "./TocPage";
 export { TocPage } from "./TocPage";

@@ -1,4 +1,5 @@
 /** Re-export download types from base (framework-agnostic). */
+
 export type {
 	DownloadConfig,
 	DownloadResult,
@@ -7,3 +8,4 @@ export type {
 	SeferDownloadHandler,
 	SemanticPageInfo,
 } from "html-flip-book-vanilla/download";
+export { createDefaultDownloadConfig } from "html-flip-book-vanilla/download";
