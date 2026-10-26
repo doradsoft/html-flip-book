@@ -17,13 +17,18 @@ export type {
 	ToggleCommandDefinition,
 } from "html-flip-book-vanilla/commands";
 export {
+	canUseFullscreen,
 	defaultCommands,
 	downloadCommand,
+	exitFullscreen,
 	flipNextCommand,
 	flipPrevCommand,
+	fullscreenStateEvents,
+	getFullscreenElement,
 	goToFirstCommand,
 	goToLastCommand,
 	goToTocCommand,
+	requestFullscreen,
 	toggleDebugCommand,
 	toggleFullscreenCommand,
 	toggleTextSelectionCommand,

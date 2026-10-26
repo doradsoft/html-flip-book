@@ -34,6 +34,9 @@ const enFallbacks: Record<string, string> = {
 	"command.toggleDebug": "Toggle debug toolbar",
 	"command.toggleDebugDesc": "Show or hide the debug toolbar (Ctrl+Alt+D)",
 	"toolbarItem.goToPage": "Go to page",
+	"toolbarItem.enterFullscreen": "Enter fullscreen",
+	"toolbarItem.exitFullscreen": "Exit fullscreen",
+	"toolbarItem.fullscreenUnsupported": "Fullscreen is not supported by this browser",
 };
 
 export function getConfig(locale: Locale): LocaleConfig {

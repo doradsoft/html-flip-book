@@ -59,7 +59,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	const [isLastPage, setIsLastPage] = useState(false);
 	const [mouseMode, setMouseMode] = useState<"turn" | "select">("turn");
 
-	const mergedCommandOptions: Record<string, CommandOptions> = {
+	const internalCommandOptions: Record<string, CommandOptions> = {
 		...(fullscreenTargetRef
 			? {
 					toggleFullscreen: {
@@ -77,8 +77,23 @@ const Toolbar: React.FC<ToolbarProps> = ({
 				onDownload: (from?: number, to?: number) => downloadExecutorRef.current?.(from, to),
 			},
 		},
-		...commandOptions,
 	};
+
+	// Consumer options override toolbar defaults per command; data merges shallowly so
+	// e.g. rebinding the fullscreen hotkey doesn't drop the injected fullscreen target.
+	const mergedCommandOptions: Record<string, CommandOptions> = { ...commandOptions };
+	for (const id of Object.keys(internalCommandOptions)) {
+		const consumer = mergedCommandOptions[id];
+		if (!consumer) {
+			mergedCommandOptions[id] = internalCommandOptions[id];
+		} else {
+			mergedCommandOptions[id] = {
+				...internalCommandOptions[id],
+				...consumer,
+				data: { ...internalCommandOptions[id].data, ...consumer.data },
+			};
+		}
+	}
 
 	// Update state from FlipBook ref (book is source of truth for current, total, of)
 	const updateState = useCallback(() => {

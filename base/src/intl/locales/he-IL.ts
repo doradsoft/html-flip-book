@@ -25,6 +25,9 @@ const heIL: LocaleConfig = {
 		"toolbarItem.goToPage": "מעבר לעמוד",
 		"toolbarItem.selectText": "בחירת טקסט עם העכבר",
 		"toolbarItem.selectionLetters": "אב",
+		"toolbarItem.enterFullscreen": "כניסה למסך מלא",
+		"toolbarItem.exitFullscreen": "יציאה ממסך מלא",
+		"toolbarItem.fullscreenUnsupported": "מסך מלא אינו נתמך בדפדפן זה",
 	},
 };
 

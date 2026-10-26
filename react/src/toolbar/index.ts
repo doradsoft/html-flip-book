@@ -10,13 +10,18 @@ export type {
 } from "../commands";
 // Commands
 export {
+	canUseFullscreen,
 	defaultCommands,
 	downloadCommand,
+	exitFullscreen,
 	flipNextCommand,
 	flipPrevCommand,
+	fullscreenStateEvents,
+	getFullscreenElement,
 	goToFirstCommand,
 	goToLastCommand,
 	goToTocCommand,
+	requestFullscreen,
 	toggleDebugCommand,
 	toggleFullscreenCommand,
 	toggleTextSelectionCommand,
