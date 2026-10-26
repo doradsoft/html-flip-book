@@ -39,6 +39,8 @@ export class BookmarkPreview {
 		this.clipBoundary.hidden = true;
 		this.clipBoundary.append(this.element);
 		document.body.append(this.clipBoundary);
+		// Escape dismisses the preview even when focus has moved off the bookmark button.
+		document.addEventListener("keydown", this.escapeKey);
 	}
 
 	open(source: HTMLButtonElement, content: HTMLElement, edge: Edge, className = ""): void {
@@ -147,8 +149,13 @@ export class BookmarkPreview {
 		this.close();
 		this.element.removeEventListener("pointerenter", this.resume);
 		this.element.removeEventListener("pointerleave", this.pointerLeave);
+		this.element.ownerDocument.removeEventListener("keydown", this.escapeKey);
 		this.clipBoundary.remove();
 	}
+
+	private readonly escapeKey = (event: KeyboardEvent): void => {
+		if (event.key === "Escape" && !this.element.hidden) this.close(false);
+	};
 
 	private resume = (): void => {
 		if (this.closeTimer === undefined || !this.source || !this.compact) return;
@@ -215,25 +222,28 @@ export class BookmarkPreview {
 	}
 
 	private protectPage(edge: Edge, exposed: DOMRect, target: Bounds): void {
-		const top = edge === "bottom" ? Math.max(0, Math.min(exposed.top, target.top)) : 0;
-		const left = edge === "right" ? Math.max(0, Math.min(exposed.left, target.left)) : 0;
-		const right =
-			edge === "left"
-				? Math.max(
-						0,
-						(this.view?.innerWidth ?? exposed.right) -
-							Math.max(exposed.right, target.left + target.width),
-					)
-				: 0;
-		const bottom =
-			edge === "top"
-				? Math.max(
-						0,
-						(this.view?.innerHeight ?? exposed.bottom) -
-							Math.max(exposed.bottom, target.top + target.height),
-					)
-				: 0;
+		const inset = this.edgeInset(edge, exposed, target);
+		const top = edge === "bottom" ? inset : 0;
+		const left = edge === "right" ? inset : 0;
+		const right = edge === "left" ? inset : 0;
+		const bottom = edge === "top" ? inset : 0;
 		this.clipBoundary.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+	}
+
+	private edgeInset(edge: Edge, exposed: DOMRect, target: Bounds): number {
+		if (edge === "bottom") return Math.max(0, Math.min(exposed.top, target.top));
+		if (edge === "right") return Math.max(0, Math.min(exposed.left, target.left));
+		if (edge === "left")
+			return Math.max(
+				0,
+				(this.view?.innerWidth ?? exposed.right) -
+					Math.max(exposed.right, target.left + target.width),
+			);
+		return Math.max(
+			0,
+			(this.view?.innerHeight ?? exposed.bottom) -
+				Math.max(exposed.bottom, target.top + target.height),
+		);
 	}
 
 	private clip(rect: DOMRect, exposed: DOMRect): string {

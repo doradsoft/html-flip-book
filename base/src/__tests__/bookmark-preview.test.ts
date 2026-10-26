@@ -264,6 +264,22 @@ describe("bookmark previews", () => {
 		expect(element?.style.height).toBe("220px");
 	});
 
+	it("dismisses an open preview on Escape even when focus moved elsewhere", async () => {
+		preview.open(source, content, "right");
+		await vi.advanceTimersByTimeAsync(32);
+		const element = document.querySelector<HTMLElement>(".flipbook-bookmark-preview");
+		expect(element?.hidden).toBe(false);
+		const select = document.createElement("select");
+		document.body.append(select);
+		select.focus();
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+		expect(element?.dataset.open).toBe("false");
+		await vi.advanceTimersByTimeAsync(180);
+		expect(element?.hidden).toBe(true);
+		expect(source.parentElement).toBe(slot);
+		select.remove();
+	});
+
 	it("keeps a displaced strip open while the pointer remains over its original slot", async () => {
 		const rail = document.createElement("div");
 		rail.className = "flipbook-bookmarks__rail";
