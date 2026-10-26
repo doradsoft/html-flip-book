@@ -18,7 +18,8 @@ type FrameSample = AnchorBox & {
 };
 
 async function exposePreviewClass(page: Page): Promise<void> {
-	await page.addScriptTag({ type: "module", url: "/src/bookmark-preview-for-tests.ts" });
+	const bridgeUrl = new URL("src/bookmark-preview-for-tests.ts", page.url());
+	await page.addScriptTag({ type: "module", url: bridgeUrl.toString() });
 	await page.waitForFunction(() => window.__BookmarkPreview !== undefined);
 }
 
