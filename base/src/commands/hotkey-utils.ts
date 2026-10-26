@@ -32,6 +32,16 @@ export function hotkeyMatches(
 	return true;
 }
 
+function hasReleasedModifier(binding: HotkeyBinding, event: KeyboardEvent): boolean {
+	const modifiers = binding.modifiers ?? {};
+	return [
+		modifiers.ctrl && !event.ctrlKey,
+		modifiers.shift && !event.shiftKey,
+		modifiers.alt && !event.altKey,
+		modifiers.meta && !event.metaKey,
+	].some(Boolean);
+}
+
 /** Whether a keyup releases the primary key or any modifier required by a hold. */
 export function hotkeyReleased(
 	binding: HotkeyBinding,
@@ -42,13 +52,5 @@ export function hotkeyReleased(
 	if (key === binding.key) return true;
 	// Shift may change a printable key's case before it is released.
 	if (key.length === 1 && key.toLowerCase() === binding.key.toLowerCase()) return true;
-	const modifierKeys = {
-		ctrl: "ctrlKey",
-		shift: "shiftKey",
-		alt: "altKey",
-		meta: "metaKey",
-	} as const;
-	return (Object.keys(modifierKeys) as (keyof typeof modifierKeys)[]).some(
-		(modifier) => !!binding.modifiers?.[modifier] && !event[modifierKeys[modifier]],
-	);
+	return hasReleasedModifier(binding, event);
 }

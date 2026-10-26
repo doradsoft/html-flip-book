@@ -6,16 +6,23 @@ import type {
 	ToggleCommandDefinition,
 } from "./types";
 
+function sameModifiers(a: HotkeyBinding, b: HotkeyBinding): boolean {
+	const left = a.modifiers ?? {};
+	const right = b.modifiers ?? {};
+	return [
+		!!left.ctrl === !!right.ctrl,
+		!!left.shift === !!right.shift,
+		!!left.alt === !!right.alt,
+		!!left.meta === !!right.meta,
+	].every(Boolean);
+}
+
 function sameBinding(a: HotkeyBinding, b: HotkeyBinding): boolean {
-	const modifiers = ["ctrl", "shift", "alt", "meta"] as const;
-	const sameModifiers = modifiers.every(
-		(modifier) => !!a.modifiers?.[modifier] === !!b.modifiers?.[modifier],
-	);
 	return (
 		a.key === b.key &&
 		a.mode === b.mode &&
 		(a.active ?? true) === (b.active ?? true) &&
-		sameModifiers
+		sameModifiers(a, b)
 	);
 }
 
