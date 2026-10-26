@@ -1,7 +1,7 @@
 {
 	"name": "html-flip-book-react",
 	"description": "Flip Book React Component",
-	"version": "0.0.0-alpha.51",
+	"version": "0.0.0-alpha.52",
 	"type": "module",
 	"author": "DoradSoft",
 	"main": "./dist/flip-book.js",
@@ -35,8 +35,8 @@
 	],
 	"license": "MIT",
 	"peerDependencies": {
-		"react": "^18.0.0",
-		"react-dom": "^18.0.0"
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0"
 	},
 	"dependencies": {
 		"html-flip-book-vanilla": "file:../base"

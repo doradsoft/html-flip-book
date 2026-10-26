@@ -4,6 +4,7 @@ type Bounds = { left: number; top: number; width: number; height: number };
 /** Reveal the same fixed-size strip outside its resting slot without changing its material size. */
 export class BookmarkPreview {
 	private readonly element: HTMLDivElement;
+	private readonly clipBoundary: HTMLDivElement;
 	private source: HTMLButtonElement | undefined;
 	private content: HTMLElement | undefined;
 	private placeholder: HTMLSpanElement | undefined;
@@ -30,7 +31,16 @@ export class BookmarkPreview {
 		this.element.hidden = true;
 		this.element.addEventListener("pointerenter", this.resume);
 		this.element.addEventListener("pointerleave", this.pointerLeave);
-		document.body.append(this.element);
+		this.clipBoundary = document.createElement("div");
+		this.clipBoundary.className = "flipbook-bookmark-preview-boundary";
+		// Keep the page protected independently of animated position and clipping.
+		// Inline geometry also works with consumers that supply their own stylesheets.
+		this.clipBoundary.style.cssText = "position:fixed;inset:0;pointer-events:none;transition:none";
+		this.clipBoundary.hidden = true;
+		this.clipBoundary.append(this.element);
+		document.body.append(this.clipBoundary);
+		// Escape dismisses the preview even when focus has moved off the bookmark button.
+		document.addEventListener("keydown", this.escapeKey);
 	}
 
 	open(source: HTMLButtonElement, content: HTMLElement, edge: Edge, className = ""): void {
@@ -54,13 +64,17 @@ export class BookmarkPreview {
 		this.compactClip = this.clip(rect, exposed);
 		this.revealed = this.place(rect, exposed, edge, source);
 		this.placeholder = this.reserveSlot(source, rect);
+		this.element.style.transition = "none";
 		this.element.className = `flipbook-bookmark-preview ${className}`.trim();
 		this.element.dataset.bookmarkId = source.dataset.bookmarkId;
 		this.element.dataset.edge = edge;
 		this.element.dataset.open = "false";
 		this.setBounds(this.compact);
 		this.element.style.clipPath = this.compactClip;
+		this.protectPage(edge, exposed, this.revealed);
+		this.clipBoundary.hidden = false;
 		this.element.hidden = false;
+		this.clipBoundary.style.zIndex = this.view?.getComputedStyle(this.element).zIndex || "auto";
 		this.copyAppearance(source);
 		source.style.position = "absolute";
 		source.style.inset = "0px";
@@ -78,6 +92,7 @@ export class BookmarkPreview {
 		this.transferring = false;
 		// Material size is fixed before hover; only its position and concealed portion change.
 		void this.element.offsetWidth;
+		this.element.style.removeProperty("transition");
 		this.animationFrame =
 			this.view?.requestAnimationFrame(() => {
 				this.element.dataset.open = "true";
@@ -134,8 +149,13 @@ export class BookmarkPreview {
 		this.close();
 		this.element.removeEventListener("pointerenter", this.resume);
 		this.element.removeEventListener("pointerleave", this.pointerLeave);
-		this.element.remove();
+		this.element.ownerDocument.removeEventListener("keydown", this.escapeKey);
+		this.clipBoundary.remove();
 	}
+
+	private readonly escapeKey = (event: KeyboardEvent): void => {
+		if (event.key === "Escape" && !this.element.hidden) this.close(false);
+	};
 
 	private resume = (): void => {
 		if (this.closeTimer === undefined || !this.source || !this.compact) return;
@@ -165,6 +185,7 @@ export class BookmarkPreview {
 			if (focused) this.source.focus({ preventScroll: true });
 		}
 		this.element.hidden = true;
+		this.clipBoundary.hidden = true;
 		this.content = undefined;
 		this.source = undefined;
 		this.placeholder = undefined;
@@ -198,6 +219,31 @@ export class BookmarkPreview {
 	private setPosition(bounds: Bounds): void {
 		this.element.style.left = `${bounds.left}px`;
 		this.element.style.top = `${bounds.top}px`;
+	}
+
+	private protectPage(edge: Edge, exposed: DOMRect, target: Bounds): void {
+		const inset = this.edgeInset(edge, exposed, target);
+		const top = edge === "bottom" ? inset : 0;
+		const left = edge === "right" ? inset : 0;
+		const right = edge === "left" ? inset : 0;
+		const bottom = edge === "top" ? inset : 0;
+		this.clipBoundary.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;
+	}
+
+	private edgeInset(edge: Edge, exposed: DOMRect, target: Bounds): number {
+		if (edge === "bottom") return Math.max(0, Math.min(exposed.top, target.top));
+		if (edge === "right") return Math.max(0, Math.min(exposed.left, target.left));
+		if (edge === "left")
+			return Math.max(
+				0,
+				(this.view?.innerWidth ?? exposed.right) -
+					Math.max(exposed.right, target.left + target.width),
+			);
+		return Math.max(
+			0,
+			(this.view?.innerHeight ?? exposed.bottom) -
+				Math.max(exposed.bottom, target.top + target.height),
+		);
 	}
 
 	private clip(rect: DOMRect, exposed: DOMRect): string {
