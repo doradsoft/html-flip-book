@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.
 - Page scrollbars sit beside the spine without changing the content's reading direction, leaving outer edges clear for page-turn gestures.
 - Download menus stay within the viewport on narrow screens and follow their toolbar trigger when scrolling or resizing.
 - Dragging images and links turns pages without starting a competing native browser drag; selection mode and excluded areas retain native dragging.

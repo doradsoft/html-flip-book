@@ -114,7 +114,7 @@ In the default page-turn mode, dragging a bookmark turns the current page, just 
 
 ## Turn with the leaf or stay pinned
 
-`attachment: "leaf"` is the default. A bookmark follows the leaf carrying the start of its facing spread, including folding and settling back after a canceled drag. Set `attachment: "pinned"` to keep tabs on the book's resting edge while pages turn.
+`attachment: "leaf"` is the default. A bookmark follows the leaf carrying the start of its facing spread, including folding and settling back after a canceled drag. Tabs stay still during the page's corner hover preview and begin folding when the page turns. Set `attachment: "pinned"` to keep tabs on the book's resting edge while pages turn.
 
 With leaf attachment, `left` and `right` show only tabs whose target leaves currently occupy that side. Those tabs follow their leaf while it turns and disappear from that rail when the turn finishes on the opposite side. Use `sides` to keep tabs available on both sides, or pinned attachment to keep every tab on a fixed left-only or right-only rail.
 
