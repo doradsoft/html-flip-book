@@ -221,15 +221,15 @@ describe("TocButton", () => {
 });
 
 describe("FullscreenButton", () => {
-	const stubFullscreenApi = () => {
+	function stubFullscreenApi() {
 		(HTMLElement.prototype as HTMLElement & { requestFullscreen?: unknown }).requestFullscreen = vi
 			.fn()
 			.mockResolvedValue(undefined);
-	};
-	const cleanupFullscreenApi = () => {
+	}
+	function cleanupFullscreenApi() {
 		delete (HTMLElement.prototype as HTMLElement & { requestFullscreen?: unknown })
 			.requestFullscreen;
-	};
+	}
 	afterEach(cleanupFullscreenApi);
 
 	it("should render with enter fullscreen label by default", () => {
