@@ -197,8 +197,23 @@ describe("bookmark previews", () => {
 		preview.destroy();
 		await vi.advanceTimersByTimeAsync(200);
 		expect(document.querySelector(".flipbook-bookmark-preview")).toBeNull();
+		expect(document.querySelector(".flipbook-bookmark-preview-boundary")).toBeNull();
 		expect(content.parentElement).toBe(storage);
 		expect(source.parentElement).toBe(slot);
+	});
+
+	it("retains the consumer's preview stacking order on the stationary boundary", () => {
+		const styles = document.createElement("style");
+		styles.textContent = ".consumer-preview { z-index: 12000; }";
+		document.head.append(styles);
+		try {
+			preview.open(source, content, "right", "consumer-preview");
+			const boundary = source.closest<HTMLElement>(".flipbook-bookmark-preview-boundary");
+			expect(boundary?.style.zIndex).toBe("12000");
+			expect(boundary?.style.clipPath).toBe("inset(0px 0px 0px 300px)");
+		} finally {
+			styles.remove();
+		}
 	});
 
 	it("moves a parallel strip beyond the last friend when that rail end has room", async () => {
