@@ -296,6 +296,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// affected by this debounce.
 		const BUFFER_DEBOUNCE_MS = 80;
 		const pageChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+		// Leaves whose flip animation is in flight. The base keeps their page
+		// wrappers visible even outside the leavesBuffer window, so their content
+		// must stay mounted too — otherwise a revealed flipping page renders blank
+		// (issue #167). Cleared once flips settle and the buffer window recenters.
+		const inflightLeavesRef = useRef<Set<number>>(new Set());
+		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
 			setPageIndexRef.current?.(index);
 		});
@@ -310,8 +316,27 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
+				inflightLeavesRef.current.clear();
 				setPageIndexRef.current?.(index);
 			}, BUFFER_DEBOUNCE_MS);
+		};
+		const onPageFlippingRef = useRef((params: PageFlipParams) => {
+			handlers?.onPageFlipping?.(params);
+		});
+		onPageFlippingRef.current = (params) => {
+			if (leavesBuffer != null) {
+				// The flipping leaf holds the page on the trailing edge of the target
+				// spread: backward flips carry pageIndices[1] on their back, forward
+				// flips carry pageIndices[0] on their front.
+				const edgePage =
+					params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
+				const flippingLeaf = Math.floor(edgePage / 2);
+				if (!inflightLeavesRef.current.has(flippingLeaf)) {
+					inflightLeavesRef.current.add(flippingLeaf);
+					setInflightVersion((v) => v + 1);
+				}
+			}
+			handlers?.onPageFlipping?.(params);
 		};
 
 		// Clean up debounce timer on unmount.
@@ -337,7 +362,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				coverAspectRatio: coverAspectRatio,
 				coverPageIndices: coverConfig?.coverIndices,
 				onPageChanged: (index: number) => onPageChangedRef.current(index),
-				onPageFlipping: handlers?.onPageFlipping,
+				onPageFlipping: (params) => onPageFlippingRef.current(params),
 				onPageFlipped: handlers?.onPageFlipped,
 				historyMapper,
 				tocPageIndex: tocPageIndex ?? 4,
@@ -563,7 +588,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 								inRange.add(partner);
 							}
 						}
-						return (index: number) => (inRange.has(index) ? pagesWithKeys[index] : null);
+						return (index: number) =>
+							inRange.has(index) || inflightLeavesRef.current.has(Math.floor(index / 2))
+								? pagesWithKeys[index]
+								: null;
 					})()
 				: (index: number) => pagesWithKeys[index];
 

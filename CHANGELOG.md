@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rapid consecutive page flips no longer flicker: leaves stay visible while their flip animation is in flight, even when the `leavesBuffer` window slides past them, and the React wrapper keeps their content mounted until flips settle (#167).
 - Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.
 - Page scrollbars sit beside the spine without changing the content's reading direction, leaving outer edges clear for page-turn gestures.
 - Download menus stay within the viewport on narrow screens and follow their toolbar trigger when scrolling or resizing.

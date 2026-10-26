@@ -769,9 +769,14 @@ class FlipBook {
 			const leaf = this.leaves[i];
 			const isWithinBuffer = i >= bufferStart && i <= bufferEnd;
 			const isCoverLeaf = coverLeafIndices.has(i);
+			// A leaf whose flip is in flight must stay visible even outside the
+			// buffer window — during rapid consecutive flips the window can move
+			// past leaves that are still mid-animation, and hiding them makes the
+			// turning page vanish and reappear (the flicker of issue #167).
+			const isFlipping = this.activeFlips.has(i) || leaf.isFlipping;
 
 			// Cover leaves are always visible; other leaves follow the buffer range.
-			const visible = isCoverLeaf || isWithinBuffer;
+			const visible = isCoverLeaf || isWithinBuffer || isFlipping;
 
 			// Update both pages of the leaf
 			for (const page of leaf.pages) {
@@ -987,6 +992,8 @@ class FlipBook {
 				isDuringAutoFlip: false,
 			};
 			this.activeFlips.set(leaf.index, flipState);
+			// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+			this.updateLeavesBufferVisibility();
 		}
 
 		// Update delta
@@ -1346,6 +1353,8 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+		this.updateLeavesBufferVisibility();
 		const targetPageIndex = this.currentPageIndex + 2;
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
@@ -1379,6 +1388,8 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+		this.updateLeavesBufferVisibility();
 		const targetPageIndex = this.currentPageIndex - 2;
 		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
