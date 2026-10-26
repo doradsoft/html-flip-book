@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Built-in history and download defaults (#168). When `enableHistory` is not false and no `historyMapper` is provided, a hash-based mapper (`#page/{semantic-name-or-index}`) syncs page flips with the URL, including Back/Forward restore and deep-linking to the page named in the URL on load. When `enableDownload` is not false and no `downloadConfig` is provided, built-in "entire book" and "page range" handlers export a JSON index of the book's pages. Consumer-provided `historyMapper`/`downloadConfig` still take precedence; `enableHistory: false`/`enableDownload: false` disable the features entirely.
 - Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
 - Optional short page titles complement full titles in page metadata. A toolbar control shows or hides bookmarks without changing navigation.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
@@ -17,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.
+- Bookmark reveals keep a stationary page-edge clip during hover, closing, and reentry, even when movement and reveal timing differ.
+- Escape dismisses an open bookmark preview even when focus has moved to another control.
 - Page scrollbars sit beside the spine without changing the content's reading direction, leaving outer edges clear for page-turn gestures.
 - Download menus stay within the viewport on narrow screens and follow their toolbar trigger when scrolling or resizing.
 - Dragging images and links turns pages without starting a competing native browser drag; selection mode and excluded areas retain native dragging.

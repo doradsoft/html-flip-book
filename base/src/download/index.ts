@@ -1,3 +1,4 @@
+export { createDefaultDownloadConfig } from "./default-config";
 export type {
 	DownloadConfig,
 	DownloadResult,

@@ -30,6 +30,7 @@ export type {
 	SeferDownloadHandler,
 	SemanticPageInfo,
 } from "../download/types";
+export { createDefaultDownloadConfig } from "../download/types";
 export type { IconProps } from "../icons";
 // Icons
 export {
