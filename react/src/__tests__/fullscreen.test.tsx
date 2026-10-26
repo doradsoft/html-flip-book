@@ -153,8 +153,8 @@ describe("FullscreenButton", () => {
 				<FullscreenButton unsupportedBehavior="disable" />
 			</Toolbar>,
 		);
-		const button = screen.getByRole("button", { name: "כניסה למסך מלא" }) as HTMLButtonElement;
-		expect(button.disabled).toBe(true);
+		const button = screen.getByRole("button", { name: "כניסה למסך מלא" });
+		expect((button as HTMLButtonElement).disabled).toBe(true);
 		expect(button.getAttribute("title")).toBe("מסך מלא אינו נתמך בדפדפן זה");
 	});
 

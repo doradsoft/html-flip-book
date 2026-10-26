@@ -215,8 +215,8 @@ describe("TocButton", () => {
 			</Toolbar>,
 		);
 
-		const button = screen.getByRole("button", { name: /table of contents/i }) as HTMLButtonElement;
-		expect(button.disabled).toBe(true);
+		const button = screen.getByRole("button", { name: /table of contents/i });
+		expect((button as HTMLButtonElement).disabled).toBe(true);
 	});
 });
 
@@ -227,8 +227,7 @@ describe("FullscreenButton", () => {
 			.mockResolvedValue(undefined);
 	};
 	const cleanupFullscreenApi = () => {
-		delete (HTMLElement.prototype as HTMLElement & { requestFullscreen?: unknown })
-			.requestFullscreen;
+		Reflect.deleteProperty(HTMLElement.prototype, "requestFullscreen");
 	};
 	afterEach(cleanupFullscreenApi);
 

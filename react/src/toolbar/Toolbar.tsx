@@ -81,19 +81,17 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
 	// Consumer options override toolbar defaults per command; data merges shallowly so
 	// e.g. rebinding the fullscreen hotkey doesn't drop the injected fullscreen target.
-	const mergedCommandOptions: Record<string, CommandOptions> = { ...commandOptions };
-	for (const id of Object.keys(internalCommandOptions)) {
-		const consumer = mergedCommandOptions[id];
-		if (!consumer) {
-			mergedCommandOptions[id] = internalCommandOptions[id];
-		} else {
-			mergedCommandOptions[id] = {
-				...internalCommandOptions[id],
-				...consumer,
-				data: { ...internalCommandOptions[id].data, ...consumer.data },
-			};
-		}
+	const optionsById = new Map(Object.entries(commandOptions ?? {}));
+	for (const [id, internal] of Object.entries(internalCommandOptions)) {
+		const consumer = optionsById.get(id);
+		optionsById.set(
+			id,
+			consumer
+				? { ...internal, ...consumer, data: { ...internal.data, ...consumer.data } }
+				: internal,
+		);
 	}
+	const mergedCommandOptions = Object.fromEntries(optionsById);
 
 	// Update state from FlipBook ref (book is source of truth for current, total, of)
 	const updateState = useCallback(() => {
