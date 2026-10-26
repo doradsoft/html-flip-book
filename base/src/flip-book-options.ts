@@ -84,14 +84,15 @@ export interface FlipBookOptions {
 	onPageFlipped?: (params: PageFlipParams) => void;
 	/**
 	 * When set, the flip-book syncs with browser history: pushState on flip, restore page on popstate (back/forward).
-	 * There is no built-in default; the consumer must provide this. When undefined, no history integration.
-	 * @see https://github.com/doradsoft/html-flip-book/issues/168 — future default support.
+	 * On render, the book also adopts the page that routeToPage extracts from the current URL (deep links).
+	 * When omitted and enableHistory is not false, a built-in hash mapper is used (`#page/{name}` —
+	 * see {@link createDefaultHistoryMapper}); semantic page names are preferred over raw indices.
 	 */
 	historyMapper?: HistoryMapper;
 	/**
-	 * When false, history integration is disabled (historyMapper ignored). When true or omitted, the
-	 * provided historyMapper is used; there is no default implementation.
-	 * @see https://github.com/doradsoft/html-flip-book/issues/168
+	 * When false, history integration is disabled entirely (historyMapper ignored, no URL writes).
+	 * When true or omitted, the provided historyMapper is used, or the built-in hash-based default
+	 * when none is provided.
 	 */
 	enableHistory?: boolean;
 	/** Velocity threshold (px/s) for fast swipe to complete flip. Default: 500 */
@@ -120,15 +121,15 @@ export interface FlipBookOptions {
 	tocPageIndex?: number;
 	/**
 	 * Download configuration: entire book and page-range handlers plus filename hints.
-	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref. There is no built-in default;
-	 * the consumer must provide this.
-	 * @see https://github.com/doradsoft/html-flip-book/issues/168 — future default support.
+	 * Toolbar (e.g. DownloadDropdown) reads this from the flipbook ref.
+	 * When omitted and enableDownload is not false, a built-in default exports a JSON index
+	 * of the book's pages (see {@link createDefaultDownloadConfig}).
 	 */
 	downloadConfig?: DownloadConfig;
 	/**
-	 * When false, download is disabled (downloadConfig ignored, getDownloadConfig returns undefined).
-	 * When true or omitted, the provided downloadConfig is used; there is no default implementation.
-	 * @see https://github.com/doradsoft/html-flip-book/issues/168
+	 * When false, download is disabled entirely (downloadConfig ignored, getDownloadConfig returns undefined).
+	 * When true or omitted, the provided downloadConfig is used, or the built-in JSON page-index
+	 * default when none is provided.
 	 */
 	enableDownload?: boolean;
 	/**

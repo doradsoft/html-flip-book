@@ -197,8 +197,23 @@ describe("bookmark previews", () => {
 		preview.destroy();
 		await vi.advanceTimersByTimeAsync(200);
 		expect(document.querySelector(".flipbook-bookmark-preview")).toBeNull();
+		expect(document.querySelector(".flipbook-bookmark-preview-boundary")).toBeNull();
 		expect(content.parentElement).toBe(storage);
 		expect(source.parentElement).toBe(slot);
+	});
+
+	it("retains the consumer's preview stacking order on the stationary boundary", () => {
+		const styles = document.createElement("style");
+		styles.textContent = ".consumer-preview { z-index: 12000; }";
+		document.head.append(styles);
+		try {
+			preview.open(source, content, "right", "consumer-preview");
+			const boundary = source.closest<HTMLElement>(".flipbook-bookmark-preview-boundary");
+			expect(boundary?.style.zIndex).toBe("12000");
+			expect(boundary?.style.clipPath).toBe("inset(0px 0px 0px 300px)");
+		} finally {
+			styles.remove();
+		}
 	});
 
 	it("moves a parallel strip beyond the last friend when that rail end has room", async () => {
@@ -247,6 +262,22 @@ describe("bookmark previews", () => {
 		expect(element?.style.left).toBe("300px");
 		expect(element?.style.width).toBe("24px");
 		expect(element?.style.height).toBe("220px");
+	});
+
+	it("dismisses an open preview on Escape even when focus moved elsewhere", async () => {
+		preview.open(source, content, "right");
+		await vi.advanceTimersByTimeAsync(32);
+		const element = document.querySelector<HTMLElement>(".flipbook-bookmark-preview");
+		expect(element?.hidden).toBe(false);
+		const select = document.createElement("select");
+		document.body.append(select);
+		select.focus();
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+		expect(element?.dataset.open).toBe("false");
+		await vi.advanceTimersByTimeAsync(180);
+		expect(element?.hidden).toBe(true);
+		expect(source.parentElement).toBe(slot);
+		select.remove();
 	});
 
 	it("keeps a displaced strip open while the pointer remains over its original slot", async () => {
