@@ -42,11 +42,13 @@ export function hotkeyReleased(
 	if (key === binding.key) return true;
 	// Shift may change a printable key's case before it is released.
 	if (key.length === 1 && key.toLowerCase() === binding.key.toLowerCase()) return true;
-	const modifiers = binding.modifiers ?? {};
-	return !!(
-		(modifiers.ctrl && !event.ctrlKey) ||
-		(modifiers.shift && !event.shiftKey) ||
-		(modifiers.alt && !event.altKey) ||
-		(modifiers.meta && !event.metaKey)
+	const modifierKeys = {
+		ctrl: "ctrlKey",
+		shift: "shiftKey",
+		alt: "altKey",
+		meta: "metaKey",
+	} as const;
+	return (Object.keys(modifierKeys) as (keyof typeof modifierKeys)[]).some(
+		(modifier) => !!binding.modifiers?.[modifier] && !event[modifierKeys[modifier]],
 	);
 }

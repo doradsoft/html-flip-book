@@ -7,14 +7,15 @@ import type {
 } from "./types";
 
 function sameBinding(a: HotkeyBinding, b: HotkeyBinding): boolean {
+	const modifiers = ["ctrl", "shift", "alt", "meta"] as const;
+	const sameModifiers = modifiers.every(
+		(modifier) => !!a.modifiers?.[modifier] === !!b.modifiers?.[modifier],
+	);
 	return (
 		a.key === b.key &&
 		a.mode === b.mode &&
 		(a.active ?? true) === (b.active ?? true) &&
-		!!a.modifiers?.ctrl === !!b.modifiers?.ctrl &&
-		!!a.modifiers?.shift === !!b.modifiers?.shift &&
-		!!a.modifiers?.alt === !!b.modifiers?.alt &&
-		!!a.modifiers?.meta === !!b.modifiers?.meta
+		sameModifiers
 	);
 }
 
@@ -58,13 +59,19 @@ export class HoldHotkeyController {
 
 	/** Restore removed/disabled bindings without interrupting holds on ordinary rerenders. */
 	reconcile(registry: CommandRegistry, disabled: boolean): boolean {
-		return this.removeBindings((binding, held) => {
-			const entry = registry[held.command.id];
-			if (disabled || !entry || entry.options.disableHotkeys || entry.command !== held.command)
-				return true;
-			const bindings = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
-			return !bindings.some((b) => sameBinding(b, binding));
-		});
+		if (disabled) return this.clear();
+		return this.removeBindings((binding, held) => !this.isRegistered(binding, held, registry));
+	}
+
+	private isRegistered(
+		binding: HotkeyBinding,
+		held: HeldToggle,
+		registry: CommandRegistry,
+	): boolean {
+		const entry = registry[held.command.id];
+		if (!entry || entry.options.disableHotkeys || entry.command !== held.command) return false;
+		const bindings = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
+		return bindings.some((b) => sameBinding(b, binding));
 	}
 
 	clear(): boolean {

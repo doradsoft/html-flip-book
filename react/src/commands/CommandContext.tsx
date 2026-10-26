@@ -5,6 +5,7 @@ import {
 	type CommandRegistry,
 	defaultCommands,
 	HoldHotkeyController,
+	type HotkeyBinding,
 	hotkeyMatches,
 	type ToggleCommandDefinition,
 } from "html-flip-book-vanilla/commands";
@@ -50,6 +51,46 @@ interface CommandsContextValue {
 }
 
 const CommandsContext = createContext<CommandsContextValue | null>(null);
+
+function isEditableTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	return Boolean(
+		target.isContentEditable ||
+			target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'),
+	);
+}
+
+function getHotkeys(entry: CommandRegistry[string]): HotkeyBinding[] {
+	if (entry.options.disableHotkeys) return [];
+	return entry.options.hotkeys ?? entry.command.hotkeys ?? [];
+}
+
+function canUseHotkey(
+	command: CommandDefinition,
+	binding: HotkeyBinding,
+	getContext: (command: CommandDefinition) => CommandCtx,
+): boolean {
+	if (binding.mode !== "hold") return true;
+	if (command.kind !== "toggle") return false;
+	return !command.canExecute || command.canExecute(getContext(command));
+}
+
+function findHotkey(
+	registry: CommandRegistry,
+	event: KeyboardEvent,
+	direction: "ltr" | "rtl",
+	getContext: (command: CommandDefinition) => CommandCtx,
+) {
+	for (const entry of Object.values(registry)) {
+		const binding = getHotkeys(entry).find(
+			(binding) =>
+				hotkeyMatches(binding, event, direction) &&
+				canUseHotkey(entry.command, binding, getContext),
+		);
+		if (binding) return { command: entry.command, binding };
+	}
+	return undefined;
+}
 
 /**
  * Provider component that manages flipbook commands and hotkeys.
@@ -141,38 +182,27 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({
 	}, [holds, registry, disableHotkeys]);
 
 	useEffect(() => {
-		const handleKeyDown = (event: KeyboardEvent) => {
-			const { registry, execute, createCommandContext, direction, disableHotkeys } = latest.current;
-			if (disableHotkeys || event.defaultPrevented) return;
-			const target = event.target;
-			if (
-				target instanceof HTMLElement &&
-				(target.isContentEditable ||
-					target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'))
-			)
-				return;
-
-			for (const entry of Object.values(registry)) {
-				if (entry.options.disableHotkeys) continue;
-
-				const hotkeys = entry.options.hotkeys ?? entry.command.hotkeys ?? [];
-				for (const binding of hotkeys) {
-					if (hotkeyMatches(binding, event, direction)) {
-						if (binding.mode === "hold") {
-							if (entry.command.kind !== "toggle") continue;
-							const ctx = createCommandContext(entry.command);
-							if (entry.command.canExecute && !entry.command.canExecute(ctx)) continue;
-							if (!event.repeat && holds.press(entry.command, binding, ctx)) refresh();
-							// Keep modifier-only browser shortcuts (such as Ctrl+C) usable.
-							if (!["Control", "Shift", "Alt", "Meta"].includes(binding.key))
-								event.preventDefault();
-						} else {
-							event.preventDefault();
-							execute(entry.command);
-						}
-						return;
-					}
-				}
+		const handleHoldKeyDown = (
+			command: CommandDefinition,
+			binding: HotkeyBinding,
+			event: KeyboardEvent,
+		): void => {
+			if (command.kind !== "toggle") return;
+			const ctx = latest.current.createCommandContext(command);
+			if (!event.repeat && holds.press(command, binding, ctx)) refresh();
+			// Keep modifier-only browser shortcuts (such as Ctrl+C) usable.
+			if (!["Control", "Shift", "Alt", "Meta"].includes(binding.key)) event.preventDefault();
+		};
+		const handleKeyDown = (event: KeyboardEvent): void => {
+			const { registry, execute, direction, disableHotkeys, createCommandContext } = latest.current;
+			if (disableHotkeys || event.defaultPrevented || isEditableTarget(event.target)) return;
+			const match = findHotkey(registry, event, direction, createCommandContext);
+			if (!match) return;
+			if (match.binding.mode === "hold") {
+				handleHoldKeyDown(match.command, match.binding, event);
+			} else {
+				event.preventDefault();
+				execute(match.command);
 			}
 		};
 		const handleKeyUp = (event: KeyboardEvent) => {
