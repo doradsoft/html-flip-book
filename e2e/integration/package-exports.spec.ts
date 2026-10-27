@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import * as fs from "node:fs";
+import { access, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -13,10 +13,22 @@ import { expect, test } from "@playwright/test";
  *
  * Runs against `npm pack` output of the real build, so it catches export-map
  * entries pointing at files Vite never emits (e.g. dist/style.css vs
- * dist/html-flip-book.css).
+ * dist/html-flip-book.css). The packed tarballs are extracted into
+ * e2e/fixtures/packed-book/node_modules so the static fixture files resolve
+ * the packed artifacts while react/react-dom fall through to the workspace.
  */
 
 const repoRoot = process.cwd();
+const fixtureDir = path.join(repoRoot, "e2e", "fixtures", "packed-book");
+const fixtureModules = path.join(fixtureDir, "node_modules");
+
+// Dev hosts on musl libc (Alpine) cannot run Playwright's bundled chromium;
+// HFB_CHROMIUM=/usr/bin/chromium points at a system build instead.
+test.use({
+	launchOptions: process.env.HFB_CHROMIUM ? { executablePath: process.env.HFB_CHROMIUM } : {},
+});
+
+test.describe.configure({ mode: "serial" });
 
 const requiredArtifacts = [
 	"base/dist/flipbook.js",
@@ -28,25 +40,30 @@ const requiredArtifacts = [
 
 interface PackedPkg {
 	name: string;
-	dir: string; // extracted package root (contains package.json + dist/)
+	dir: string; // extracted package root inside fixture node_modules
 	exports: Record<string, unknown>;
 }
 
-function ensureBuilt(): void {
-	if (requiredArtifacts.every((f) => fs.existsSync(path.join(repoRoot, f)))) return;
-	execSync("npm run build", { cwd: repoRoot, stdio: "inherit" });
+const MIME: Record<string, string> = {
+	".html": "text/html",
+	".js": "text/javascript",
+	".css": "text/css",
+	".map": "application/json",
+};
+
+async function exists(p: string): Promise<boolean> {
+	try {
+		await access(p);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
-function packAndExtract(pkgDir: string, tmpRoot: string): PackedPkg {
-	const before = new Set(fs.readdirSync(tmpRoot));
-	execSync(`npm pack --pack-destination "${tmpRoot}"`, { cwd: pkgDir, stdio: "pipe" });
-	const tgz = [...fs.readdirSync(tmpRoot)].find((f) => f.endsWith(".tgz") && !before.has(f));
-	if (!tgz) throw new Error(`npm pack produced no tarball for ${pkgDir}`);
-	const dest = fs.mkdtempSync(path.join(tmpRoot, "extract-"));
-	execSync(`tar -xzf "${path.join(tmpRoot, tgz)}" -C "${dest}"`);
-	const dir = path.join(dest, "package");
-	const manifest = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf-8"));
-	return { name: manifest.name, dir, exports: manifest.exports ?? {} };
+async function ensureBuilt(): Promise<void> {
+	const all = await Promise.all(requiredArtifacts.map((f) => exists(path.join(repoRoot, f))));
+	if (all.every(Boolean)) return;
+	execSync("npm run build", { cwd: repoRoot, stdio: "inherit" });
 }
 
 /** Flatten an exports-map entry into every conditional file target. */
@@ -57,93 +74,66 @@ function exportTargets(value: unknown): string[] {
 	return [];
 }
 
-const MIME: Record<string, string> = {
-	".html": "text/html",
-	".js": "text/javascript",
-	".css": "text/css",
-	".map": "application/json",
-};
-
-test.describe.configure({ mode: "serial" });
-
-// Dev hosts on musl libc (Alpine) cannot run Playwright's bundled chromium;
-// HFB_CHROMIUM=/usr/bin/chromium points at a system build instead.
-test.use({
-	launchOptions: process.env.HFB_CHROMIUM ? { executablePath: process.env.HFB_CHROMIUM } : {},
-});
+async function packAndExtract(pkgDir: string, tmpRoot: string): Promise<PackedPkg> {
+	const before = new Set(await readdir(tmpRoot));
+	execSync(`npm pack --pack-destination "${tmpRoot}"`, { cwd: pkgDir, stdio: "pipe" });
+	const tgz = (await readdir(tmpRoot)).find((f) => f.endsWith(".tgz") && !before.has(f));
+	if (!tgz) throw new Error(`npm pack produced no tarball for ${pkgDir}`);
+	const dest = await mkdtemp(path.join(tmpRoot, "extract-"));
+	execSync(`tar -xzf "${path.join(tmpRoot, tgz)}" -C "${dest}"`);
+	const dir = path.join(dest, "package");
+	const manifest = JSON.parse(await readFile(path.join(dir, "package.json"), "utf-8"));
+	return { name: manifest.name, dir, exports: manifest.exports ?? {} };
+}
 
 let tmpRoot: string;
-let fixtureModules: string;
 const packed: PackedPkg[] = [];
 
-test.beforeAll(() => {
-	ensureBuilt();
-	tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hfb-pack-"));
-	fixtureModules = path.join(tmpRoot, "fixture", "node_modules");
-	fs.mkdirSync(fixtureModules, { recursive: true });
+test.beforeAll(async () => {
+	await ensureBuilt();
+	tmpRoot = await mkdtemp(path.join(os.tmpdir(), "hfb-pack-"));
+	await rm(fixtureModules, { recursive: true, force: true });
+	await mkdir(fixtureModules, { recursive: true });
 	for (const pkgDir of ["base", "react"]) {
-		const pkg = packAndExtract(path.join(repoRoot, pkgDir), tmpRoot);
+		const pkg = await packAndExtract(path.join(repoRoot, pkgDir), tmpRoot);
+		const target = path.join(fixtureModules, pkg.name);
+		await mkdir(path.dirname(target), { recursive: true });
+		execSync(`mv "${pkg.dir}" "${target}"`);
+		pkg.dir = target;
 		packed.push(pkg);
-		fs.renameSync(pkg.dir, path.join(fixtureModules, pkg.name));
-		pkg.dir = path.join(fixtureModules, pkg.name);
-	}
-	// Transitive deps the packed bundles import at runtime/build time.
-	for (const dep of ["react", "react-dom", "hammerjs", "throttle-debounce", "type-fest"]) {
-		fs.symlinkSync(path.join(repoRoot, "node_modules", dep), path.join(fixtureModules, dep), "dir");
 	}
 });
 
-test.afterAll(() => {
-	fs.rmSync(tmpRoot, { recursive: true, force: true });
+test.afterAll(async () => {
+	await rm(tmpRoot, { recursive: true, force: true });
+	await rm(fixtureModules, { recursive: true, force: true });
 });
 
-test("every exports-map target exists in the packed tarball", () => {
+test("every exports-map target exists in the packed tarball", async () => {
 	for (const pkg of packed) {
 		for (const target of Object.values(pkg.exports).flatMap(exportTargets)) {
 			const file = path.join(pkg.dir, target);
-			expect(fs.existsSync(file), `${pkg.name} export "${target}" missing from tarball`).toBe(true);
+			expect(await exists(file), `${pkg.name} export "${target}" missing from tarball`).toBe(true);
 		}
 	}
 });
 
-test("every documented specifier resolves from a clean fixture", () => {
+test("every documented specifier resolves from a clean fixture", async () => {
 	// The packages ship ESM-only exports, so resolution must run through
 	// import.meta.resolve anchored inside the fixture (a CJS require.resolve
 	// cannot see "import"-conditioned export entries).
-	const checker = path.join(tmpRoot, "fixture", "resolve-check.mjs");
-	fs.writeFileSync(
-		checker,
-		`import { fileURLToPath } from "node:url";
-const specs = [
-  "html-flip-book-vanilla",
-  "html-flip-book-vanilla/commands",
-  "html-flip-book-vanilla/download",
-  "html-flip-book-vanilla/intl",
-  "html-flip-book-vanilla/store",
-  "html-flip-book-vanilla/style.css",
-  "html-flip-book-react",
-  "html-flip-book-react/toolbar",
-  "html-flip-book-react/styles.css",
-];
-for (const s of specs) {
-  try {
-    console.log(s + " -> " + fileURLToPath(import.meta.resolve(s)));
-  } catch (e) {
-    console.log(s + " -> ERROR " + e.code);
-  }
-}
-`,
-	);
-	const out = execSync(`node "${checker}"`).toString();
+	const out = execSync(`node "${path.join(fixtureDir, "resolve-check.mjs")}"`, {
+		cwd: fixtureDir,
+	}).toString();
 	for (const line of out.trim().split("\n")) {
 		const [spec, resolved] = line.split(" -> ");
 		expect(resolved, `${spec} failed to resolve`).not.toMatch(/^ERROR/);
-		expect(fs.existsSync(resolved), `${spec} resolved to missing file ${resolved}`).toBe(true);
+		expect(await exists(resolved), `${spec} resolved to missing file ${resolved}`).toBe(true);
 	}
 });
 
-test("react styles.css is a complete stylesheet", () => {
-	const css = fs.readFileSync(
+test("react styles.css is a complete stylesheet", async () => {
+	const css = await readFile(
 		path.join(fixtureModules, "html-flip-book-react", "dist/assets/html-flip-book.css"),
 		"utf-8",
 	);
@@ -164,89 +154,12 @@ test("react styles.css is a complete stylesheet", () => {
 
 test("packed packages render LTR and RTL books with toolbar", async ({ page }) => {
 	test.setTimeout(120_000);
-	const fixtureDir = path.join(tmpRoot, "fixture");
-	fs.writeFileSync(
-		path.join(fixtureDir, "index.html"),
-		`<!doctype html><html><head><style>
-.book-wrap { display: flex; flex-direction: column; }
-.book-wrap > .flipbook { flex: 1; min-height: 0; }
-</style></head><body><div id="root"></div><script type="module" src="./main.tsx"></script></body></html>`,
+	const distDir = path.join(tmpRoot, "fixture-dist");
+	execSync(
+		`npx vite build --config "${path.join(fixtureDir, "vite.config.mts")}" --outDir "${distDir}"`,
+		{ cwd: fixtureDir, stdio: "inherit" },
 	);
-	fs.writeFileSync(
-		path.join(fixtureDir, "main.tsx"),
-		`import { createRoot } from "react-dom/client";
-import { FlipBook, TocPage } from "html-flip-book-react";
-import { Toolbar, PrevButton, NextButton, PageIndicator, DownloadDropdown } from "html-flip-book-react/toolbar";
-import "html-flip-book-react/styles.css";
-import { createElement, useRef } from "react";
 
-function Book({ direction }: { direction: "ltr" | "rtl" }) {
-	const ref = useRef(null);
-	const total = 5;
-	const content = [2, 3, 4].map((n) =>
-		createElement("div", { key: n, className: "fixture-page" }, "Page " + n),
-	);
-	const pages = [
-		createElement("div", { key: "cover", className: "fixture-cover" }, "Cover"),
-		createElement(TocPage, {
-			key: "toc",
-			onNavigate: (i: number) => (ref.current as any)?.jumpToPage?.(i),
-			totalPages: total,
-			direction,
-		}),
-		...content,
-		createElement("div", { key: "back", className: "fixture-cover" }, "Back"),
-	];
-	return createElement(
-		"div",
-		{ className: "book-wrap", "data-dir": direction, style: { width: 600, height: 400, direction } },
-		createElement(FlipBook, {
-			ref,
-			pages,
-			// The wrapper selects its container by the first class token, so
-			// each book on the page needs a unique className.
-			className: "fixture-book-" + direction,
-			direction,
-			enableHistory: false,
-		}),
-		createElement(
-			Toolbar,
-			{ flipBookRef: ref, direction },
-			createElement(PrevButton, null),
-			createElement(PageIndicator, null),
-			createElement(NextButton, null),
-			createElement(DownloadDropdown, null),
-		),
-	);
-}
-
-createRoot(document.getElementById("root")!).render(
-	createElement(
-		"div",
-		null,
-		createElement(Book, { direction: "ltr" }),
-		createElement(Book, { direction: "rtl" }),
-	),
-);
-`,
-	);
-	fs.writeFileSync(
-		path.join(fixtureDir, "vite.config.mjs"),
-		`export default {
-  root: ${JSON.stringify(fixtureDir)},
-  esbuild: { jsx: "automatic" },
-  resolve: { dedupe: ["react", "react-dom", "react/jsx-runtime"] },
-  build: { outDir: ${JSON.stringify(path.join(fixtureDir, "dist"))}, emptyOutDir: true },
-  logLevel: "warn",
-};
-`,
-	);
-	execSync(`npx vite build --config "${path.join(fixtureDir, "vite.config.mjs")}"`, {
-		cwd: repoRoot,
-		stdio: "inherit",
-	});
-
-	const distDir = path.join(fixtureDir, "dist");
 	await page.route("**/*", async (route) => {
 		const pathname = new URL(route.request().url()).pathname;
 		const filePath = path.resolve(
