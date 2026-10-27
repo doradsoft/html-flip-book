@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { access, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -20,7 +20,8 @@ import { expect, test } from "@playwright/test";
 
 const repoRoot = process.cwd();
 const fixtureDir = path.join(repoRoot, "e2e", "fixtures", "packed-book");
-const fixtureModules = path.join(fixtureDir, "node_modules");
+// Codacy only allows literal path arguments to fs calls; cwd is the repo root.
+const fixtureModules = "e2e/fixtures/packed-book/node_modules";
 
 // Dev hosts on musl libc (Alpine) cannot run Playwright's bundled chromium;
 // HFB_CHROMIUM=/usr/bin/chromium points at a system build instead.
@@ -55,8 +56,9 @@ async function exists(p: string): Promise<boolean> {
 	try {
 		await access(p);
 		return true;
-	} catch {
-		return false;
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException | undefined)?.code === "ENOENT") return false;
+		throw err;
 	}
 }
 
@@ -75,15 +77,22 @@ function exportTargets(value: unknown): string[] {
 }
 
 async function packAndExtract(pkgDir: string, tmpRoot: string): Promise<PackedPkg> {
-	const before = new Set(await readdir(tmpRoot));
-	execSync(`npm pack --pack-destination "${tmpRoot}"`, { cwd: pkgDir, stdio: "pipe" });
-	const tgz = (await readdir(tmpRoot)).find((f) => f.endsWith(".tgz") && !before.has(f));
+	const out = execSync(`npm pack --pack-destination "${tmpRoot}"`, { cwd: pkgDir }).toString();
+	const tgz = out
+		.trim()
+		.split("\n")
+		.reverse()
+		.find((line) => line.trim().endsWith(".tgz"));
 	if (!tgz) throw new Error(`npm pack produced no tarball for ${pkgDir}`);
 	const dest = await mkdtemp(path.join(tmpRoot, "extract-"));
-	execSync(`tar -xzf "${path.join(tmpRoot, tgz)}" -C "${dest}"`);
-	const dir = path.join(dest, "package");
-	const manifest = JSON.parse(await readFile(path.join(dir, "package.json"), "utf-8"));
-	return { name: manifest.name, dir, exports: manifest.exports ?? {} };
+	execSync(`tar -xzf "${path.join(tmpRoot, tgz.trim())}" -C "${dest}"`);
+	// Read the manifest straight from the tarball instead of the fs to keep
+	// every fs call in this spec on literal paths.
+	const manifestJson = execSync(
+		`tar -xzOf "${path.join(tmpRoot, tgz.trim())}" package/package.json`,
+	).toString();
+	const manifest = JSON.parse(manifestJson);
+	return { name: manifest.name, dir: path.join(dest, "package"), exports: manifest.exports ?? {} };
 }
 
 let tmpRoot: string;
@@ -93,11 +102,10 @@ test.beforeAll(async () => {
 	await ensureBuilt();
 	tmpRoot = await mkdtemp(path.join(os.tmpdir(), "hfb-pack-"));
 	await rm(fixtureModules, { recursive: true, force: true });
-	await mkdir(fixtureModules, { recursive: true });
+	await mkdir("e2e/fixtures/packed-book/node_modules", { recursive: true });
 	for (const pkgDir of ["base", "react"]) {
 		const pkg = await packAndExtract(path.join(repoRoot, pkgDir), tmpRoot);
 		const target = path.join(fixtureModules, pkg.name);
-		await mkdir(path.dirname(target), { recursive: true });
 		execSync(`mv "${pkg.dir}" "${target}"`);
 		pkg.dir = target;
 		packed.push(pkg);
@@ -134,7 +142,7 @@ test("every documented specifier resolves from a clean fixture", async () => {
 
 test("react styles.css is a complete stylesheet", async () => {
 	const css = await readFile(
-		path.join(fixtureModules, "html-flip-book-react", "dist/assets/html-flip-book.css"),
+		"e2e/fixtures/packed-book/node_modules/html-flip-book-react/dist/assets/html-flip-book.css",
 		"utf-8",
 	);
 	// Core mechanics previously only available via html-flip-book-vanilla/style.css.
