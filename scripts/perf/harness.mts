@@ -168,9 +168,19 @@ export async function buildFixture(
 ): Promise<string> {
 	const fixtureDir = path.join(repoRoot, "perf", "fixture");
 	const dist = path.join(outDir, `fixture-${variant.name}`);
+	// Vite's JS entry is invoked through node directly: execFileSync cannot
+	// spawn the npx .cmd shim on Windows, and argv arrays must never go
+	// through a shell.
 	execFileSync(
-		"npx",
-		["vite", "build", "--config", path.join(fixtureDir, "vite.config.mts"), "--outDir", dist],
+		process.execPath,
+		[
+			path.join(repoRoot, "node_modules", "vite", "bin", "vite.js"),
+			"build",
+			"--config",
+			path.join(fixtureDir, "vite.config.mts"),
+			"--outDir",
+			dist,
+		],
 		{
 			cwd: fixtureDir,
 			stdio: "pipe",

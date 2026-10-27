@@ -16,8 +16,9 @@ machine-wide drift hits both sides of a pair.
   per-frame delay; it must report `regression`, proving the harness detects a
   representative slowdown. CI runs this gate before the real comparison.
 
-Options: `--samples N` (default 8 paired samples per side), `--scenario
-turn,scaling`, `--sizes 20,200,1000`, `--out <dir>`.
+Options: `--samples N` (default 8 paired samples per side), `--audit-pairs N`
+(default 4 paired audit passes per side), `--scenario turn,scaling`,
+`--sizes 20,200,1000`, `--out <dir>`.
 
 ## A/A calibration and verdicts
 
@@ -51,10 +52,15 @@ advisory while per-run calibration matures; a calibrated regression
   density. Separate windows: fixture DOM build (harness overhead), init +
   render, bookmark provider refresh, fixed navigation sequence, resize
   relayout, destroy/recreate cycles, and React `createRoot` mount-to-ready.
-  A separate instrumented audit pass reports retained DOM nodes, event
-  listeners, documents, heap delta (after forced GC), pending timers/rAF and
-  live observers after teardown. Growth is reported as a table per size —
-  no complexity class is inferred from three points.
+  Instrumented audit passes report retained DOM nodes, event listeners,
+  documents, heap delta (after forced GC), pending timers/rAF and live
+  observers after teardown. Audits run as real base/candidate pairs on
+  fresh pages — Performance counters include objects retained from earlier
+  documents in the same renderer, so reusing the sampling page would leak
+  the previous fixture into the baseline. Audit metrics join the same
+  paired-statistics pipeline with their own A/A calibration. Growth is
+  reported as a table per size — no complexity class is inferred from
+  three points.
 
 ## Artifacts
 
@@ -66,7 +72,8 @@ the outcome. CI uploads `perf-results/` with 30-day retention.
 
 ## Limits
 
-- One browser, one page; video, screenshots and tracing stay off.
+- One browser; a shared page for timed samples, a fresh page per audit
+  pass. Video, screenshots and tracing stay off.
 - Default runtime budget: ~30 min job timeout; `--samples` over 20 doubles
   run time linearly and rarely changes verdicts.
 - The workflow runs on `pull_request` with `contents: read` and no secrets,

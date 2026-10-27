@@ -36,6 +36,7 @@ import { summarize, type PairedStats } from "./stats.mts";
 interface Cli {
 	base: string;
 	samples: number;
+	auditPairs: number;
 	scenario: string[];
 	sizes: number[];
 	delayCandidateMs: number;
@@ -48,6 +49,7 @@ function parseArgs(): Cli {
 	const cli: Cli = {
 		base: "",
 		samples: 8,
+		auditPairs: 4,
 		scenario: ["all"],
 		sizes: [20, 200, 1000],
 		delayCandidateMs: 0,
@@ -59,6 +61,7 @@ function parseArgs(): Cli {
 		const next = () => args[++i];
 		if (a === "--base") cli.base = next();
 		else if (a === "--samples") cli.samples = Number(next());
+		else if (a === "--audit-pairs") cli.auditPairs = Number(next());
 		else if (a === "--scenario") cli.scenario = next().split(",");
 		else if (a === "--sizes") cli.sizes = next().split(",").map(Number);
 		else if (a === "--delay-candidate-ms") cli.delayCandidateMs = Number(next());
@@ -161,6 +164,7 @@ async function main(): Promise<void> {
 		policy: {
 			samples: cli.samples,
 			aaSamples: cli.samples,
+			auditPairs: cli.auditPairs,
 			paired: true,
 			verdictRule:
 				"regression when median paired diff > max(thresholdAbs, noiseFloor) AND medianRatio > thresholdRatio AND ci90Low > 0",
@@ -236,18 +240,37 @@ async function main(): Promise<void> {
 				}
 			}
 
-			// Instrumented audit pass (leak signals), once per side.
-			let auditBase: Record<string, number> = {};
-			let auditCand: Record<string, number> = {};
-			if (scenario.audit) {
-				auditBase = await scenario.audit(page, distBase, size);
-				auditCand = await scenario.audit(page, distCand, size);
-				const allAudit = { ...auditBase, ...auditCand };
-				for (const k of Object.keys(allAudit)) {
-					for (const m of baseSamples) m[k] = auditBase[k];
-					for (const m of candSamples) m[k] = auditCand[k];
-					for (const m of aaA) m[k] = auditBase[k];
-					for (const m of aaB) m[k] = auditBase[k];
+			// Instrumented audit passes (leak signals): real base/candidate
+			// and A/A pairs so the paired statistics get an honest noise
+			// floor. Each audit runs on a fresh page — Performance.getMetrics
+			// counters include retained objects from earlier documents in the
+			// same renderer, so reusing the sampling page leaks the previous
+			// fixture's nodes and listeners into the baseline.
+			const auditBase: Record<string, number>[] = [];
+			const auditCand: Record<string, number>[] = [];
+			const auditAaA: Record<string, number>[] = [];
+			const auditAaB: Record<string, number>[] = [];
+			const auditKeySet = new Set<string>();
+			const audit = scenario.audit;
+			if (audit) {
+				const auditOnFreshPage = async (dist: string) => {
+					const auditPage = await browser.newPage({
+						viewport: { width: 800, height: 600 },
+					});
+					try {
+						return await audit(auditPage, dist, size);
+					} finally {
+						await auditPage.close();
+					}
+				};
+				for (let i = 0; i < cli.auditPairs; i++) {
+					auditBase.push(await auditOnFreshPage(distBase));
+					auditCand.push(await auditOnFreshPage(distCand));
+					auditAaA.push(await auditOnFreshPage(distBase));
+					auditAaB.push(await auditOnFreshPage(distBase));
+				}
+				for (const m of [...auditBase, ...auditCand]) {
+					for (const k of Object.keys(m)) auditKeySet.add(k);
 				}
 			}
 
@@ -262,10 +285,13 @@ async function main(): Promise<void> {
 					);
 
 			for (const spec of specs) {
-				const bs = pick(spec, baseSamples);
-				const cs = pick(spec, candSamples);
-				const aas = pick(spec, aaA);
-				const aas2 = pick(spec, aaB);
+				// Audit metrics draw from their own paired arrays; sampled
+				// metrics from the paired sample sets.
+				const auditMetric = auditKeySet.has(spec.key);
+				const bs = pick(spec, auditMetric ? auditBase : baseSamples);
+				const cs = pick(spec, auditMetric ? auditCand : candSamples);
+				const aas = pick(spec, auditMetric ? auditAaA : aaA);
+				const aas2 = pick(spec, auditMetric ? auditAaB : aaB);
 				const unsupported = unsupportedKeys.has(spec.key) || bs.length === 0 || cs.length === 0;
 				const stats = summarize(bs, cs);
 				const aaStats = summarize(aas, aas2);
@@ -307,7 +333,10 @@ async function main(): Promise<void> {
 				invalidReasons: reasons,
 				rawPaired: { base: baseSamples, candidate: candSamples },
 				aaCalibration: { a: aaA, b: aaB },
-				audit: { base: auditBase, candidate: auditCand },
+				audit: {
+					pairs: { base: auditBase, candidate: auditCand },
+					aa: { a: auditAaA, b: auditAaB },
+				},
 				metrics: outcomes.map((o) => ({ key: o.spec.key, label: o.spec.label, ...o.stats, noiseFloor: o.noiseFloor, verdict: o.verdict, reason: o.reason })),
 			});
 		}

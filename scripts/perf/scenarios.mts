@@ -30,7 +30,11 @@ export interface ScenarioDriver {
 	sizes: number[];
 	metricsFor(size: number): MetricSpec[];
 	runSample(page: Page, dist: string, size: number, delayMs: number): Promise<SampleResult>;
-	/** Optional instrumented pass: leak/cleanup signals, run once per size. */
+	/**
+	 * Optional instrumented pass: leak/cleanup signals. Runs paired across
+	 * variants on fresh pages (--audit-pairs repeats per side, plus an A/A
+	 * pair set for the noise floor).
+	 */
 	audit?(page: Page, dist: string, size: number): Promise<Record<string, number>>;
 }
 
