@@ -672,41 +672,38 @@ for (const direction of ["ltr", "rtl"] as const) {
 					const stack = await rail.evaluate((railElement) => {
 						const railBounds = railElement.getBoundingClientRect();
 						const hitPointOf = (button: HTMLElement) => {
-							const slot =
-								(button.closest<HTMLElement>(".flipbook-bookmark-slot") as HTMLElement) ?? button;
-							const rect = slot.getBoundingClientRect();
-							const edge = button.dataset.edge;
-							const peek = Number(slot.dataset.stackPeek);
-							const xs =
-								Number.isFinite(peek) && peek > 0
-									? [edge === "left" ? peek / 2 : rect.width - peek / 2, rect.width / 2]
-									: [rect.width / 2];
-							for (let inset = 1; inset < rect.width; inset += 1) {
-								xs.push(edge === "left" ? inset : rect.width - inset);
+							const wrapper = button.closest<HTMLElement>(".flipbook-bookmark-slot") ?? button;
+							const rect = wrapper.getBoundingClientRect();
+							const peek = Number(wrapper.dataset.stackPeek);
+							// A correctly stacked tab is only ever exposed through its peek
+							// sliver; the center catches unstacked tabs. Both points are
+							// covered → the tab is unreachable by pointer.
+							const xs = [rect.width / 2];
+							if (Number.isFinite(peek) && peek > 0) {
+								xs.unshift(button.dataset.edge === "left" ? peek / 2 : rect.width - peek / 2);
 							}
-							const ys = [rect.height / 2, 1, Math.max(1, rect.height - 1)];
-							for (let offset = 1; offset < rect.height; offset += 1) ys.push(offset);
-							for (const y of ys) {
-								for (const x of xs) {
-									const point = { x: Math.round(rect.left + x), y: Math.round(rect.top + y) };
-									const target = document.elementFromPoint(point.x, point.y);
-									if (target?.closest(".flipbook-bookmark") === button) return point;
-								}
+							for (const x of xs) {
+								const point = {
+									x: Math.round(rect.left + x),
+									y: Math.round(rect.top + rect.height / 2),
+								};
+								const target = document.elementFromPoint(point.x, point.y);
+								if (target?.closest(".flipbook-bookmark") === button) return point;
 							}
 							return null;
 						};
 						const slots = Array.from(
 							railElement.querySelectorAll<HTMLElement>(".flipbook-bookmark"),
 						).map((button) => {
-							const slot = (button.closest(".flipbook-bookmark-slot") ?? button) as HTMLElement;
-							const rect = slot.getBoundingClientRect();
+							const wrapper = (button.closest(".flipbook-bookmark-slot") ?? button) as HTMLElement;
+							const rect = wrapper.getBoundingClientRect();
 							return {
 								id: button.dataset.bookmarkId,
-								layer: slot.dataset.stackLayer,
-								row: slot.dataset.stackRow,
-								peek: Number(slot.dataset.stackPeek),
+								layer: wrapper.dataset.stackLayer,
+								row: wrapper.dataset.stackRow,
+								peek: Number(wrapper.dataset.stackPeek),
 								bounds: rect.toJSON(),
-								zIndex: Number(getComputedStyle(slot).zIndex),
+								zIndex: Number(getComputedStyle(wrapper).zIndex),
 								hitPoint: hitPointOf(button),
 							};
 						});
