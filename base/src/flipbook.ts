@@ -1624,7 +1624,6 @@ class FlipBook {
 	}
 }
 
-export { FlipBook, type PageSemantics };
 export type { Bookmark, BookmarkContext, BookmarkPlacement, BookmarkProvider } from "./bookmarks";
 export { createDefaultBookmarkProvider } from "./default-bookmarks";
 export { createDefaultHistoryMapper } from "./default-history-mapper";
@@ -1635,3 +1634,4 @@ export type {
 	PageFlipDirection,
 	PageFlipParams,
 } from "./flip-book-options";
+export { FlipBook, type PageSemantics };

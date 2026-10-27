@@ -80,25 +80,23 @@ describe("Hold hotkeys", () => {
 		expect(command.setActive).not.toHaveBeenCalled();
 	});
 
-	it.each([
-		"blur",
-		"hidden",
-		"disabled",
-		"unmount",
-	])("restores the previous state on %s", (reason) => {
-		const { command, view } = setupToggle();
-		const rendered = render(view());
-		fireEvent.keyDown(document, { key: "Control", ctrlKey: true });
-		if (reason === "blur") fireEvent(window, new Event("blur"));
-		if (reason === "hidden") {
-			vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-			fireEvent(document, new Event("visibilitychange"));
-			vi.restoreAllMocks();
-		}
-		if (reason === "disabled") rendered.rerender(view(true));
-		if (reason === "unmount") rendered.unmount();
-		expect(command.isActive({ handle: null })).toBe(true);
-	});
+	it.each(["blur", "hidden", "disabled", "unmount"])(
+		"restores the previous state on %s",
+		(reason) => {
+			const { command, view } = setupToggle();
+			const rendered = render(view());
+			fireEvent.keyDown(document, { key: "Control", ctrlKey: true });
+			if (reason === "blur") fireEvent(window, new Event("blur"));
+			if (reason === "hidden") {
+				vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+				fireEvent(document, new Event("visibilitychange"));
+				vi.restoreAllMocks();
+			}
+			if (reason === "disabled") rendered.rerender(view(true));
+			if (reason === "unmount") rendered.unmount();
+			expect(command.isActive({ handle: null })).toBe(true);
+		},
+	);
 
 	it("does not run ordinary actions configured with a hold binding", () => {
 		const execute = vi.fn();

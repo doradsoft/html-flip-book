@@ -488,45 +488,47 @@ describe("Leaf", () => {
 			expect(mockPage2.style.transform).toContain("rotateY(0deg)");
 		});
 
-		it.each([
-			0, 1,
-		])("does not report stale manual settlement after an instant endpoint %s assignment", async (endpoint) => {
-			const leaf = createPaperLeaf();
-			leaf.setFoldOrigin(0.1);
-			leaf.setManualFold({ x: 0.25, y: 0.4 });
-			leaf.flipPosition = endpoint;
-			leaf.applyTransform(endpoint);
+		it.each([0, 1])(
+			"does not report stale manual settlement after an instant endpoint %s assignment",
+			async (endpoint) => {
+				const leaf = createPaperLeaf();
+				leaf.setFoldOrigin(0.1);
+				leaf.setManualFold({ x: 0.25, y: 0.4 });
+				leaf.flipPosition = endpoint;
+				leaf.applyTransform(endpoint);
 
-			await leaf.flipToPosition(endpoint as FlipPosition);
+				await leaf.flipToPosition(endpoint as FlipPosition);
 
-			expect(leaf.flipPosition).toBe(endpoint);
-			expect(onTurnedMock).not.toHaveBeenCalled();
-			expect(mockPage1.style.clipPath).toBe("");
-			expect(mockPage2.style.clipPath).toBe("");
-		});
+				expect(leaf.flipPosition).toBe(endpoint);
+				expect(onTurnedMock).not.toHaveBeenCalled();
+				expect(mockPage1.style.clipPath).toBe("");
+				expect(mockPage2.style.clipPath).toBe("");
+			},
+		);
 
-		it.each([
-			0, 1,
-		])("reports an actual held corner reaching endpoint %s only once on release", async (endpoint) => {
-			const leaf = createPaperLeaf();
-			leaf.setFoldOrigin(0.1);
-			leaf.beginFlip();
-			leaf.setManualFold({ x: 0.25, y: 0.4 });
-			leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
-			leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
-			leaf.applyTransform(leaf.flipPosition);
-			expect(onTurnedMock).not.toHaveBeenCalled();
+		it.each([0, 1])(
+			"reports an actual held corner reaching endpoint %s only once on release",
+			async (endpoint) => {
+				const leaf = createPaperLeaf();
+				leaf.setFoldOrigin(0.1);
+				leaf.beginFlip();
+				leaf.setManualFold({ x: 0.25, y: 0.4 });
+				leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
+				leaf.setManualFold({ x: 1 - 2 * endpoint, y: 0 });
+				leaf.applyTransform(leaf.flipPosition);
+				expect(onTurnedMock).not.toHaveBeenCalled();
 
-			await leaf.flipToPosition(endpoint as FlipPosition);
-			leaf.endFlip();
-			await leaf.flipToPosition(endpoint as FlipPosition);
+				await leaf.flipToPosition(endpoint as FlipPosition);
+				leaf.endFlip();
+				await leaf.flipToPosition(endpoint as FlipPosition);
 
-			expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
-				endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
-			);
-			expect(mockPage1.classList.contains("page--flipping")).toBe(false);
-			expect(mockPage1.style.willChange).toBe("");
-		});
+				expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
+					endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
+				);
+				expect(mockPage1.classList.contains("page--flipping")).toBe(false);
+				expect(mockPage1.style.willChange).toBe("");
+			},
+		);
 
 		it.each([
 			[true, "top", 0],
@@ -537,51 +539,54 @@ describe("Leaf", () => {
 			[false, "top", 1],
 			[false, "bottom", 0],
 			[false, "bottom", 1],
-		] as const)("releases isLTR=%s %s corner continuously toward endpoint %s", async (isLTR, corner, endpoint) => {
-			const leaf = createPaperLeaf(isLTR);
-			const frames: FrameRequestCallback[] = [];
-			vi.spyOn(performance, "now").mockReturnValue(0);
-			vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-				frames.push(callback);
-				return frames.length;
-			});
-			const point = { x: 0.2, y: corner === "top" ? 0.3 : 0.7 };
-			const cornerY = corner === "top" ? 0 : 1;
-			leaf.setFoldOrigin(corner === "top" ? 0.1 : 0.9);
-			leaf.beginFlip();
-			leaf.setManualFold(point);
-			const initialClips = leaf.pages.map((page) => page?.style.clipPath);
-			const initialTransform = mockPage2.style.transform;
-			const initialPosition = leaf.flipPosition;
-			const duration = Math.abs(endpoint - initialPosition) * 1000;
-			const release = leaf.flipToPosition(endpoint as FlipPosition, 180 as never);
-			leaf.endFlip();
+		] as const)(
+			"releases isLTR=%s %s corner continuously toward endpoint %s",
+			async (isLTR, corner, endpoint) => {
+				const leaf = createPaperLeaf(isLTR);
+				const frames: FrameRequestCallback[] = [];
+				vi.spyOn(performance, "now").mockReturnValue(0);
+				vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+					frames.push(callback);
+					return frames.length;
+				});
+				const point = { x: 0.2, y: corner === "top" ? 0.3 : 0.7 };
+				const cornerY = corner === "top" ? 0 : 1;
+				leaf.setFoldOrigin(corner === "top" ? 0.1 : 0.9);
+				leaf.beginFlip();
+				leaf.setManualFold(point);
+				const initialClips = leaf.pages.map((page) => page?.style.clipPath);
+				const initialTransform = mockPage2.style.transform;
+				const initialPosition = leaf.flipPosition;
+				const duration = Math.abs(endpoint - initialPosition) * 1000;
+				const release = leaf.flipToPosition(endpoint as FlipPosition, 180 as never);
+				leaf.endFlip();
 
-			frames.shift()?.(0);
-			expect(leaf.pages.map((page) => page?.style.clipPath)).toEqual(initialClips);
-			expect(mockPage2.style.transform).toBe(initialTransform);
-			frames.shift()?.(duration / 2);
-			const halfway = liftedCorner(leaf, isLTR, corner);
-			expect(halfway.x).toBeCloseTo((point.x + 1 - 2 * endpoint) / 2, 8);
-			expect(halfway.y).toBeCloseTo((point.y + cornerY) / 2, 8);
-			expect(mockPage1.classList.contains("page--flipping")).toBe(true);
-			expect(onTurnedMock).not.toHaveBeenCalled();
-			frames.shift()?.(duration);
-			await release;
+				frames.shift()?.(0);
+				expect(leaf.pages.map((page) => page?.style.clipPath)).toEqual(initialClips);
+				expect(mockPage2.style.transform).toBe(initialTransform);
+				frames.shift()?.(duration / 2);
+				const halfway = liftedCorner(leaf, isLTR, corner);
+				expect(halfway.x).toBeCloseTo((point.x + 1 - 2 * endpoint) / 2, 8);
+				expect(halfway.y).toBeCloseTo((point.y + cornerY) / 2, 8);
+				expect(mockPage1.classList.contains("page--flipping")).toBe(true);
+				expect(onTurnedMock).not.toHaveBeenCalled();
+				frames.shift()?.(duration);
+				await release;
 
-			expect(leaf.flipPosition).toBe(endpoint);
-			expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
-				endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
-			);
-			for (const page of leaf.pages) {
-				expect(page?.style.clipPath).toBe("");
-				expect(page?.classList.contains("page--folded")).toBe(false);
-				expect(page?.classList.contains("page--flipping")).toBe(false);
-				expect(page?.style.willChange).toBe("");
-			}
-			leaf.applyTransform(endpoint);
-			expect(mockPage1.style.clipPath).toBe("");
-		});
+				expect(leaf.flipPosition).toBe(endpoint);
+				expect(onTurnedMock).toHaveBeenCalledExactlyOnceWith(
+					endpoint === 1 ? FlipDirection.Forward : FlipDirection.Backward,
+				);
+				for (const page of leaf.pages) {
+					expect(page?.style.clipPath).toBe("");
+					expect(page?.classList.contains("page--folded")).toBe(false);
+					expect(page?.classList.contains("page--flipping")).toBe(false);
+					expect(page?.style.willChange).toBe("");
+				}
+				leaf.applyTransform(endpoint);
+				expect(mockPage1.style.clipPath).toBe("");
+			},
+		);
 
 		it("preserves a held intermediate release after its interaction ends", async () => {
 			const leaf = createPaperLeaf();
@@ -608,54 +613,53 @@ describe("Leaf", () => {
 			expect(onTurnedMock).not.toHaveBeenCalled();
 		});
 
-		it.each([
-			"cover",
-			"missing-size",
-			"single-sided",
-		])("uses a rigid manual position for %s pages", (kind) => {
-			const leaf = createPaperLeaf();
-			if (kind === "cover") mockPage1.dataset.isCoverPage = "1";
-			if (kind === "missing-size") mockPage1.style.width = "";
-			if (kind === "single-sided") leaf.pages[1] = undefined;
+		it.each(["cover", "missing-size", "single-sided"])(
+			"uses a rigid manual position for %s pages",
+			(kind) => {
+				const leaf = createPaperLeaf();
+				if (kind === "cover") mockPage1.dataset.isCoverPage = "1";
+				if (kind === "missing-size") mockPage1.style.width = "";
+				if (kind === "single-sided") leaf.pages[1] = undefined;
 
-			leaf.setManualFold({ x: 0.2, y: 0.3 });
+				leaf.setManualFold({ x: 0.2, y: 0.3 });
 
-			expect(leaf.flipPosition).toBeCloseTo(0.4, 8);
-			expect(mockPage1.style.transform).toContain("rotateY");
-			expect(mockPage1.style.clipPath).toBe("");
-			expect(mockPage1.classList.contains("page--folded")).toBe(false);
-		});
+				expect(leaf.flipPosition).toBeCloseTo(0.4, 8);
+				expect(mockPage1.style.transform).toContain("rotateY");
+				expect(mockPage1.style.clipPath).toBe("");
+				expect(mockPage1.classList.contains("page--folded")).toBe(false);
+			},
+		);
 
-		it.each([
-			true,
-			false,
-		])("clips both surfaces without stretching content for isLTR=%s", (isLTR) => {
-			const leaf = createPaperLeaf(isLTR);
-			leaf.setFoldOrigin(0.1);
-			leaf.setFoldPointer(0.3);
-			leaf.setManualPosition(0.4);
+		it.each([true, false])(
+			"clips both surfaces without stretching content for isLTR=%s",
+			(isLTR) => {
+				const leaf = createPaperLeaf(isLTR);
+				leaf.setFoldOrigin(0.1);
+				leaf.setFoldPointer(0.3);
+				leaf.setManualPosition(0.4);
 
-			expect(mockPage1.style.transform).toBe(`translateX(${isLTR ? 320 : -320}px)`);
-			for (const page of leaf.pages) {
-				expect(page?.classList.contains("page--folded")).toBe(true);
-				expect(page?.style.clipPath).toMatch(/^polygon\(.+px.+\)$/);
-				expect(page?.style.clipPath).not.toMatch(/NaN|Infinity/);
-				expect(page?.style.transformOrigin).toBe("0px 0px");
-				expect(page?.style.transform).not.toContain("rotateY");
-			}
-			const matrix = mockPage2.style.transform
-				.match(/^matrix\((.+)\)$/)?.[1]
-				.split(",")
-				.map(Number);
-			expect(matrix).toHaveLength(6);
-			expect(matrix?.every(Number.isFinite)).toBe(true);
-			const [a, b, c, d] = matrix ?? [];
-			expect(a * a + b * b).toBeCloseTo(1, 8);
-			expect(c * c + d * d).toBeCloseTo(1, 8);
-			expect(a * c + b * d).toBeCloseTo(0, 8);
-			expect(a * d - b * c).toBeCloseTo(1, 8);
-			expect(onTurnedMock).not.toHaveBeenCalled();
-		});
+				expect(mockPage1.style.transform).toBe(`translateX(${isLTR ? 320 : -320}px)`);
+				for (const page of leaf.pages) {
+					expect(page?.classList.contains("page--folded")).toBe(true);
+					expect(page?.style.clipPath).toMatch(/^polygon\(.+px.+\)$/);
+					expect(page?.style.clipPath).not.toMatch(/NaN|Infinity/);
+					expect(page?.style.transformOrigin).toBe("0px 0px");
+					expect(page?.style.transform).not.toContain("rotateY");
+				}
+				const matrix = mockPage2.style.transform
+					.match(/^matrix\((.+)\)$/)?.[1]
+					.split(",")
+					.map(Number);
+				expect(matrix).toHaveLength(6);
+				expect(matrix?.every(Number.isFinite)).toBe(true);
+				const [a, b, c, d] = matrix ?? [];
+				expect(a * a + b * b).toBeCloseTo(1, 8);
+				expect(c * c + d * d).toBeCloseTo(1, 8);
+				expect(a * c + b * d).toBeCloseTo(0, 8);
+				expect(a * d - b * c).toBeCloseTo(1, 8);
+				expect(onTurnedMock).not.toHaveBeenCalled();
+			},
+		);
 
 		it.each([0, 1])("clears fold geometry and shading at endpoint %s", (endpoint) => {
 			const leaf = createPaperLeaf();
@@ -731,50 +735,53 @@ describe("Leaf", () => {
 			[true, 0.9],
 			[false, 0.1],
 			[false, 0.9],
-		] as const)("keeps both hover hints equally small for isLTR=%s at height %s", (isLTR, origin) => {
-			const leaf = createPaperLeaf(isLTR);
-			const clippedArea = (page: HTMLElement) => {
-				const points = page.style.clipPath
-					.slice("polygon(".length, -1)
-					.split(",")
-					.map((point) => point.trim().split(/\s+/).map(Number.parseFloat));
-				return (
-					Math.abs(
-						points.reduce((sum, point, index) => {
-							const next = points[(index + 1) % points.length];
-							return sum + point[0] * next[1] - point[1] * next[0];
-						}, 0),
-					) / 2
-				);
-			};
-			const flapAreas: number[] = [];
-			for (const endpoint of [0, 1]) {
+		] as const)(
+			"keeps both hover hints equally small for isLTR=%s at height %s",
+			(isLTR, origin) => {
+				const leaf = createPaperLeaf(isLTR);
+				const clippedArea = (page: HTMLElement) => {
+					const points = page.style.clipPath
+						.slice("polygon(".length, -1)
+						.split(",")
+						.map((point) => point.trim().split(/\s+/).map(Number.parseFloat));
+					return (
+						Math.abs(
+							points.reduce((sum, point, index) => {
+								const next = points[(index + 1) % points.length];
+								return sum + point[0] * next[1] - point[1] * next[0];
+							}, 0),
+						) / 2
+					);
+				};
+				const flapAreas: number[] = [];
+				for (const endpoint of [0, 1]) {
+					leaf.setHoverShadow(0);
+					leaf.flipPosition = endpoint;
+					leaf.applyTransform(endpoint);
+					leaf.setFoldOrigin(origin);
+					leaf.setHoverShadow(0.12);
+					const surface = endpoint === 0 ? mockPage1 : mockPage2;
+					const flap = endpoint === 0 ? mockPage2 : mockPage1;
+					const flapArea = clippedArea(flap);
+					expect(clippedArea(surface)).toBeGreaterThan(320 * 480 * 0.99);
+					expect(flapArea).toBeGreaterThan(0);
+					expect(flapArea).toBeLessThan(320 * 480 * 0.01);
+					expect(surface.style.transform).toBe(
+						`translateX(${endpoint === 1 ? 0 : isLTR ? 320 : -320}px)`,
+					);
+					expect(Number(flap.style.zIndex)).toBeGreaterThan(Number(surface.style.zIndex));
+					expect(leaf.flipPosition).toBe(endpoint);
+					expect(onTurnedMock).not.toHaveBeenCalled();
+					flapAreas.push(flapArea);
+				}
+				expect(flapAreas[1]).toBeCloseTo(flapAreas[0], 2);
 				leaf.setHoverShadow(0);
-				leaf.flipPosition = endpoint;
-				leaf.applyTransform(endpoint);
-				leaf.setFoldOrigin(origin);
-				leaf.setHoverShadow(0.12);
-				const surface = endpoint === 0 ? mockPage1 : mockPage2;
-				const flap = endpoint === 0 ? mockPage2 : mockPage1;
-				const flapArea = clippedArea(flap);
-				expect(clippedArea(surface)).toBeGreaterThan(320 * 480 * 0.99);
-				expect(flapArea).toBeGreaterThan(0);
-				expect(flapArea).toBeLessThan(320 * 480 * 0.01);
-				expect(surface.style.transform).toBe(
-					`translateX(${endpoint === 1 ? 0 : isLTR ? 320 : -320}px)`,
-				);
-				expect(Number(flap.style.zIndex)).toBeGreaterThan(Number(surface.style.zIndex));
-				expect(leaf.flipPosition).toBe(endpoint);
-				expect(onTurnedMock).not.toHaveBeenCalled();
-				flapAreas.push(flapArea);
-			}
-			expect(flapAreas[1]).toBeCloseTo(flapAreas[0], 2);
-			leaf.setHoverShadow(0);
-			for (const page of leaf.pages) {
-				expect(page?.style.clipPath).toBe("");
-				expect(page?.classList.contains("page--folded")).toBe(false);
-			}
-		});
+				for (const page of leaf.pages) {
+					expect(page?.style.clipPath).toBe("");
+					expect(page?.classList.contains("page--folded")).toBe(false);
+				}
+			},
+		);
 
 		it("preserves live controls and scroll positions throughout a fold", () => {
 			const leaf = createPaperLeaf();
@@ -927,48 +934,48 @@ describe("Leaf", () => {
 			expect(Math.min(...stack(upper))).toBeGreaterThan(Math.max(...stack(lower)));
 		};
 
-		it.each([
-			true,
-			false,
-		])("keeps an opening cover above the following curl for isLTR=%s", (isLTR) => {
-			const cover = createLeaf(0, isLTR, true);
-			const paper = createLeaf(1, isLTR);
-			const stationary = createLeaf(2, isLTR);
-			stationary.applyTransform(0);
+		it.each([true, false])(
+			"keeps an opening cover above the following curl for isLTR=%s",
+			(isLTR) => {
+				const cover = createLeaf(0, isLTR, true);
+				const paper = createLeaf(1, isLTR);
+				const stationary = createLeaf(2, isLTR);
+				stationary.applyTransform(0);
 
-			cover.setManualPosition(0.3);
-			paper.setManualPosition(0.1);
-			expectAbove(cover, paper);
-			expectAbove(paper, stationary);
-			expect(cover.pages[0].style.transform).toContain("rotateY");
-			expect(paper.pages[0].classList.contains("page--folded")).toBe(true);
-			expect(stack(cover)[0]).toBeGreaterThan(stack(cover)[1]);
+				cover.setManualPosition(0.3);
+				paper.setManualPosition(0.1);
+				expectAbove(cover, paper);
+				expectAbove(paper, stationary);
+				expect(cover.pages[0].style.transform).toContain("rotateY");
+				expect(paper.pages[0].classList.contains("page--folded")).toBe(true);
+				expect(stack(cover)[0]).toBeGreaterThan(stack(cover)[1]);
 
-			cover.setManualPosition(0.7);
-			expectAbove(cover, paper);
-			expect(stack(cover)[1]).toBeGreaterThan(stack(cover)[0]);
+				cover.setManualPosition(0.7);
+				expectAbove(cover, paper);
+				expect(stack(cover)[1]).toBeGreaterThan(stack(cover)[0]);
 
-			paper.setManualPosition(0.6);
-			expectAbove(paper, cover);
-		});
+				paper.setManualPosition(0.6);
+				expectAbove(paper, cover);
+			},
+		);
 
-		it.each([
-			true,
-			false,
-		])("orders the back cover and preceding curl while turning backward for isLTR=%s", (isLTR) => {
-			const cover = createLeaf(4, isLTR, true);
-			const paper = createLeaf(3, isLTR);
+		it.each([true, false])(
+			"orders the back cover and preceding curl while turning backward for isLTR=%s",
+			(isLTR) => {
+				const cover = createLeaf(4, isLTR, true);
+				const paper = createLeaf(3, isLTR);
 
-			cover.setManualPosition(0.7);
-			paper.setManualPosition(0.9);
-			expectAbove(cover, paper);
+				cover.setManualPosition(0.7);
+				paper.setManualPosition(0.9);
+				expectAbove(cover, paper);
 
-			cover.setManualPosition(0.3);
-			expectAbove(paper, cover);
+				cover.setManualPosition(0.3);
+				expectAbove(paper, cover);
 
-			paper.setManualPosition(0.4);
-			expectAbove(paper, cover);
-		});
+				paper.setManualPosition(0.4);
+				expectAbove(paper, cover);
+			},
+		);
 
 		it.each([true, false])("restores the exact flat stack and transforms for isLTR=%s", (isLTR) => {
 			for (const cover of [false, true]) {

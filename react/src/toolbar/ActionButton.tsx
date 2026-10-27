@@ -37,5 +37,5 @@ const ActionButton: React.FC<ActionButtonProps> = ({
 	);
 };
 
-export { ActionButton };
 export type { ActionButtonProps };
+export { ActionButton };

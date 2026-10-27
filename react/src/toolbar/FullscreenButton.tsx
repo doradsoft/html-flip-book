@@ -104,5 +104,5 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({
 	);
 };
 
-export { FullscreenButton };
 export type { FullscreenButtonProps };
+export { FullscreenButton };
