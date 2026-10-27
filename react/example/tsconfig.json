@@ -4,7 +4,6 @@
 		"lib": ["dom", "dom.iterable", "ESNext"],
 		"jsx": "react-jsx",
 		"module": "ESNext",
-		"baseUrl": ".",
 		"paths": {
 			"html-flip-book-react/toolbar": ["../src/toolbar/index.ts"],
 			"html-flip-book-react": ["../src/FlipBook.tsx"],
@@ -12,13 +11,13 @@
 			"html-flip-book-vanilla": ["../../base/src/flipbook.ts"]
 		},
 		"moduleResolution": "bundler",
+		"rootDir": "../..",
 		"resolveJsonModule": true,
 		"allowJs": false,
 		"outDir": "./dist",
 		"isolatedModules": true,
 		"allowSyntheticDefaultImports": true,
 		"forceConsistentCasingInFileNames": true,
-		"esModuleInterop": false,
 		"useDefineForClassFields": true,
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
