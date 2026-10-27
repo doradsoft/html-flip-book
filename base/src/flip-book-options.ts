@@ -80,7 +80,12 @@ export interface FlipBookOptions {
 	onPageChanged?: (pageIndex: number) => void;
 	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */
 	onPageFlipping?: (params: PageFlipParams) => void;
-	/** Callback fired when a flip completes. Receives params (leaf, spread page indices, semantics, direction). */
+	/**
+	 * Callback fired when a flip completes. Receives params (leaf, spread page
+	 * indices, semantics, direction). Also fires once during the initial
+	 * history sync on render(), immediately before the book's first history
+	 * write — consumers may use it to adjust the entry being written.
+	 */
 	onPageFlipped?: (params: PageFlipParams) => void;
 	/**
 	 * When set, the flip-book syncs with browser history: pushState on flip, restore page on popstate (back/forward).

@@ -201,6 +201,26 @@ describe("FlipBook default history integration", () => {
 		}
 	});
 
+	it("fires onPageFlipped on the initial sync, before the init write", () => {
+		// Consumers hook onPageFlipped to observe (and adjust) the history entry
+		// the book is about to write — including the render()-time write that
+		// canonicalizes the URL. Suppressing it at init breaks deep links that
+		// layer extra route state on the book's canonical route. onPageChanged
+		// stays silent: no transition occurred.
+		History.prototype.replaceState.call(window.history, null, "", "/#page/0");
+		const onPageFlipped = vi.fn();
+		const onPageChanged = vi.fn();
+		const book = new FlipBook({ pagesCount: 6, onPageFlipped, onPageChanged });
+		try {
+			book.render(".flipbook-container");
+			expect(onPageFlipped).toHaveBeenCalledTimes(1);
+			expect(onPageChanged).not.toHaveBeenCalled();
+			expect(window.location.hash).toBe("#page/0");
+		} finally {
+			book.destroy();
+		}
+	});
+
 	it("does not adopt a hash another book authored", () => {
 		// A leftover #page/N written by one book is positional state, not a
 		// deep link — a second book on the same document must not jump to it.
