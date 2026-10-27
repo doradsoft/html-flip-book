@@ -1,6 +1,4 @@
 import { execSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
-import { createServer } from "node:http";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
@@ -33,40 +31,28 @@ test("production bundle loads without runtime errors", async ({ page }, testInfo
 		cwd: exampleDir,
 		stdio: "inherit",
 	});
-	const server = createServer((req, res) => {
-		// CI builds with base /html-flip-book/ (GITHUB_ACTIONS env), matching the
-		// real Pages deployment — serve dist under the same prefix.
-		const pathname = (req.url ?? "/").split("?")[0].replace(/^\/html-flip-book/, "");
+	// CI builds with base /html-flip-book/ (GITHUB_ACTIONS env), matching the
+	// real Pages deployment — serve dist under the same prefix.
+	await page.route("**/*", async (route) => {
+		const pathname = new URL(route.request().url()).pathname.replace(/^\/html-flip-book/, "");
 		const filePath = path.resolve(
 			distDir,
 			pathname === "/" || pathname === "" ? "index.html" : `.${pathname}`,
 		);
-		if (!filePath.startsWith(distDir + path.sep)) {
-			res.statusCode = 404;
-			res.end();
-			return;
-		}
-		readFile(filePath)
-			.then((data) => {
-				res.setHeader("content-type", MIME[path.extname(filePath)] ?? "application/octet-stream");
-				res.end(data);
-			})
-			.catch(() => {
-				res.statusCode = 404;
-				res.end();
+		if (!filePath.startsWith(distDir + path.sep)) return route.fulfill({ status: 404 });
+		try {
+			return await route.fulfill({
+				path: filePath,
+				contentType: MIME[path.extname(filePath)] ?? "application/octet-stream",
 			});
+		} catch {
+			return route.fulfill({ status: 404 });
+		}
 	});
-	try {
-		await new Promise<void>((resolve) => server.listen(0, resolve));
-		const address = server.address();
-		const port = typeof address === "object" && address ? address.port : 0;
-		const pageErrors: string[] = [];
-		page.on("pageerror", (error) => pageErrors.push(error.message));
-		const prefix = process.env.GITHUB_ACTIONS === "true" ? "/html-flip-book" : "";
-		await page.goto(`http://localhost:${port}${prefix}/?example=rtl-comprehensive`);
-		await expect(page.locator(".flipbook").first()).toBeVisible();
-		expect(pageErrors).toEqual([]);
-	} finally {
-		server.close();
-	}
+	const pageErrors: string[] = [];
+	page.on("pageerror", (error) => pageErrors.push(error.message));
+	const prefix = process.env.GITHUB_ACTIONS === "true" ? "/html-flip-book" : "";
+	await page.goto(`http://pages.local${prefix}/?example=rtl-comprehensive`);
+	await expect(page.locator(".flipbook").first()).toBeVisible();
+	expect(pageErrors).toEqual([]);
 });
