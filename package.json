@@ -1,6 +1,6 @@
 {
 	"name": "html-flip-book",
-	"version": "0.0.0-alpha.63",
+	"version": "0.0.0-alpha.64",
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -14,22 +14,27 @@
 	"engines": {
 		"node": ">=24.0.0"
 	},
+	"packageManager": "npm@12.2.1",
+	"workspaces": [
+		"base",
+		"react",
+		"react/example"
+	],
 	"scripts": {
 		"prepare": "husky",
-		"postinstall": "cd ./base && npm install && cd ../react && npm install && cd ./example && npm install",
 		"update": "npx npm-check-updates --peer --deep -u && npm install",
-		"build": "npm run build:base && npm run build:react",
+		"build": "npm run build:react",
 		"build:base": "cross-env BUILD_TARGET=base vite build && tsc -p base/tsconfig.json --emitDeclarationOnly",
 		"build:react": "npm run build:base && cross-env BUILD_TARGET=react vite build && tsc -p react/tsconfig.json --emitDeclarationOnly",
-		"build:example": "cd react/example && npm run build",
-		"dev": "cd react/example && npm run dev",
+		"build:example": "npm run build --workspace=html-flip-book-react-example",
+		"dev": "npm run dev --workspace=html-flip-book-react-example",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
 		"coverage:unit": "vitest run --coverage",
 		"coverage:e2e": "playwright test",
-		"coverage:merge": "tsx scripts/merge-coverage.mts",
+		"coverage:merge": "node scripts/merge-coverage.mts",
 		"coverage:badge": "make-coverage-badge --report-path .coverage/unit/coverage-summary.json --output-path ./badges/coverage.svg",
 		"format:write": "biome format --write .",
 		"format:check": "biome format .",
@@ -38,10 +43,10 @@
 		"ci-test": "vitest run --coverage && playwright test && npm run coverage:merge",
 		"all": "npm run check && npm run test:coverage && npm run build",
 		"docs": "typedoc",
-		"release": "tsx scripts/release.mts",
-		"release:patch": "tsx scripts/release.mts patch",
-		"release:minor": "tsx scripts/release.mts minor",
-		"release:major": "tsx scripts/release.mts major"
+		"release": "node scripts/release.mts",
+		"release:patch": "node scripts/release.mts patch",
+		"release:minor": "node scripts/release.mts minor",
+		"release:major": "node scripts/release.mts major"
 	},
 	"author": "DoradSoft",
 	"license": "MIT",
@@ -67,11 +72,14 @@
 		"react-dom": "^19.3.1",
 		"sass": "^1.106.1",
 		"semver": "^7.8.5",
-		"tsx": "^4.23.15",
 		"typedoc": "^0.28.20",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.7",
-		"vite-plugin-dts": "^4.5.4",
 		"vitest": "^4.0.18"
+	},
+	"allowScripts": {
+		"@swc/core@1.16.20": true,
+		"esbuild@0.28.2": true,
+		"@parcel/watcher@2.6.0": true
 	}
 }

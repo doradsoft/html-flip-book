@@ -1,6 +1,7 @@
 {
 	"name": "html-flip-book-react-example",
-	"version": "0.0.0-alpha.63",
+	"version": "0.0.0-alpha.64",
+	"private": true,
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"type": "module",
@@ -18,7 +19,7 @@
 	"author": "DoradSoft",
 	"license": "MIT",
 	"dependencies": {
-		"html-flip-book-react": "0.0.0-alpha.1",
+		"html-flip-book-react": "*",
 		"jspdf": "^4.2.1",
 		"pdf-merger-js": "^5.1.2",
 		"react": "^19.2.4",

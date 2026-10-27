@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added geometry, drag, release, content-preservation, and selection regressions for both reading directions; browser fixtures now measure travel using physical page widths.
 - Simplified held-fold state updates and shared gesture/content fixtures while preserving regression assertions.
+- Modernized test/build tooling: `base`, `react`, and `react/example` are now npm workspaces with a single root lockfile (nested `npm install` chains and lockfiles removed, giving `npm ci` a deterministic view and dependabot coverage of every workspace dependency). GitHub Actions bumped to current majors (checkout/setup-node v7, upload-pages-artifact v5, dependency-review-action v5, action-gh-release v3, codecov-action v7.1.1). Script helpers run on Node 24's native TypeScript support instead of `tsx`. Removed the obsolete `legacy-peer-deps` `.npmrc` override, the unused `vite-plugin-dts` dependency, and the completed January modernization plan document; `npm run build` no longer compiles `base` twice; the example app is marked `private` and resolves `html-flip-book-react` from the workspace instead of a stale published tarball.
 
 ---
 

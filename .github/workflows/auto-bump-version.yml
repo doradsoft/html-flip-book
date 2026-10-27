@@ -13,13 +13,13 @@ jobs:
       contents: read
     steps:
       - name: Checkout master
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           token: ${{ secrets.BOT_PAT }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -34,12 +34,9 @@ jobs:
           NEXT_VERSION=$(node -e 'const semver = require("semver"); const released = process.env.RELEASE_TAG.replace(/^v/, ""); const next = semver.inc(released, semver.prerelease(released) ? "prerelease" : "patch"); if (!next) process.exit(1); process.stdout.write(next)')
           echo "NEXT_VERSION=$NEXT_VERSION" >> "$GITHUB_ENV"
 
-      - name: Update manifests and lockfiles
+      - name: Update manifests and lockfile
         run: |
-          for package_dir in . base react react/example; do
-            (cd "$package_dir" && npm version "$NEXT_VERSION" --no-git-tag-version --ignore-scripts)
-          done
-          node -e 'const fs = require("fs"); const path = "react/package-lock.json"; const lock = JSON.parse(fs.readFileSync(path, "utf8")); lock.packages["../base"].version = process.env.NEXT_VERSION; fs.writeFileSync(path, `${JSON.stringify(lock, null, "\t")}\n`);'
+          npm version "$NEXT_VERSION" --no-git-tag-version --ignore-scripts --workspaces --include-workspace-root
 
       - name: Open a checked version-bump pull request
         env:
@@ -49,7 +46,7 @@ jobs:
           git switch -c "$BRANCH"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json base/package.json base/package-lock.json react/package.json react/package-lock.json react/example/package.json react/example/package-lock.json
+          git add package.json package-lock.json base/package.json react/package.json react/example/package.json
           HUSKY=0 git commit -m "chore: prepare version $NEXT_VERSION"
           git push --set-upstream origin "$BRANCH"
           PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION [skip ci]" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master. The squash commit skips master CI so this bump does not create another release.")
