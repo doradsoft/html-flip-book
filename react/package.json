@@ -1,8 +1,7 @@
 {
 	"name": "html-flip-book-react",
 	"description": "Flip Book React Component",
-	"version": "0.0.0-alpha.80",
-
+	"version": "0.0.0-alpha.81",
 	"type": "module",
 	"author": "DoradSoft",
 	"main": "./dist/flip-book.js",
