@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
 - Optional short page titles complement full titles in page metadata. A toolbar control shows or hides bookmarks without changing navigation.
 - `restorePage(pageIndex)` lets an external SPA router show a page without adding another browser-history entry.
+- `DownloadDropdown` accepts `children` rendered at the end of the open menu — a supported slot for app-specific hints or extra download actions. Slot content is a real child of the menu element: inside-menu click behavior, keyboard tabbing, `dir` and React context are preserved, and it remounts with each open (#280).
 - Paper pages fold from the grabbed corner with crease shading.
 - `FullscreenButton` is now backed by the `toggleFullscreen` toggle command — F11 by default, rebindable or disabled per command via `commandOptions`, with hold support — and shows localized enter/exit labels plus `aria-pressed` state in LTR and RTL toolbars.
 
