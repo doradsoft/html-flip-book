@@ -12,6 +12,7 @@ const enUS: LocaleConfig = {
 		"toolbarItem.download.from": "From",
 		"toolbarItem.download.to": "To",
 		"toolbarItem.download.download": "Download",
+		"toolbarItem.download.error": "Download failed — try again",
 		"command.downloadEntireBook": "Download entire book",
 		"command.jumpToToc": "Table of contents",
 		"command.jumpToFirstPage": "First page",

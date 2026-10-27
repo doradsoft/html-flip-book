@@ -129,6 +129,17 @@
 	background: #fff;
 }
 
+/* ── Recoverable error line ── */
+.flipbook-toolbar-download-error {
+	margin: 8px 8px 0;
+	padding: 8px 12px;
+	border-radius: 8px;
+	background: rgba(255, 107, 107, 0.14);
+	color: #ff8787;
+	font-size: 13px;
+	text-align: start;
+}
+
 /* ── Download action button ── */
 .flipbook-toolbar-download-menuitem {
 	display: block;

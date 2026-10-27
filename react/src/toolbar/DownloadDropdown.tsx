@@ -12,22 +12,18 @@ function sanitizeForFilename(name: string): string {
 }
 
 function triggerDownload(result: { ext: string; data: string }, filenameBase: string): void {
-	try {
-		const binary = atob(result.data);
-		const bytes = new Uint8Array(binary.length);
-		for (let i = 0; i < binary.length; i++) {
-			bytes[i] = binary.charCodeAt(i);
-		}
-		const blob = new Blob([bytes]);
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = `${filenameBase}.${result.ext}`;
-		a.click();
-		URL.revokeObjectURL(url);
-	} catch (e) {
-		console.error("Download failed:", e);
+	const binary = atob(result.data);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
 	}
+	const blob = new Blob([bytes]);
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = `${filenameBase}.${result.ext}`;
+	a.click();
+	URL.revokeObjectURL(url);
 }
 
 /** Collect pages that have a semantic name for range selector options.
@@ -93,6 +89,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	const [fromIndex, setFromIndex] = useState(0);
 	const [toIndex, setToIndex] = useState(0);
 	const [loading, setLoading] = useState<"sefer" | "range" | null>(null);
+	const [error, setError] = useState<string | null>(null);
 	const [openUp, setOpenUp] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
@@ -120,7 +117,21 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 
 	const closeDropdown = useCallback(() => {
 		setOpen(false);
+		setError(null);
 	}, []);
+
+	// One lifecycle for handler rejections and browser-side save failures:
+	// notify the host, keep the menu open for retry, show a localized alert.
+	const reportError = useCallback(
+		(cause: unknown) => {
+			const config = flipBookRef.current?.getDownloadConfig?.();
+			const custom = config?.onDownloadError?.(cause);
+			setError(
+				typeof custom === "string" && custom ? custom : t("toolbarItem.download.error", locale),
+			);
+		},
+		[flipBookRef, locale],
+	);
 
 	// Anchor to the trigger while keeping both axes inside the viewport, including scrolled toolbars.
 	useLayoutEffect(() => {
@@ -173,14 +184,17 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 		const config = flipBookRef.current?.getDownloadConfig?.();
 		if (!config?.onDownloadSefer) return;
 		setLoading("sefer");
+		setError(null);
 		try {
 			const result = await config.onDownloadSefer();
 			if (result) triggerDownload(result, config.entireBookFilename ?? "book");
 			closeDropdown();
+		} catch (e) {
+			reportError(e);
 		} finally {
 			setLoading(null);
 		}
-	}, [flipBookRef, closeDropdown]);
+	}, [flipBookRef, closeDropdown, reportError]);
 
 	const runRangeDownload = useCallback(
 		async (from: number, to: number) => {
@@ -194,6 +208,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 				if (info) semanticPages.push(info);
 			}
 			setLoading("range");
+			setError(null);
 			try {
 				const result = await config.onDownloadPageRange(
 					pages,
@@ -208,11 +223,13 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 					triggerDownload(result, `${config.rangeFilename ?? "pages"}-${fromName}-${toName}`);
 				}
 				closeDropdown();
+			} catch (e) {
+				reportError(e);
 			} finally {
 				setLoading(null);
 			}
 		},
-		[flipBookRef, selectablePages, closeDropdown],
+		[flipBookRef, selectablePages, closeDropdown, reportError],
 	);
 
 	useEffect(() => {
@@ -309,6 +326,11 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 									))}
 								</select>
 							</label>
+						</div>
+					)}
+					{error && (
+						<div role="alert" className="flipbook-toolbar-download-error">
+							{error}
 						</div>
 					)}
 					<button

@@ -58,4 +58,10 @@ export interface DownloadConfig {
 	entireBookFilename?: string;
 	/** Suggested filename base for range download. Default: "pages" */
 	rangeFilename?: string;
+	/**
+	 * Called when a download fails — either a handler rejecting or the
+	 * browser-side file save throwing. Return a string to override the
+	 * dropdown's localized error message; any other value keeps the default.
+	 */
+	onDownloadError?: (error: unknown) => unknown;
 }
