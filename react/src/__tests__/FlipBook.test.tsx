@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FlipBook } from "../FlipBook";
 
@@ -177,5 +177,46 @@ describe("FlipBook React Component", () => {
 		render(<FlipBook pages={pages} className="test-flipbook" />);
 
 		expect(mocked.instances[0].options.pagesCount).toBe(3);
+	});
+
+	it("keeps content mounted for leaves whose flip is in flight (issue #167)", async () => {
+		const pageIds = Array.from({ length: 20 }, (_, i) => `test-page-${i}`);
+		const pages = pageIds.map((id, i) => <div key={id}>Page {i}</div>);
+		render(<FlipBook pages={pages} className="test-flipbook" leavesBuffer={1} />);
+		const options = mocked.instances[0].options;
+		const onPageFlipping = options.onPageFlipping as (params: {
+			leafIndex: number;
+			pageIndices: [number, number];
+			semantics: [undefined, undefined];
+			direction: "forward" | "backward";
+		}) => void;
+		const onPageChanged = options.onPageChanged as (index: number) => void;
+
+		// The buffer window sits around page 0, so leaf 6's content starts unmounted.
+		expect(screen.queryByText("Page 12")).toBeNull();
+		expect(screen.queryByText("Page 13")).toBeNull();
+
+		// Backward flip targeting spread [11, 12] carries leaf 6 (pages 12-13).
+		act(() => {
+			onPageFlipping({
+				leafIndex: 6,
+				pageIndices: [11, 12],
+				semantics: [undefined, undefined],
+				direction: "backward",
+			});
+		});
+		// The base reveals in-flight leaves outside the buffer window, so their
+		// content must stay mounted too — otherwise the revealed page is blank.
+		expect(screen.getByText("Page 12")).toBeTruthy();
+		expect(screen.getByText("Page 13")).toBeTruthy();
+
+		// Once flips settle, the debounced window recenters and far content unmounts.
+		act(() => {
+			onPageChanged(0);
+		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		});
+		expect(screen.queryByText("Page 12")).toBeNull();
 	});
 });

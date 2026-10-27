@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rapid consecutive page flips no longer flicker: leaves stay visible while their flip animation is in flight, even when the `leavesBuffer` window slides past them, and the React wrapper keeps their content mounted until flips settle (#167).
 - Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.
 - Bookmark reveals keep a stationary page-edge clip during hover, closing, and reentry, even when movement and reveal timing differ.
 - Escape dismisses an open bookmark preview even when focus has moved to another control.

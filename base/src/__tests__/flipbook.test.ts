@@ -2037,6 +2037,57 @@ describe("FlipBook", () => {
 			const leafWidth = parseFloat(pages[2].style.width);
 			expect(coverWidth).toBeGreaterThan(leafWidth);
 		});
+
+		it("keeps flipping leaves visible while their animation is in flight (issue #167)", async () => {
+			vi.useFakeTimers();
+			const pages = createPages(20); // 10 leaves
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				leavesBuffer: 2,
+				initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6], // current spread starts at leaf 7
+			});
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+
+			// Buffer window covers leaves 5-9; leaves 2-4 start hidden.
+			expect(pages[4].style.display).toBe("none"); // leaf 2
+			expect(pages[8].style.display).toBe("none"); // leaf 4
+
+			const assertFlippingLeavesVisible = () => {
+				const flipping = internals.leaves.filter(
+					(leaf) => leaf.isFlipping || internals.activeFlips.has(leaf.index),
+				);
+				expect(flipping.length).toBeGreaterThan(0);
+				for (const leaf of flipping) {
+					for (const page of leaf.pages) {
+						expect(page?.style.display).not.toBe("none");
+						expect(page?.style.contentVisibility).not.toBe("hidden");
+					}
+				}
+			};
+
+			// Fire rapid backward flips — each picks the next turned leaf (6..2),
+			// and leaves 2-4 sit outside the buffer window when picked.
+			const flips: Promise<void>[] = [];
+			for (let i = 0; i < 5; i++) {
+				flips.push(flipBook.flipPrev());
+				await vi.advanceTimersByTimeAsync(50);
+			}
+
+			// A leaf picked while buffer-hidden must be revealed the moment its
+			// flip starts — hiding it makes the turning page vanish and reappear.
+			assertFlippingLeavesVisible();
+
+			// As the earliest flips land the buffer window slides past leaves that
+			// are still mid-flight below it; they must stay visible too.
+			await vi.advanceTimersByTimeAsync(700);
+			assertFlippingLeavesVisible();
+
+			await vi.runAllTimersAsync();
+			await Promise.all(flips);
+			vi.useRealTimers();
+			flipBook.destroy();
+		});
 	});
 
 	describe("navigation properties", () => {
