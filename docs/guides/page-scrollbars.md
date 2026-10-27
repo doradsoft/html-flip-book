@@ -6,6 +6,27 @@ Scrolling direction and content reading direction are separate. Each React page 
 
 The main scrollport owns page scrolling. The immediate consumer content root uses visible overflow so example content does not create a second scrollbar. Nested scrolling regions remain available. Explicit inline overflow on the content root takes precedence when a consumer deliberately needs its own scroll area.
 
+### Bounded page panels
+
+Pages that are fixed-height panels — a stationary header and footer around an independently scrolling pane — need the content root to stay bounded instead of growing a document. Add the `flipbook-page-panel` class to the page's root element (the direct child of `.flipbook-page-content`) to keep it at exactly the page height with `overflow: hidden`:
+
+```html
+<div class="page">
+  <div class="flipbook-page-panel my-panel">
+    <header>Chapter title</header>
+    <div class="my-pane" tabindex="0">…long scrollable content…</div>
+    <footer>Footnotes</footer>
+  </div>
+</div>
+```
+
+```css
+.my-panel { display: flex; flex-direction: column; }
+.my-pane  { flex: 1; min-height: 0; overflow-y: auto; }
+```
+
+The panel always fits the scrollport, so the page scrollport stays dormant and the inner pane owns wheel, touch and keyboard scrolling (give the pane `tabindex` for keyboard focus). Page turns preserve inner scroll positions because the page's DOM is not recreated. The class is opt-in per page, so a book can mix document pages and panels; normal pages keep the document-style inward scrollbar described above.
+
 `TocPage` also shares the page's main scrollport when rendered inside a book, so its contents list uses the same inward scrollbar. A standalone `TocPage` retains its own scrolling area.
 
 ## Vanilla and framework markup

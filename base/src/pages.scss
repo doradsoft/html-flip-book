@@ -162,3 +162,16 @@
   box-sizing: border-box;
   overflow: visible;
 }
+
+// Bounded page panels (opt-in per page): a consumer page root carrying
+// .flipbook-page-panel keeps a full-height bounded box instead of growing past
+// the page, so fixed chrome (headers/footers) plus independently scrolling
+// inner regions work without overriding internal scrollport rules. The panel
+// always fits the scrollport exactly, so the page scrollport stays dormant
+// and each inner scroller owns scrolling itself.
+.page .flipbook-page-content > .flipbook-page-panel {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
