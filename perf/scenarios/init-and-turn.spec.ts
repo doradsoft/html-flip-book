@@ -32,8 +32,6 @@ interface Target {
 	url: string;
 }
 
-const resultsDir = "perf-results";
-
 function resolveTargets(): { list: Target[]; pairCount: number } {
 	if (BASE_URL === "") {
 		return { list: [{ label: "head", url: HEAD_URL }], pairCount: 1 };
@@ -99,8 +97,8 @@ test.describe("init-and-turn paired sampling", () => {
 				valid,
 				legs: Object.fromEntries(legs),
 			});
-			mkdirSync(resultsDir, { recursive: true });
-			writeFileSync(`${resultsDir}/samples.json`, JSON.stringify(samples, null, 2));
+			mkdirSync("perf-results", { recursive: true });
+			writeFileSync("perf-results/samples.json", JSON.stringify(samples, null, 2));
 		}
 	});
 });
