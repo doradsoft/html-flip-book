@@ -307,4 +307,19 @@ describe("bookmark previews", () => {
 		slot.dispatchEvent(new PointerEvent("pointerenter"));
 		expect(element?.hidden).toBe(true);
 	});
+
+	it("stays closed after an activation press until the pointer moves", async () => {
+		preview.open(source, content, "right");
+		await vi.advanceTimersByTimeAsync(32);
+		const element = document.querySelector<HTMLElement>(".flipbook-bookmark-preview");
+		expect(source.parentElement).toBe(element);
+		preview.close();
+		expect(source.parentElement).toBe(slot);
+		preview.suppressUntilPointerMove();
+		preview.open(source, content, "right");
+		expect(source.parentElement).toBe(slot);
+		document.defaultView?.dispatchEvent(new PointerEvent("pointermove"));
+		preview.open(source, content, "right");
+		expect(source.parentElement).not.toBe(slot);
+	});
 });

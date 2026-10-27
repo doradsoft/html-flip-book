@@ -17,6 +17,7 @@ export class BookmarkPreview {
 	private hoverTimer: number | undefined;
 	private closeTimer: number | undefined;
 	private transferring = false;
+	private suppressOpen = false;
 	private readonly view: Window | null;
 
 	constructor(
@@ -43,8 +44,22 @@ export class BookmarkPreview {
 		document.addEventListener("keydown", this.escapeKey);
 	}
 
+	/** Block opens until the pointer actually moves after an activation press on the source. */
+	suppressUntilPointerMove(): void {
+		if (this.suppressOpen) return;
+		this.suppressOpen = true;
+		this.view?.addEventListener(
+			"pointermove",
+			() => {
+				this.suppressOpen = false;
+			},
+			{ once: true },
+		);
+	}
+
 	open(source: HTMLButtonElement, content: HTMLElement, edge: Edge, className = ""): void {
 		this.cancelHover();
+		if (this.suppressOpen) return;
 		if (this.source === source && !this.element.hidden) {
 			this.resume();
 			return;
