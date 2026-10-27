@@ -1,18 +1,16 @@
 #!/usr/bin/env node
 /**
- * Unified version verification script.
- * Performs two checks:
- * 1. All package.json versions are in sync
- * 2. Current version is greater than the latest released version
+ * Version verification script.
+ * Ensures all package.json versions are in sync.
  *
- * Used as a pre-commit hook and in CI to ensure proper versioning.
+ * Release versions are derived from git tags (scripts/next-version.mts), so
+ * pull requests no longer bump the manifests — only the sync invariant is
+ * enforced here, as a pre-commit hook and in CI.
  */
 
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import semver from "semver";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, "..");
@@ -39,31 +37,9 @@ function getVersion(relativePath: string): string {
 }
 
 /**
- * Get the latest released version from git tags.
- * Returns null if no releases exist.
- */
-function getReleasedVersion(): string | null {
-	try {
-		const result = execSync('git tag -l "v*" --sort=-v:refname', {
-			encoding: "utf-8",
-			cwd: rootDir,
-			stdio: ["pipe", "pipe", "pipe"],
-		});
-		const tags = result.trim().split("\n").filter(Boolean);
-		if (tags.length === 0) {
-			return null;
-		}
-		// Remove 'v' prefix from tag
-		return tags[0].replace(/^v/, "");
-	} catch {
-		return null;
-	}
-}
-
-/**
  * Verify all package.json versions are in sync
  */
-function verifyVersionsSync(): { passed: boolean; baseVersion: string } {
+function verifyVersionsSync(): boolean {
 	console.log("\n📦 Version Sync Check");
 	console.log("---------------------");
 
@@ -83,70 +59,21 @@ function verifyVersionsSync(): { passed: boolean; baseVersion: string } {
 	if (mismatches.length > 0) {
 		console.error("\n   ❌ Version mismatch detected!");
 		console.error("   All package.json versions must be identical.");
-		return { passed: false, baseVersion };
+		return false;
 	}
 
 	console.log("   ✅ All versions in sync");
-	return { passed: true, baseVersion };
-}
-
-/**
- * Verify current version is greater than released version
- */
-function verifyVersionBump(currentVersion: string): boolean {
-	console.log("\n🚀 Version Bump Check");
-	console.log("---------------------");
-	console.log(`   Current version: ${currentVersion}`);
-
-	const releasedVersion = getReleasedVersion();
-	if (!releasedVersion) {
-		console.log("   ✅ No previous release found - version check passed");
-		return true;
-	}
-	console.log(`   Released version: ${releasedVersion}`);
-
-	const current = semver.parse(currentVersion);
-	const released = semver.parse(releasedVersion);
-
-	if (!current) {
-		console.error(
-			`   ❌ ERROR: Invalid current version format: ${currentVersion}`,
-		);
-		return false;
-	}
-	if (!released) {
-		console.error(
-			`   ❌ ERROR: Invalid released version format: ${releasedVersion}`,
-		);
-		return false;
-	}
-
-	if (semver.gt(current, released)) {
-		console.log(
-			`   ✅ Version ${currentVersion} is greater than released version ${releasedVersion}`,
-		);
-		return true;
-	}
-
-	console.error(
-		`   ❌ ERROR: Version ${currentVersion} is NOT greater than released version ${releasedVersion}`,
-	);
-	console.error("   Please bump the version before committing.");
-	console.error(
-		"   Set the same higher version in package.json, base/package.json, react/package.json, react/example/package.json",
-	);
-	return false;
+	return true;
 }
 
 function main(): void {
 	console.log("🔍 Version Verification");
 	console.log("========================");
 
-	const syncResult = verifyVersionsSync();
-	const bumpPassed = verifyVersionBump(syncResult.baseVersion);
+	const passed = verifyVersionsSync();
 
 	console.log("\n========================");
-	if (syncResult.passed && bumpPassed) {
+	if (passed) {
 		console.log("✅ All version checks passed!");
 		process.exit(0);
 	} else {

@@ -20,7 +20,7 @@ The repository uses pre-commit hooks managed by [pre-commit](https://pre-commit.
 | check-case-conflict  | Detects case-insensitive filename conflicts  |
 | check-merge-conflict | Detects unresolved merge conflicts           |
 | mixed-line-ending    | Enforces consistent line endings             |
-| verify-version       | Ensures versions are in sync and bumped      |
+| verify-version       | Ensures all manifest versions are in sync    |
 | biome                | Runs Biome linter/formatter on staged files  |
 
 ### Setup
@@ -64,29 +64,20 @@ Copilot and agents follow the same workflow as above but should:
 
 ## Version Verification
 
-The repository enforces version bumping before releases at two levels:
+Versions are managed automatically — pull requests do not bump them.
 
-### Pre-commit Hook (Local)
+- The **release job** derives each release's version from git tags
+  (`scripts/next-version.mts`): the latest `v*` tag plus one prerelease/patch
+  increment. A manifest version ahead of the tag sequence (a deliberate
+  major/minor prep change) wins over the mechanical increment.
+- After each release, **Auto Bump Version** opens a pull request advancing the
+  manifests to the next version so they stay ahead of the tags.
+- The **Verify Version Sync** check (pre-commit hook and PR job) only enforces
+  that `package.json`, `base/package.json`, `react/package.json`, and
+  `react/example/package.json` all carry the same version.
 
-The `verify-version-bump` hook runs locally and warns if your version is not greater than the latest released version. This is a soft check - you can bypass it with `--no-verify`.
+### Deliberate version jumps
 
-### CI Verification (Enforced)
-
-On pull requests, the **Verify Version Bump** CI job enforces that the version in `package.json` is greater than the latest git tag. This cannot be bypassed and will block merging.
-
-### How to Bump Version
-
-Before merging a PR, bump the version:
-
-```bash
-# In root directory
-cd base && npm version patch --no-git-tag-version  # for bug fixes
-cd base && npm version minor --no-git-tag-version  # for new features
-cd base && npm version major --no-git-tag-version  # for breaking changes
-
-# Then sync other packages
-cd ../react && npm version <same-version> --no-git-tag-version
-cd example && npm version <same-version> --no-git-tag-version
-```
-
-The `verify-versions-sync` hook ensures all package.json files have matching versions.
+To release a specific version (e.g. `1.0.0` instead of the next alpha), set it
+in all four manifests on a PR. The release job honors a manifest version that
+is ahead of the tag sequence.
