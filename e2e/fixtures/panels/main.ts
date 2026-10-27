@@ -48,7 +48,7 @@ function panel(label: string): HTMLElement {
 	return page;
 }
 
-const books: Record<string, FlipBook> = {};
+const books = new Map<string, FlipBook>();
 for (const dir of ["ltr", "rtl"] as const) {
 	const host = document.getElementById(`book-${dir}`);
 	if (!host) throw new Error(`missing #book-${dir}`);
@@ -70,6 +70,6 @@ for (const dir of ["ltr", "rtl"] as const) {
 	});
 	book.render(`#book-${dir}`);
 	book.jumpToPage(1);
-	books[dir] = book;
+	books.set(dir, book);
 }
-(window as unknown as { books: typeof books }).books = books;
+(window as unknown as { books: Map<string, FlipBook> }).books = books;

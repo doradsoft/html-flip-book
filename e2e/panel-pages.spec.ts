@@ -31,8 +31,9 @@ async function exists(p: string): Promise<boolean> {
 	try {
 		await access(p);
 		return true;
-	} catch {
-		return false;
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException | undefined)?.code === "ENOENT") return false;
+		throw err;
 	}
 }
 
@@ -148,17 +149,17 @@ for (const dir of ["ltr", "rtl"]) {
 		});
 		await page.evaluate(
 			(direction) =>
-				(window as unknown as { books: Record<string, { flipNext(): void }> }).books[
-					direction
-				].flipNext(),
+				(window as unknown as { books: Map<string, { flipNext(): void }> }).books
+					.get(direction)
+					?.flipNext(),
 			dir,
 		);
 		await page.waitForTimeout(1600);
 		await page.evaluate(
 			(direction) =>
-				(window as unknown as { books: Record<string, { flipPrev(): void }> }).books[
-					direction
-				].flipPrev(),
+				(window as unknown as { books: Map<string, { flipPrev(): void }> }).books
+					.get(direction)
+					?.flipPrev(),
 			dir,
 		);
 		await page.waitForTimeout(1600);
@@ -170,9 +171,9 @@ test("normal pages keep the document-style inward scrollbar", async ({ page }) =
 	const wrap = page.locator('.book-wrap[data-dir="ltr"]');
 	// Show a spread containing a normal (non-panel) document page.
 	await page.evaluate(() =>
-		(
-			window as unknown as { books: Record<string, { jumpToPage(i: number): void }> }
-		).books.ltr.jumpToPage(3),
+		(window as unknown as { books: Map<string, { jumpToPage(i: number): void }> }).books
+			.get("ltr")
+			?.jumpToPage(3),
 	);
 	// Back-side pages keep a box while mirrored away — .current-page marks the
 	// two pages actually on top of the spread.
