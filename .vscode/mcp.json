@@ -1,18 +1,18 @@
 {
 	"servers": {
 		"playwright": {
-			"command": "npx",
+			"command": "bunx",
 			"args": ["@playwright/mcp@latest", "--vision"],
 			"type": "stdio"
 		},
 		"io.github.ChromeDevTools/chrome-devtools-mcp": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "bunx",
 			"args": ["chrome-devtools-mcp@0.13.0"]
 		},
 		"io.github.upstash/context7": {
 			"type": "stdio",
-			"command": "npx",
+			"command": "bunx",
 			"args": ["@upstash/context7-mcp@1.0.31"],
 			"env": {
 				"CONTEXT7_API_KEY": "${input:CONTEXT7_API_KEY}"

@@ -25,18 +25,21 @@ jobs:
         with:
           fetch-depth: 0 # base ref must be resolvable for the paired build
 
+      - uses: oven-sh/setup-bun@v2
+
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       # Resolved version, not the package.json range (same as ci.yml).
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(node -e "console.log(require('./package-lock.json').packages['node_modules/@playwright/test'].version)")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -e "console.log(require('fs').readFileSync('bun.lock','utf8').match(/\"@playwright\/test\":\[?\s*\[\"@playwright\/test@([^\"]+)/)[1])")" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright Browsers
         uses: actions/cache@v6
@@ -49,14 +52,14 @@ jobs:
       # miss; on a hit only the system dependencies are installed.
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps --only-shell chromium
+        run: bunx playwright install --with-deps --only-shell chromium
 
       - name: Install Playwright System Dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: bunx playwright install-deps chromium
 
       - name: Selfcheck (injected slowdown must be detected)
-        run: npm run perf:selfcheck -- --out perf-results/selfcheck
+        run: bun run perf:selfcheck -- --out perf-results/selfcheck
 
       - name: Base vs candidate comparison
         id: compare
@@ -65,7 +68,7 @@ jobs:
         # Exit 1 (calibrated regression or harness error) still fails the job.
         run: |
           set +e
-          npm run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
+          bun run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
           code=$?
           if [ "$code" -eq 2 ]; then
             echo "::warning::perf inconclusive — noise floor or sample budget not met; check the perf-results artifacts"

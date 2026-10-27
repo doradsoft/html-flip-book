@@ -31,7 +31,7 @@ jobs:
       # unchanged range would otherwise reuse binaries for the wrong release.
       - name: Get Playwright version
         id: get_playwright_version
-        run: echo "version=$(node -e "console.log(require('./package-lock.json').packages['node_modules/@playwright/test'].version)")" >> $GITHUB_OUTPUT
+        run: echo "version=$(node -e "console.log(require('fs').readFileSync('bun.lock','utf8').match(/\"@playwright\/test\":\[?\s*\[\"@playwright\/test@([^\"]+)/)[1])")" >> $GITHUB_OUTPUT
 
   # ============================================================================
   # Verify Version Job - Ensure version is bumped before merge (PR only)
@@ -48,14 +48,18 @@ jobs:
         with:
           fetch-depth: 0 # Need full history for git tags
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Verify Version
         run: node scripts/verify-version.mts
@@ -72,17 +76,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Biome Check
-        run: npm run check
+        run: bun run check
 
   # ============================================================================
   # Unit Tests Job - Depends on Lint passing
@@ -97,17 +105,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Unit Tests with Coverage
-        run: npm run test:coverage
+        run: bun run test:coverage
 
       - name: Upload Unit Coverage
         uses: actions/upload-artifact@v7
@@ -129,20 +141,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Build Example
-        run: npm run build:example
+        run: bun run build:example
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
@@ -157,7 +173,7 @@ jobs:
   # E2E Tests Job - Depends on Build, with Playwright caching
   # ============================================================================
   # The dev server compiles the packages from source via vite aliases, so the
-  # example's production build is not needed here; `npm run build` still runs
+  # example's production build is not needed here; `bun run build` still runs
   # once per shard so the example's type checker resolves package `exports`.
   e2e-tests:
     name: E2E Tests
@@ -173,11 +189,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Cache Playwright Browsers
         uses: actions/cache@v6
@@ -187,23 +207,23 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ needs.setup.outputs.playwright_version }}
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       # All specs run headless, so --only-shell skips the headed Chromium
       # build — roughly half the browser download on a cache miss.
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps --only-shell chromium
+        run: bunx playwright install --with-deps --only-shell chromium
 
       - name: Install Playwright System Dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium
+        run: bunx playwright install-deps chromium
 
       - name: E2E Tests
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: bun run test:e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload E2E Coverage
         uses: actions/upload-artifact@v7
@@ -235,14 +255,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Download Unit Coverage
         uses: actions/download-artifact@v8
@@ -258,10 +282,10 @@ jobs:
           path: .coverage/e2e
 
       - name: Merge Coverage
-        run: npm run coverage:merge
+        run: bun run coverage:merge
 
       - name: Generate Coverage Badge
-        run: npm run coverage:badge
+        run: bun run coverage:badge
 
       - name: Upload Merged Coverage Report
         uses: actions/upload-artifact@v7

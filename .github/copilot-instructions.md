@@ -88,9 +88,9 @@ After completing any fix, feature, or breaking change, update `CHANGELOG.md`:
 
 ## Commands Reference
 
-| Task          | Command                     |
-| ------------- | --------------------------- |
-| Unit Tests    | `npm test`                  |
-| E2E Tests     | `npm run test:e2e`          |
-| Lint & Format | `npx biome check --write .` |
-| Build         | `npm run build`             |
+| Task          | Command                      |
+| ------------- | ---------------------------- |
+| Unit Tests    | `bun run test`               |
+| E2E Tests     | `bun run test:e2e`           |
+| Lint & Format | `bunx biome check --write .` |
+| Build         | `bun run build`              |

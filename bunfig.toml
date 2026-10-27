@@ -1,0 +1,5 @@
+[install]
+linker = "hoisted"
+exact = true
+# Supply-chain freshness gate: block packages published in the last 24h.
+minimumReleaseAge = 86400

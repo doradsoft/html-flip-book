@@ -28,18 +28,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # npm stays for version/publish: bun publish has no --provenance flag,
+      # so OIDC trusted publishing still goes through npm.
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
+          cache: bun
+          cache-dependency-path: bun.lock
           registry-url: "https://registry.npmjs.org"
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: bun run build
 
       - name: Extract version from tag
         id: version

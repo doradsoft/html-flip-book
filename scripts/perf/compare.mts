@@ -16,7 +16,7 @@ import { summarize, type PairedStats } from "./stats.mts";
 /**
  * Perf compare orchestrator (issue #289).
  *
- *   npx tsx scripts/perf/compare.mts --base origin/master [options]
+ *   node scripts/perf/compare.mts --base origin/master [options]
  *
  * Runs the base and candidate builds through byte-identical fixtures,
  * interleaving paired samples so machine drift hits both sides of a pair.

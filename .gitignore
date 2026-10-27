@@ -4,6 +4,9 @@ __pycache__/
 # Dependency directory
 node_modules
 
+# bun is the package manager; block stray npm lockfiles
+package-lock.json
+
 # Rest pulled from https://github.com/github/gitignore/blob/master/Node.gitignore
 # Logs
 logs
@@ -117,10 +120,7 @@ react/dist
 # IDE files
 .idea
 *.code-workspace
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 reference_flutter_flip_book/
 react/example/assets/pages_data/en/pdf/sql_injection.pdf
 

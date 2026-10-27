@@ -20,9 +20,9 @@ The core TypeScript library implementing the flipbook functionality.
 
 | Task       | Command        |
 | ---------- | -------------- |
-| Unit Tests | `npm test`     |
-| Build      | `npm run build`|
-| Watch      | `npm run watch`|
+| Unit Tests | `bun run test`     |
+| Build      | `bun run build`|
+| Watch      | `bun run watch`|
 
 **Implementation Notes:**
 
@@ -37,8 +37,8 @@ React component wrapper for the base flipbook library.
 
 | Task       | Command        |
 | ---------- | -------------- |
-| Unit Tests | `npm test`     |
-| Build      | `npm run build`|
+| Unit Tests | `bun run test`     |
+| Build      | `bun run build`|
 
 ### e2e/ (End-to-End Tests)
 
@@ -48,7 +48,7 @@ Playwright-based E2E tests for the flipbook.
 
 | Task      | Command           |
 | --------- | ----------------- |
-| E2E Tests | `npm run test:e2e`|
+| E2E Tests | `bun run test:e2e`|
 
 ### vanilla/ (Vanilla JS Example)
 

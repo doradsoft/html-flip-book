@@ -13,12 +13,12 @@ repos:
     hooks:
       - id: verify-version
         name: verify-version
-        entry: npx tsx scripts/verify-version.mts
+        entry: node scripts/verify-version.mts
         language: system
         pass_filenames: false
         always_run: true
       - id: biome
         name: biome
-        entry: npx biome check --write --staged --no-errors-on-unmatched
+        entry: bunx biome check --write --staged --no-errors-on-unmatched
         language: system
         pass_filenames: false

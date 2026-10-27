@@ -27,7 +27,7 @@ const MIME: Record<string, string> = {
 test("production bundle loads without runtime errors", async ({ page }, testInfo) => {
 	test.setTimeout(120_000);
 	const distDir = path.join(exampleDir, "dist", testInfo.project.name);
-	execSync(`npm run build -- --outDir "${distDir}"`, {
+	execSync(`bun run build -- --outDir "${distDir}"`, {
 		cwd: exampleDir,
 		stdio: "inherit",
 	});
