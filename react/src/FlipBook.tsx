@@ -457,7 +457,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					slot = {
 						key,
 						bookmark,
-						element: document.createElement("span"),
+						element: Object.assign(document.createElement("span"), {
+							className: "flipbook-bookmark__renderer",
+						}),
 						renderer: expanded
 							? bookmarkProvider.renderExpandedBookmark
 							: bookmarkProvider.renderBookmark,
