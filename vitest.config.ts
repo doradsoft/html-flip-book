@@ -32,7 +32,11 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: "happy-dom",
-		include: ["base/src/**/*.test.ts", "react/src/**/*.test.{ts,tsx}"],
+		include: [
+			"base/src/**/*.test.ts",
+			"react/src/**/*.test.{ts,tsx}",
+			"react/example/src/**/*.test.ts",
+		],
 		deps: {
 			inline: ["react", "react-dom", "@testing-library/react"],
 		},
