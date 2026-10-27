@@ -7,6 +7,13 @@ import {
 	type PageFlipParams,
 	type PageSemantics,
 } from "html-flip-book-vanilla";
+// Bundle the complete core stylesheet into this package's styles entry, so
+// React consumers get pages, covers, scrollports and bookmarks from
+// `html-flip-book-react/styles.css` alone — the vanilla package stays a
+// JavaScript-only dependency here.
+import "../../base/src/flipbook.scss";
+import "../../base/src/pages.scss";
+import "../../base/src/bookmarks.scss";
 import "../../base/src/mouse-mode.scss";
 import type { DownloadConfig } from "html-flip-book-vanilla/download";
 import type React from "react";

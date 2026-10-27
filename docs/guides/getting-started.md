@@ -16,7 +16,8 @@ npm install html-flip-book-vanilla
 import { useRef } from 'react';
 import { FlipBook } from 'html-flip-book-react';
 import { Toolbar, PrevButton, NextButton, PageIndicator } from 'html-flip-book-react/toolbar';
-import 'html-flip-book-vanilla/style.css';
+// Complete stylesheet: core pages, covers, scrollports, bookmarks, TOC and toolbar.
+import 'html-flip-book-react/styles.css';
 
 function App() {
   const flipBookRef = useRef(null);
@@ -87,9 +88,14 @@ Both work out of the box — no configuration needed:
 
 ## Styling
 
-Import the base styles:
+Import the library styles — one entry point covers everything (pages, folds,
+covers, scrollports, bookmarks, TOC and toolbar):
 
 ```typescript
+// React consumers — complete stylesheet, no vanilla import needed
+import 'html-flip-book-react/styles.css';
+
+// Vanilla-only consumers
 import 'html-flip-book-vanilla/style.css';
 ```
 
