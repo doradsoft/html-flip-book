@@ -232,19 +232,19 @@ describe("BookmarkLayer", () => {
 		expect(railIds("bottom")).toEqual([]);
 	});
 
-	it.each([
-		"ltr",
-		"rtl",
-	] as const)("keeps attached top-bottom bookmarks on the same vertical edge through %s turns", (direction) => {
-		context = { ...context, currentPageIndex: 0, currentLeafIndex: 0, direction };
-		layer.setProvider({ getBookmarks: () => bookmarks, placement: "top-bottom" });
-		expect(railIds("top")).toEqual(["first", "middle"]);
-		expect(railIds("bottom")).toEqual(["later"]);
-		context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
-		layer.refresh();
-		expect(railIds("top")).toEqual(["first", "middle"]);
-		expect(railIds("bottom")).toEqual(["later"]);
-	});
+	it.each(["ltr", "rtl"] as const)(
+		"keeps attached top-bottom bookmarks on the same vertical edge through %s turns",
+		(direction) => {
+			context = { ...context, currentPageIndex: 0, currentLeafIndex: 0, direction };
+			layer.setProvider({ getBookmarks: () => bookmarks, placement: "top-bottom" });
+			expect(railIds("top")).toEqual(["first", "middle"]);
+			expect(railIds("bottom")).toEqual(["later"]);
+			context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
+			layer.refresh();
+			expect(railIds("top")).toEqual(["first", "middle"]);
+			expect(railIds("bottom")).toEqual(["later"]);
+		},
+	);
 
 	it("splits attached top-bottom bookmarks by their configured sort order", () => {
 		layer.setProvider({
@@ -272,16 +272,14 @@ describe("BookmarkLayer", () => {
 		expect(middle?.parentElement?.parentElement?.dataset.leafSide).toBe("right");
 	});
 
-	it.each([
-		"top",
-		"bottom",
-		"left",
-		"right",
-	] as const)("places all bookmarks on a configured %s edge", (placement) => {
-		layer.setProvider({ getBookmarks: () => bookmarks, placement, attachment: "pinned" });
-		expect(railIds(placement)).toEqual(["first", "middle", "later"]);
-		expect(layer.getInsets()).toEqual({ top: 0, right: 0, bottom: 0, left: 0, [placement]: 52 });
-	});
+	it.each(["top", "bottom", "left", "right"] as const)(
+		"places all bookmarks on a configured %s edge",
+		(placement) => {
+			layer.setProvider({ getBookmarks: () => bookmarks, placement, attachment: "pinned" });
+			expect(railIds(placement)).toEqual(["first", "middle", "later"]);
+			expect(layer.getInsets()).toEqual({ top: 0, right: 0, bottom: 0, left: 0, [placement]: 52 });
+		},
+	);
 
 	it("reserves split edges consistently while pages move between them", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
@@ -297,26 +295,25 @@ describe("BookmarkLayer", () => {
 		{ direction: "ltr" as const, placement: "right" as const, turned: false },
 		{ direction: "rtl" as const, placement: "left" as const, turned: false },
 		{ direction: "rtl" as const, placement: "right" as const, turned: true },
-	])("$direction $placement: only attaches tabs whose leaves occupy that side", ({
-		direction,
-		placement,
-		turned,
-	}) => {
-		context = { ...context, direction };
-		layer.setProvider({ getBookmarks: () => bookmarks, placement });
-		const visibleIds = () =>
-			Array.from(host.querySelectorAll<HTMLButtonElement>(".flipbook-bookmark"))
-				.filter((button) => !button.hidden)
-				.map((button) => button.dataset.bookmarkId);
-		expect(visibleIds()).toEqual(turned ? ["first"] : ["middle", "later"]);
-		const insets = layer.getInsets();
-		context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
-		layer.refresh();
-		expect(visibleIds()).toEqual(turned ? ["first", "middle", "later"] : []);
-		expect(layer.getInsets()).toEqual(insets);
-		layer.setProvider({ getBookmarks: () => bookmarks, placement, attachment: "pinned" });
-		expect(visibleIds()).toEqual(["first", "middle", "later"]);
-	});
+	])(
+		"$direction $placement: only attaches tabs whose leaves occupy that side",
+		({ direction, placement, turned }) => {
+			context = { ...context, direction };
+			layer.setProvider({ getBookmarks: () => bookmarks, placement });
+			const visibleIds = () =>
+				Array.from(host.querySelectorAll<HTMLButtonElement>(".flipbook-bookmark"))
+					.filter((button) => !button.hidden)
+					.map((button) => button.dataset.bookmarkId);
+			expect(visibleIds()).toEqual(turned ? ["first"] : ["middle", "later"]);
+			const insets = layer.getInsets();
+			context = { ...context, currentPageIndex: 9, currentLeafIndex: 4 };
+			layer.refresh();
+			expect(visibleIds()).toEqual(turned ? ["first", "middle", "later"] : []);
+			expect(layer.getInsets()).toEqual(insets);
+			layer.setProvider({ getBookmarks: () => bookmarks, placement, attachment: "pinned" });
+			expect(visibleIds()).toEqual(["first", "middle", "later"]);
+		},
+	);
 
 	it("positions rails around cover bounds and reads a consumer depth", () => {
 		host.style.setProperty("--flipbook-bookmark-depth", "36px");

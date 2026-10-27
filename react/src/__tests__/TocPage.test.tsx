@@ -28,28 +28,26 @@ describe("TocPage links", () => {
 		expect(onNavigate).toHaveBeenCalledExactlyOnceWith(1);
 	});
 
-	it.each([
-		"ctrlKey",
-		"metaKey",
-		"shiftKey",
-		"altKey",
-	] as const)("lets the browser handle a %s click", (modifier) => {
-		const onNavigate = vi.fn();
-		render(
-			<TocPage
-				onNavigate={onNavigate}
-				totalPages={2}
-				pageSemantics={pageSemantics}
-				getHref={() => "/929/1?book"}
-			/>,
-		);
+	it.each(["ctrlKey", "metaKey", "shiftKey", "altKey"] as const)(
+		"lets the browser handle a %s click",
+		(modifier) => {
+			const onNavigate = vi.fn();
+			render(
+				<TocPage
+					onNavigate={onNavigate}
+					totalPages={2}
+					pageSemantics={pageSemantics}
+					getHref={() => "/929/1?book"}
+				/>,
+			);
 
-		const link = screen.getByRole("link", { name: /Chapter One/ });
-		const click = createEvent.click(link, { [modifier]: true });
-		fireEvent(link, click);
-		expect(click.defaultPrevented).toBe(false);
-		expect(onNavigate).not.toHaveBeenCalled();
-	});
+			const link = screen.getByRole("link", { name: /Chapter One/ });
+			const click = createEvent.click(link, { [modifier]: true });
+			fireEvent(link, click);
+			expect(click.defaultPrevented).toBe(false);
+			expect(onNavigate).not.toHaveBeenCalled();
+		},
+	);
 
 	it("keeps a button when no href is available", () => {
 		const onNavigate = vi.fn();

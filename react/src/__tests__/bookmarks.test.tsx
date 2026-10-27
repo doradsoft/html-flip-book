@@ -93,6 +93,7 @@ describe("React bookmarks", () => {
 
 	it("renders custom React content with consumer context and follows default navigation", async () => {
 		const Theme = createContext("default");
+		// biome-ignore lint/correctness/noComponentHookFactories: test-scoped component intentionally closes over test state
 		function Content() {
 			return <strong>{useContext(Theme)}</strong>;
 		}
@@ -252,6 +253,7 @@ describe("React bookmarks", () => {
 	it("unmounts both brief and expanded content when bookmarks are removed", async () => {
 		const ref = createRef<FlipBookHandle>();
 		const removed = vi.fn();
+		// biome-ignore lint/correctness/noComponentHookFactories: test-scoped component intentionally closes over test state
 		function Content({ kind }: { kind: string }) {
 			useEffect(() => () => removed(kind), [kind]);
 			return <span>{kind}</span>;
@@ -283,6 +285,7 @@ describe("React bookmarks", () => {
 	it("renders only valid bookmark data and unmounts removed portal content", async () => {
 		const ref = createRef<FlipBookHandle>();
 		const removed = vi.fn();
+		// biome-ignore lint/correctness/noComponentHookFactories: test-scoped component intentionally closes over test state
 		function Content({ label }: { label: string }) {
 			useEffect(() => removed, []);
 			return <span>{label}</span>;

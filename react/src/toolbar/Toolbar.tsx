@@ -160,5 +160,5 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	);
 };
 
-export { Toolbar };
 export type { ToolbarProps };
+export { Toolbar };
