@@ -1,6 +1,6 @@
 {
 	"name": "html-flip-book-vanilla",
-	"version": "0.0.0-alpha.58",
+	"version": "0.0.0-alpha.60",
 	"description": "Flipbook component for HTML (vanilla JavaScript)",
 	"author": "DoradSoft",
 	"type": "module",
