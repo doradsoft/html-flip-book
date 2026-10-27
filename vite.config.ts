@@ -18,6 +18,9 @@ export default defineConfig(() => {
 						"store/index": resolve(__dirname, "base/src/store/index.ts"),
 					},
 					formats: ["es"] as LibraryFormats[],
+					// Must match the "./style.css" export in base/package.json
+					// (Vite appends ".css" to cssFileName itself).
+					cssFileName: "style",
 				},
 				outDir: "base/dist",
 				sourcemap: true,
