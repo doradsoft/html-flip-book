@@ -55,8 +55,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
@@ -83,8 +81,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
@@ -112,8 +108,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
@@ -148,8 +142,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile
@@ -196,8 +188,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Cache Playwright Browsers
         uses: actions/cache@v6
@@ -262,8 +252,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install Dependencies
         run: bun install --frozen-lockfile

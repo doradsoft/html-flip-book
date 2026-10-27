@@ -30,8 +30,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

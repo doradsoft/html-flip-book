@@ -37,8 +37,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: bun
-          cache-dependency-path: bun.lock
           registry-url: "https://registry.npmjs.org"
 
       - name: Install Dependencies
