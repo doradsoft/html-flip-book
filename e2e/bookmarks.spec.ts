@@ -685,9 +685,9 @@ for (const direction of ["ltr", "rtl"] as const) {
 							return ys;
 						};
 						const hitPointOf = (button: HTMLElement) => {
-							const wrapper = button.closest<HTMLElement>(".flipbook-bookmark-slot") ?? button;
-							const rect = wrapper.getBoundingClientRect();
-							const peek = Number(wrapper.dataset.stackPeek);
+							const slotElement = button.closest<HTMLElement>(".flipbook-bookmark-slot") ?? button;
+							const rect = slotElement.getBoundingClientRect();
+							const peek = Number(slotElement.dataset.stackPeek);
 							for (const y of yOffsetsOf(rect)) {
 								for (const x of xOffsetsOf(rect, button.dataset.edge, peek)) {
 									const point = { x: Math.round(rect.left + x), y: Math.round(rect.top + y) };
@@ -700,15 +700,16 @@ for (const direction of ["ltr", "rtl"] as const) {
 						const slots = Array.from(
 							railElement.querySelectorAll<HTMLElement>(".flipbook-bookmark"),
 						).map((button) => {
-							const wrapper = (button.closest(".flipbook-bookmark-slot") ?? button) as HTMLElement;
-							const rect = wrapper.getBoundingClientRect();
+							const slotElement = (button.closest(".flipbook-bookmark-slot") ??
+								button) as HTMLElement;
+							const rect = slotElement.getBoundingClientRect();
 							return {
 								id: button.dataset.bookmarkId,
-								layer: wrapper.dataset.stackLayer,
-								row: wrapper.dataset.stackRow,
-								peek: Number(wrapper.dataset.stackPeek),
+								layer: slotElement.dataset.stackLayer,
+								row: slotElement.dataset.stackRow,
+								peek: Number(slotElement.dataset.stackPeek),
 								bounds: rect.toJSON(),
-								zIndex: Number(getComputedStyle(wrapper).zIndex),
+								zIndex: Number(getComputedStyle(slotElement).zIndex),
 								hitPoint: hitPointOf(button),
 							};
 						});
