@@ -260,6 +260,13 @@
 }
 
 .flipbook-bookmark__expanded-content[hidden] { display: none; }
+
+// React adapter portal target: it must not form its own layout box, or the
+// renderer's content could never shrink below its automatic minimum size
+// (blocking ellipsis). display: contents makes the rendered children direct
+// flex/grid items — the same layout vanilla renderers get.
+.flipbook-bookmark__renderer { display: contents; }
+
 .flipbook-bookmark-default { display: flex; align-items: baseline; gap: 6px; }
 .flipbook-bookmark-default small { opacity: 0.7; }
 .flipbook-bookmark-preview[data-open="true"] .flipbook-bookmark__expanded-content { opacity: 1; }
