@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The GitHub Pages example no longer renders a blank page: the `gematry` dependency ships a webpack dev bundle that `eval()`s its own module code, which throws inside the strict-mode ESM output of `vite build`. The example vendors equivalent `toLetters`/`toNumber` helpers instead, and a new e2e smoke test loads the production bundle so this class of breakage can't regress (#267).
 - Pressing a bookmark now blocks its hover preview from reopening until the pointer moves, so an activation click always lands on the button in its rail slot instead of the preview overlay (#270).
 - Rapid consecutive page flips no longer flicker: leaves stay visible while their flip animation is in flight, even when the `leavesBuffer` window slides past them, and the React wrapper keeps their content mounted until flips settle (#167).
 - Attached bookmarks stay still during page-edge hover previews and continue folding with actual page turns.

@@ -1,6 +1,5 @@
 // HeBook.tsx
 
-import { toLetters, toNumber } from "gematry";
 import {
 	type BookmarkProvider,
 	FlipBook,
@@ -24,6 +23,7 @@ import {
 	Toolbar,
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
+import { toLetters, toNumber } from "./gematry";
 import { exportEntireBookPdf, exportPageRangePdf } from "./pdfExport";
 import { getHebrewPdfFontName, loadHebrewFont } from "./pdfHebrewFont";
 import {
