@@ -14,7 +14,7 @@
 		"predeploy": "npm run build",
 		"deploy": "gh-pages -d dist -r https://github.com/doradsoft/html-flip-book.git",
 		"build": "vite build --mode development",
-		"generate:en-pdf": "tsx scripts/generate-en-pdf.mts"
+		"generate:en-pdf": "node scripts/generate-en-pdf.mts"
 	},
 	"author": "DoradSoft",
 	"license": "MIT",
@@ -37,11 +37,10 @@
 		"gh-pages": "6.3.0",
 		"react-refresh": "^0.18.0",
 		"rimraf": "^6.1.2",
-		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.7",
 		"vite-plugin-checker": "^0.12.0",
 		"vite-tsconfig-paths": "^6.1.0",
-		"vitest": "^4.1.0"
+		"vitest": "^5.0.5"
 	}
 }
