@@ -44,5 +44,5 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
 	);
 };
 
-export { ToolbarButton };
 export type { ToolbarButtonProps };
+export { ToolbarButton };

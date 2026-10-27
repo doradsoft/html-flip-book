@@ -19,20 +19,20 @@ function setup(initial = true) {
 }
 
 describe("HoldHotkeyController", () => {
-	it.each([
-		true,
-		false,
-	])("restores the previous state (%s), ignoring repeated presses", (initial) => {
-		const { holds, command, setActive, isActive } = setup(initial);
-		const binding = { key: "Control", mode: "hold" as const, active: false };
-		expect(holds.press(command, binding, { handle: null })).toBe(true);
-		expect(isActive()).toBe(false);
-		expect(holds.press(command, binding, { handle: null })).toBe(false);
-		expect(setActive).toHaveBeenCalledTimes(1);
-		holds.release(new KeyboardEvent("keyup", { key: "Control" }), "ltr");
-		expect(isActive()).toBe(initial);
-		expect(setActive).toHaveBeenLastCalledWith({ handle: null, transient: true }, initial);
-	});
+	it.each([true, false])(
+		"restores the previous state (%s), ignoring repeated presses",
+		(initial) => {
+			const { holds, command, setActive, isActive } = setup(initial);
+			const binding = { key: "Control", mode: "hold" as const, active: false };
+			expect(holds.press(command, binding, { handle: null })).toBe(true);
+			expect(isActive()).toBe(false);
+			expect(holds.press(command, binding, { handle: null })).toBe(false);
+			expect(setActive).toHaveBeenCalledTimes(1);
+			holds.release(new KeyboardEvent("keyup", { key: "Control" }), "ltr");
+			expect(isActive()).toBe(initial);
+			expect(setActive).toHaveBeenLastCalledWith({ handle: null, transient: true }, initial);
+		},
+	);
 
 	it("releases a chord when its modifier is released before the main key", () => {
 		const { holds, command, isActive } = setup(false);

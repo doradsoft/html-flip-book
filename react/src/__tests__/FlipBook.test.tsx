@@ -60,29 +60,29 @@ describe("FlipBook React Component", () => {
 		expect(pageElements.length).toBe(2);
 	});
 
-	it.each([
-		"ltr",
-		"rtl",
-	] as const)("keeps direct text and nested content in the %s reading direction inside the scrollport", (direction) => {
-		const { container } = render(
-			<FlipBook
-				pages={[
-					"Direct page text",
-					<article key="nested">
-						<p>Nested page text</p>
-					</article>,
-				]}
-				className="reading-book"
-				direction={direction}
-			/>,
-		);
-		const scrollports = container.querySelectorAll(".page > .flipbook-page-scrollport");
-		expect(scrollports).toHaveLength(2);
-		const contents = container.querySelectorAll<HTMLElement>(".flipbook-page-content");
-		expect(Array.from(contents, (content) => content.dir)).toEqual([direction, direction]);
-		expect(contents[0].textContent).toBe("Direct page text");
-		expect(contents[1].querySelector("article p")?.textContent).toBe("Nested page text");
-	});
+	it.each(["ltr", "rtl"] as const)(
+		"keeps direct text and nested content in the %s reading direction inside the scrollport",
+		(direction) => {
+			const { container } = render(
+				<FlipBook
+					pages={[
+						"Direct page text",
+						<article key="nested">
+							<p>Nested page text</p>
+						</article>,
+					]}
+					className="reading-book"
+					direction={direction}
+				/>,
+			);
+			const scrollports = container.querySelectorAll(".page > .flipbook-page-scrollport");
+			expect(scrollports).toHaveLength(2);
+			const contents = container.querySelectorAll<HTMLElement>(".flipbook-page-content");
+			expect(Array.from(contents, (content) => content.dir)).toEqual([direction, direction]);
+			expect(contents[0].textContent).toBe("Direct page text");
+			expect(contents[1].querySelector("article p")?.textContent).toBe("Nested page text");
+		},
+	);
 
 	it("retains consumer direction overrides, links, and declarative content updates", () => {
 		const { container, rerender } = render(

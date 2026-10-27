@@ -81,39 +81,35 @@ describe("createDefaultBookmarkProvider", () => {
 		expect(later[1]).toBe(first[1]);
 	});
 
-	it.each([
-		-1,
-		0,
-		1.5,
-		Number.NaN,
-		Number.POSITIVE_INFINITY,
-	])("ignores an invalid total page count %s", (pagesCount) => {
-		const indexToTitle = vi.fn(() => "Chapter");
-		const provider = createDefaultBookmarkProvider({
-			pagesCount,
-			tocPageIndex: 0,
-			pageSemantics: { ...semantics({}), indexToTitle },
-			direction: "ltr",
-		});
-		expect(bookmarkTargets(provider)).toEqual([]);
-		expect(indexToTitle).not.toHaveBeenCalled();
-	});
+	it.each([-1, 0, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+		"ignores an invalid total page count %s",
+		(pagesCount) => {
+			const indexToTitle = vi.fn(() => "Chapter");
+			const provider = createDefaultBookmarkProvider({
+				pagesCount,
+				tocPageIndex: 0,
+				pageSemantics: { ...semantics({}), indexToTitle },
+				direction: "ltr",
+			});
+			expect(bookmarkTargets(provider)).toEqual([]);
+			expect(indexToTitle).not.toHaveBeenCalled();
+		},
+	);
 
-	it.each([
-		-1,
-		4,
-		1.5,
-		Number.NaN,
-		Number.POSITIVE_INFINITY,
-	])("omits an invalid contents target %s while keeping chapter entries", (tocPageIndex) => {
-		const provider = createDefaultBookmarkProvider({
-			pagesCount: 4,
-			tocPageIndex,
-			pageSemantics: semantics({ 3: "Chapter" }),
-			direction: "ltr",
-		});
-		expect(bookmarkTargets(provider)).toEqual([{ id: "spread-2", pageIndex: 3, label: "Chapter" }]);
-	});
+	it.each([-1, 4, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+		"omits an invalid contents target %s while keeping chapter entries",
+		(tocPageIndex) => {
+			const provider = createDefaultBookmarkProvider({
+				pagesCount: 4,
+				tocPageIndex,
+				pageSemantics: semantics({ 3: "Chapter" }),
+				direction: "ltr",
+			});
+			expect(bookmarkTargets(provider)).toEqual([
+				{ id: "spread-2", pageIndex: 3, label: "Chapter" },
+			]);
+		},
+	);
 
 	it("uses meaningful chapter titles in brief content instead of page numbers", () => {
 		const provider = createDefaultBookmarkProvider({

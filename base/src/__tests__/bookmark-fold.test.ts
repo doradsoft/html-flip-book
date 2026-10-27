@@ -108,43 +108,45 @@ describe("bookmark material during leaf motion", () => {
 		}
 	});
 
-	it.each([
-		true,
-		false,
-	])("splits a bookmark at the paper crease without a seam (LTR=%s)", (isLTR) => {
-		const rectangle = { left: 180, top: -36, width: 40, height: 36 };
-		const fold = computePageFoldFromPoint(400, 600, { x: 0, y: 0 }, "top");
-		const surfaces = getBookmarkFoldSurfaces(frame({ isLTR, kind: "paper", fold }), rectangle);
-		expect(surfaces).toHaveLength(2);
-		expect(area(surfaces[0].polygon)).toBe(20 * 36);
-		expect(area(surfaces[1].polygon)).toBe(20 * 36);
-		const crease = { x: 20, y: 18 };
-		const frontPoint = projectPaperPoint(surfaces[0], crease);
-		const backPoint = projectPaperPoint(surfaces[1], crease);
-		expect(frontPoint.x).toBeCloseTo(isLTR ? 600 : -200);
-		expect(frontPoint.y).toBe(-18);
-		expect(backPoint.x).toBeCloseTo(frontPoint.x);
-		expect(backPoint.y).toBeCloseTo(frontPoint.y);
-		const liftedTip = projectPaperPoint(surfaces[1], { x: 40, y: 18 });
-		expect(liftedTip.x).toBeCloseTo(isLTR ? 580 : -180);
-	});
+	it.each([true, false])(
+		"splits a bookmark at the paper crease without a seam (LTR=%s)",
+		(isLTR) => {
+			const rectangle = { left: 180, top: -36, width: 40, height: 36 };
+			const fold = computePageFoldFromPoint(400, 600, { x: 0, y: 0 }, "top");
+			const surfaces = getBookmarkFoldSurfaces(frame({ isLTR, kind: "paper", fold }), rectangle);
+			expect(surfaces).toHaveLength(2);
+			expect(area(surfaces[0].polygon)).toBe(20 * 36);
+			expect(area(surfaces[1].polygon)).toBe(20 * 36);
+			const crease = { x: 20, y: 18 };
+			const frontPoint = projectPaperPoint(surfaces[0], crease);
+			const backPoint = projectPaperPoint(surfaces[1], crease);
+			expect(frontPoint.x).toBeCloseTo(isLTR ? 600 : -200);
+			expect(frontPoint.y).toBe(-18);
+			expect(backPoint.x).toBeCloseTo(frontPoint.x);
+			expect(backPoint.y).toBeCloseTo(frontPoint.y);
+			const liftedTip = projectPaperPoint(surfaces[1], { x: 40, y: 18 });
+			expect(liftedTip.x).toBeCloseTo(isLTR ? 580 : -180);
+		},
+	);
 
-	it.each([
-		true,
-		false,
-	])("curls from the back face without moving the resting body (LTR=%s)", (isLTR) => {
-		const fold = computePageFoldFromPoint(400, 600, { x: 0, y: 600 }, "bottom");
-		const surfaces = getBookmarkFoldSurfaces(
-			frame({ isLTR, kind: "paper", fold, backwardPreview: true, restingPosition: 1 }),
-			{ left: 180, top: 600, width: 40, height: 36 },
-		);
-		expect(surfaces.map((surface) => surface.face)).toEqual([1, 0]);
-		const body = projectPaperPoint(surfaces[0], { x: 0, y: 0 });
-		expect(body.x).toBe(isLTR ? 220 : 180);
-		expect(body.y).toBe(600);
-		const crease = { x: 20, y: 0 };
-		expect(projectPaperPoint(surfaces[0], crease)).toEqual(projectPaperPoint(surfaces[1], crease));
-	});
+	it.each([true, false])(
+		"curls from the back face without moving the resting body (LTR=%s)",
+		(isLTR) => {
+			const fold = computePageFoldFromPoint(400, 600, { x: 0, y: 600 }, "bottom");
+			const surfaces = getBookmarkFoldSurfaces(
+				frame({ isLTR, kind: "paper", fold, backwardPreview: true, restingPosition: 1 }),
+				{ left: 180, top: 600, width: 40, height: 36 },
+			);
+			expect(surfaces.map((surface) => surface.face)).toEqual([1, 0]);
+			const body = projectPaperPoint(surfaces[0], { x: 0, y: 0 });
+			expect(body.x).toBe(isLTR ? 220 : 180);
+			expect(body.y).toBe(600);
+			const crease = { x: 20, y: 0 };
+			expect(projectPaperPoint(surfaces[0], crease)).toEqual(
+				projectPaperPoint(surfaces[1], crease),
+			);
+		},
+	);
 });
 
 describe("leaf transform frames", () => {
@@ -185,27 +187,27 @@ describe("leaf transform frames", () => {
 		expect(cover.transformFrame).toBe(poses[1]);
 	});
 
-	it.each([
-		true,
-		false,
-	])("exposes the exact manual paper geometry and settlement (LTR=%s)", async (isLTR) => {
-		const paper = leaf(isLTR);
-		const observed = vi.fn();
-		paper.onTransform = observed;
-		paper.setFoldOrigin(1);
-		paper.setManualFold({ x: 0.15, y: 0.75 });
-		const pose = paper.transformFrame;
-		expect(pose?.kind).toBe("paper");
-		expect(pose?.fold?.destination.x).toBeCloseTo(60);
-		expect(pose?.fold?.destination.y).toBeCloseTo(450);
-		expect(pose?.position).toBeCloseTo(0.425);
-		expect(pose?.restingPosition).toBeCloseTo(0.425);
-		expect(observed).toHaveBeenCalledWith(pose);
-		await paper.flipToPosition(1, 20000);
-		expect(paper.transformFrame?.position).toBe(1);
-		expect(paper.transformFrame?.kind).toBe("rigid");
-		expect(paper.transformFrame?.fold).toBeUndefined();
-	});
+	it.each([true, false])(
+		"exposes the exact manual paper geometry and settlement (LTR=%s)",
+		async (isLTR) => {
+			const paper = leaf(isLTR);
+			const observed = vi.fn();
+			paper.onTransform = observed;
+			paper.setFoldOrigin(1);
+			paper.setManualFold({ x: 0.15, y: 0.75 });
+			const pose = paper.transformFrame;
+			expect(pose?.kind).toBe("paper");
+			expect(pose?.fold?.destination.x).toBeCloseTo(60);
+			expect(pose?.fold?.destination.y).toBeCloseTo(450);
+			expect(pose?.position).toBeCloseTo(0.425);
+			expect(pose?.restingPosition).toBeCloseTo(0.425);
+			expect(observed).toHaveBeenCalledWith(pose);
+			await paper.flipToPosition(1, 20000);
+			expect(paper.transformFrame?.position).toBe(1);
+			expect(paper.transformFrame?.kind).toBe("rigid");
+			expect(paper.transformFrame?.fold).toBeUndefined();
+		},
+	);
 
 	it("retains the turned state separately from a backward hover's temporary curl", () => {
 		const paper = leaf(true, true);
