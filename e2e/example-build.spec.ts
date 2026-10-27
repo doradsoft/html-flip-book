@@ -35,7 +35,12 @@ test("production bundle loads without runtime errors", async ({ page }, testInfo
 	});
 	const server = createServer((req, res) => {
 		const pathname = (req.url ?? "/").split("?")[0];
-		const filePath = path.join(distDir, pathname === "/" ? "index.html" : pathname);
+		const filePath = path.resolve(distDir, pathname === "/" ? "index.html" : `.${pathname}`);
+		if (!filePath.startsWith(distDir + path.sep)) {
+			res.statusCode = 404;
+			res.end();
+			return;
+		}
 		readFile(filePath)
 			.then((data) => {
 				res.setHeader("content-type", MIME[path.extname(filePath)] ?? "application/octet-stream");
