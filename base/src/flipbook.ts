@@ -174,11 +174,14 @@ class FlipBook {
 		}
 		const pageIndex = this.currentPageIndex;
 		const semantic = this.getSemanticForPage(pageIndex);
-		// These notifications also fire on the initial sync: consumers use
-		// onPageFlipped as a pre-write hook to adjust the entry the book is
-		// about to write (e.g. re-applying a richer deep-link route right
-		// after the canonicalizing write below).
-		if (this.onPageChanged) this.onPageChanged(pageIndex);
+		// The initial sync only stamps history state; the page hasn't changed,
+		// so it must not fire onPageChanged. Deep-link adoption already fired
+		// it via restorePage — a real transition.
+		if (!isInitial && this.onPageChanged) this.onPageChanged(pageIndex);
+		// onPageFlipped still fires on the initial sync: it is the pre-write
+		// hook consumers use to observe (and adjust) the history entry the
+		// book is about to write — e.g. re-applying a richer deep-link route
+		// right after the canonicalizing write below.
 		const params = this.lastFlipParams ?? this.buildPageFlipParams(pageIndex, "forward");
 		if (this.onPageFlipped) this.onPageFlipped(params);
 		if (typeof window !== "undefined" && this.historyMapper && !this._isRestoringFromHistory) {

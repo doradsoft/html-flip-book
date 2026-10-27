@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fullscreen state stays in sync when exiting via Escape or browser UI, on vendor-prefixed (`webkitfullscreenchange`) engines, and after rejected requests (`fullscreenerror`).
 - `Toolbar` keeps its injected command data (fullscreen target, download executor) when consumers override the same command's options — entries now merge per command instead of being replaced.
 - Live demo (GitHub Pages) rendering blank due to duplicate React instances — removed esm.sh import map and Vite externals, added `resolve.dedupe` to ensure a single React copy when aliased monorepo sources are bundled
-- The initial history sync on `render()` once again fires `onPageChanged`/`onPageFlipped` before the first history write — consumers rely on `onPageFlipped` as a pre-write hook to re-apply richer routes (e.g. article/perush deep links) that the canonicalizing write normalizes away.
+- The initial history sync on `render()` once again fires `onPageFlipped` before the first history write — consumers rely on it as a pre-write hook to re-apply richer routes (e.g. article/perush deep links) that the canonicalizing write normalizes away. `onPageChanged` stays silent at init since no transition occurred.
 
 ### Changed
 
