@@ -1,5 +1,63 @@
 import { expect, test } from "@playwright/test";
 
+for (const direction of ["ltr", "rtl"] as const) {
+	for (const example of ["hold-hotkeys", "comprehensive"]) {
+		test(`${direction} ${example} temporarily disables text selection while Ctrl is held`, async ({
+			page,
+		}) => {
+			await page.goto(`/?example=${direction}-${example}&test-initialTurnedLeaves=0,1`);
+			const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
+			const button = page.locator(".flipbook-toolbar-mouse-mode");
+			await expect(button).toBeVisible();
+			await expect(page.locator(".hold-hotkey-hint")).toBeVisible();
+			if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+			await expect(button).toHaveAttribute("aria-pressed", "true");
+			const savedMode = await page.evaluate(() => JSON.stringify(localStorage));
+			await page.keyboard.down("Control");
+			await expect(button).toHaveAttribute("aria-pressed", "false");
+			await expect(button).toBeDisabled();
+			await expect(book).not.toHaveClass(/flipbook--select-text/);
+			// Exercise the toolbar's polling rerenders while the key is still held.
+			await page.waitForTimeout(450);
+			await expect(button).toHaveAttribute("aria-pressed", "false");
+			expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(savedMode);
+			await page.keyboard.up("Control");
+			await expect(button).toHaveAttribute("aria-pressed", "true");
+			await expect(button).toBeEnabled();
+			await expect(book).toHaveClass(/flipbook--select-text/);
+			await button.click();
+			await page.keyboard.down("Control");
+			await page.keyboard.up("Control");
+			await expect(button).toHaveAttribute("aria-pressed", "false");
+		});
+	}
+}
+
+test("turns a page while Ctrl is held and restores text selection afterwards", async ({
+	page,
+	isMobile,
+}) => {
+	test.skip(isMobile, "Uses a desktop mouse drag.");
+	await page.goto("/?example=ltr-hold-hotkeys&test-initialTurnedLeaves=0,1");
+	const book = page.locator(".en-book.flipbook");
+	const button = page.locator(".flipbook-toolbar-mouse-mode");
+	await expect(button).toHaveAttribute("aria-pressed", "true");
+	const currentPage = book.locator('.page[data-page-index="4"]');
+	await expect(currentPage).toHaveClass(/current-page/);
+	const box = await currentPage.boundingBox();
+	if (!box) throw new Error("Current page missing");
+	await page.keyboard.down("Control");
+	await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.65);
+	await page.mouse.down();
+	await page.waitForTimeout(550);
+	await page.mouse.move(box.x - box.width * 0.5, box.y + box.height * 0.65, { steps: 12 });
+	await page.mouse.up();
+	await expect(book.locator('.page[data-page-index="6"]')).toHaveClass(/current-page/);
+	await page.keyboard.up("Control");
+	await expect(button).toHaveAttribute("aria-pressed", "true");
+	await expect(book).toHaveClass(/flipbook--select-text/);
+});
+
 test("mouse mode selects real page text, then restores continuous page turning", async ({
 	page,
 	isMobile,
