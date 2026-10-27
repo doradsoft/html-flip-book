@@ -17,6 +17,7 @@ jobs:
         with:
           ref: master
           token: ${{ secrets.BOT_PAT }}
+          fetch-depth: 0 # Need git tags — the next version derives from them
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -29,11 +30,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Fresh tag read, not the event's tag: if this run lands after a later
+      # release, it still prepares the correct successor.
       - name: Compute the next version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          NEXT_VERSION=$(node -e 'const semver = require("semver"); const released = process.env.RELEASE_TAG.replace(/^v/, ""); const next = semver.inc(released, semver.prerelease(released) ? "prerelease" : "patch"); if (!next) process.exit(1); process.stdout.write(next)')
+          NEXT_VERSION=$(node scripts/next-version.mts)
           echo "NEXT_VERSION=$NEXT_VERSION" >> "$GITHUB_ENV"
 
       - name: Update manifests and lockfile

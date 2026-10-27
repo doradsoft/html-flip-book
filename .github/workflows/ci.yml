@@ -34,10 +34,12 @@ jobs:
         run: echo "version=$(node -e "console.log(require('fs').readFileSync('bun.lock','utf8').match(/\"@playwright\/test\":\[?\s*\[\"@playwright\/test@([^\"]+)/)[1])")" >> $GITHUB_OUTPUT
 
   # ============================================================================
-  # Verify Version Job - Ensure version is bumped before merge (PR only)
+  # Verify Version Job - Ensure manifest versions stay in sync (PR only).
+  # Release versions are derived from git tags in the release job, so pull
+  # requests never carry version bumps.
   # ============================================================================
   verify-version:
-    name: Verify Version Bump
+    name: Verify Version Sync
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     permissions:
@@ -45,19 +47,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # Need full history for git tags
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-
-      - name: Install Dependencies
-        run: bun install --frozen-lockfile
 
       - name: Verify Version
         run: node scripts/verify-version.mts
@@ -347,12 +341,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Need git tags — the release version derives from them
 
-      - name: Get version from package.json
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: package.json
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compute next version from tags
         id: version
         run: |
-          VERSION=$(node -e "console.log(require('./base/package.json').version)")
+          VERSION=$(node scripts/next-version.mts)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
