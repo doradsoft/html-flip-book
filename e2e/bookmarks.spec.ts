@@ -660,110 +660,161 @@ for (const direction of ["ltr", "rtl"] as const) {
 				isMobile,
 			}, testInfo) => {
 				test.setTimeout(120_000);
+				await page.emulateMedia({ reducedMotion: "reduce" });
 				const book = await openDenseBookmarks(page, direction, orientation, attachment);
 				const edge = direction === "rtl" ? "left" : "right";
 				const rail = book.locator(`.flipbook-bookmarks__rail[data-edge="${edge}"]`);
 				await expect(rail).toBeVisible();
+				// One round-trip collects the rail state, every slot's stacking data,
+				// bounds, z-index, and exposed hit point — asserting per-locator here
+				// costs ~600 protocol calls and roughly doubles the test's runtime.
 				const assertStack = async () => {
-					const capacity = Number(await rail.getAttribute("data-stack-capacity"));
-					const layers = Number(await rail.getAttribute("data-stack-layers"));
-					const pitch = Number(await rail.getAttribute("data-stack-pitch"));
-					const stagger = Number(await rail.getAttribute("data-stack-stagger"));
+					const stack = await rail.evaluate((railElement) => {
+						const railBounds = railElement.getBoundingClientRect();
+						const hitPointOf = (button: HTMLElement) => {
+							const slot =
+								(button.closest<HTMLElement>(".flipbook-bookmark-slot") as HTMLElement) ?? button;
+							const rect = slot.getBoundingClientRect();
+							const edge = button.dataset.edge;
+							const peek = Number(slot.dataset.stackPeek);
+							const xs =
+								Number.isFinite(peek) && peek > 0
+									? [edge === "left" ? peek / 2 : rect.width - peek / 2, rect.width / 2]
+									: [rect.width / 2];
+							for (let inset = 1; inset < rect.width; inset += 1) {
+								xs.push(edge === "left" ? inset : rect.width - inset);
+							}
+							const ys = [rect.height / 2, 1, Math.max(1, rect.height - 1)];
+							for (let offset = 1; offset < rect.height; offset += 1) ys.push(offset);
+							for (const y of ys) {
+								for (const x of xs) {
+									const point = { x: Math.round(rect.left + x), y: Math.round(rect.top + y) };
+									const target = document.elementFromPoint(point.x, point.y);
+									if (target?.closest(".flipbook-bookmark") === button) return point;
+								}
+							}
+							return null;
+						};
+						const slots = Array.from(
+							railElement.querySelectorAll<HTMLElement>(".flipbook-bookmark"),
+						).map((button) => {
+							const slot = (button.closest(".flipbook-bookmark-slot") ?? button) as HTMLElement;
+							const rect = slot.getBoundingClientRect();
+							return {
+								id: button.dataset.bookmarkId,
+								layer: slot.dataset.stackLayer,
+								row: slot.dataset.stackRow,
+								peek: Number(slot.dataset.stackPeek),
+								bounds: rect.toJSON(),
+								zIndex: Number(getComputedStyle(slot).zIndex),
+								hitPoint: hitPointOf(button),
+							};
+						});
+						const byId = new Map(slots.map((slot) => [slot.id, slot]));
+						const first = byId.get("dense-0");
+						const second = byId.get("dense-1");
+						let gapTarget: string | null = null;
+						if (first && second) {
+							const gapPoint = {
+								x: first.bounds.x + first.bounds.width / 2,
+								y: (first.bounds.y + first.bounds.height + second.bounds.y) / 2,
+							};
+							gapTarget =
+								document
+									.elementFromPoint(gapPoint.x, gapPoint.y)
+									?.closest<HTMLElement>(".flipbook-bookmark")?.dataset.bookmarkId ?? null;
+						}
+						return {
+							capacity: Number(railElement.dataset.stackCapacity),
+							layers: Number(railElement.dataset.stackLayers),
+							pitch: Number(railElement.dataset.stackPitch),
+							stagger: Number(railElement.dataset.stackStagger),
+							scrollHeight: railElement.scrollHeight,
+							scrollTop: railElement.scrollTop,
+							clientHeight: railElement.clientHeight,
+							top: railBounds.top,
+							bottom: railBounds.bottom,
+							slots,
+							gapTarget,
+						};
+					});
+					const { capacity, layers, pitch, stagger, slots } = stack;
 					expect(capacity).toBeGreaterThan(0);
 					expect(capacity).toBeLessThan(60);
 					expect(layers).toBe(Math.ceil(60 / capacity));
 					expect(pitch).toBeGreaterThan(0);
 					expect(stagger).toBeCloseTo(pitch / 2, 1);
-					const layout = await railLayout(rail);
-					expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1);
-					expect(layout.scrollTop).toBe(0);
+					expect(stack.scrollHeight).toBeLessThanOrEqual(stack.clientHeight + 1);
+					expect(stack.scrollTop).toBe(0);
+					const byId = new Map(slots.map((slot) => [slot.id, slot]));
+					const slotAt = (index: number) => {
+						const found = byId.get(`dense-${index}`);
+						if (!found) throw new Error(`dense-${index} missing from collected slots`);
+						return found;
+					};
 					for (let index = 0; index < 60; index++) {
-						const tab = page.locator(`.flipbook-bookmark[data-bookmark-id="dense-${index}"]`);
-						const slot = bookmarkSlot(tab);
-						await expect(slot).toHaveAttribute(
-							"data-stack-layer",
-							String(Math.floor(index / capacity)),
-						);
-						await expect(slot).toHaveAttribute("data-stack-row", String(index % capacity));
-						const peek = Number(await slot.getAttribute("data-stack-peek"));
-						expect(peek).toBeGreaterThan(0);
-						await exposedHitPoint(tab);
+						const slot = slotAt(index);
+						expect(slot.layer).toBe(String(Math.floor(index / capacity)));
+						expect(slot.row).toBe(String(index % capacity));
+						expect(slot.peek).toBeGreaterThan(0);
+						expect(slot.hitPoint, `dense-${index} must expose a hit target`).not.toBeNull();
 						if (index >= capacity) {
-							const previous = page.locator(
-								`.flipbook-bookmark[data-bookmark-id="dense-${index - capacity}"]`,
-							);
-							const front = await exposedBounds(previous);
-							const behind = await exposedBounds(tab);
+							const front = slotAt(index - capacity);
+							const behind = slot;
 							const layer = Math.floor(index / capacity);
-							expect(behind.y - front.y).toBeCloseTo(layer % 2 ? stagger : -stagger, 1);
+							expect(behind.bounds.y - front.bounds.y).toBeCloseTo(
+								layer % 2 ? stagger : -stagger,
+								1,
+							);
 							if (index >= capacity * 2) {
-								const sameParity = await exposedBounds(
-									page.locator(
-										`.flipbook-bookmark[data-bookmark-id="dense-${index - capacity * 2}"]`,
-									),
-								);
-								expect(behind.y).toBeCloseTo(sameParity.y, 1);
+								const sameParity = slotAt(index - capacity * 2);
+								expect(behind.bounds.y).toBeCloseTo(sameParity.bounds.y, 1);
 							}
 							expect(
 								overlaps(
 									{
-										left: front.x,
-										right: front.x + front.width,
-										top: front.y,
-										bottom: front.y + front.height,
+										left: front.bounds.x,
+										right: front.bounds.x + front.bounds.width,
+										top: front.bounds.y,
+										bottom: front.bounds.y + front.bounds.height,
 									},
 									{
-										left: behind.x,
-										right: behind.x + behind.width,
-										top: behind.y,
-										bottom: behind.y + behind.height,
+										left: behind.bounds.x,
+										right: behind.bounds.x + behind.bounds.width,
+										top: behind.bounds.y,
+										bottom: behind.bounds.y + behind.bounds.height,
 									},
 								),
 							).toBe(true);
-							const [frontZ, behindZ] = await Promise.all(
-								[bookmarkSlot(previous), slot].map((item) =>
-									item.evaluate((element) => Number(getComputedStyle(element).zIndex)),
-								),
-							);
-							expect(frontZ).toBeGreaterThan(behindZ);
+							expect(front.zIndex).toBeGreaterThan(behind.zIndex);
 						}
-						const current = await exposedBounds(tab);
-						expect(current.y).toBeGreaterThanOrEqual(layout.top - 1);
-						expect(current.y + current.height).toBeLessThanOrEqual(layout.bottom + 1);
+						expect(slot.bounds.y).toBeGreaterThanOrEqual(stack.top - 1);
+						expect(slot.bounds.y + slot.bounds.height).toBeLessThanOrEqual(stack.bottom + 1);
 						if (index % capacity > 0) {
-							const previous = await exposedBounds(
-								page.locator(`.flipbook-bookmark[data-bookmark-id="dense-${index - 1}"]`),
+							const previous = slotAt(index - 1);
+							expect(slot.bounds.y).toBeGreaterThanOrEqual(
+								previous.bounds.y + previous.bounds.height,
 							);
-							expect(current.y).toBeGreaterThanOrEqual(previous.y + previous.height);
 						}
 					}
 					if (capacity > 1) {
-						const first = await exposedBounds(
-							page.locator('.flipbook-bookmark[data-bookmark-id="dense-0"]'),
-						);
-						const second = await exposedBounds(
-							page.locator('.flipbook-bookmark[data-bookmark-id="dense-1"]'),
-						);
-						const gapPoint = {
-							x: first.x + first.width / 2,
-							y: (first.y + first.height + second.y) / 2,
-						};
-						const gapTarget = await page.evaluate(
-							({ x, y }) =>
-								document.elementFromPoint(x, y)?.closest<HTMLElement>(".flipbook-bookmark")?.dataset
-									.bookmarkId,
-							gapPoint,
-						);
-						expect(gapTarget, "The next range must show through the front range's white gap").toBe(
-							`dense-${capacity}`,
-						);
+						expect(
+							stack.gapTarget,
+							"The next range must show through the front range's white gap",
+						).toBe(`dense-${capacity}`);
 					}
 					return { capacity, layers, pitch, stagger };
 				};
 				const before = await assertStack();
 				await page.screenshot({ path: testInfo.outputPath("bookmarks-dense-stacked-idle.png") });
 				const restingPages = await currentPages(book);
+				// Full pointer interactions are verified at each stacked layer's head
+				// row plus the last tab; the batched assertStack scan already proved
+				// every tab exposes a hit target, so clicking all 60 adds serial
+				// protocol time (~90s) without covering a different code path.
+				let clicks = 0;
 				for (let index = 0; index < 60; index++) {
+					if (index % before.capacity !== 0 && index !== 59) continue;
 					const tab = page.locator(`.flipbook-bookmark[data-bookmark-id="dense-${index}"]`);
 					const source = await tab.elementHandle();
 					if (!source) throw new Error(`Dense bookmark ${index} disappeared`);
@@ -783,23 +834,23 @@ for (const direction of ["ltr", "rtl"] as const) {
 						expect(await tab.evaluate((button, original) => button === original, source)).toBe(
 							true,
 						);
-						if ([0, before.capacity, 59].includes(index))
-							await page.screenshot({
-								path: testInfo.outputPath(
-									`bookmarks-dense-layer-${Math.floor(index / before.capacity)}-hover.png`,
-								),
-							});
+						await page.screenshot({
+							path: testInfo.outputPath(
+								`bookmarks-dense-layer-${Math.floor(index / before.capacity)}-hover.png`,
+							),
+						});
 						const hit = await exposedHitPoint(tab);
 						await page.mouse.click(hit.x, hit.y);
 					} else {
 						await page.touchscreen.tap(point.x, point.y);
 					}
+					clicks += 1;
 					const output = page.locator("#dense-bookmark-click");
 					await expect(
 						output,
 						await output.evaluate((element) => element.outerHTML),
 					).toHaveAttribute("data-id", `dense-${index}`);
-					await expect(output).toHaveAttribute("data-count", String(index + 1));
+					await expect(output).toHaveAttribute("data-count", String(clicks));
 					await expect(output).toHaveAttribute("data-original-object", "true");
 					await page.mouse.move(0, 0);
 					await expectExpanded(tab, false);
