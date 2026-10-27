@@ -1,6 +1,6 @@
 {
 	"name": "html-flip-book",
-	"version": "0.0.0-alpha.75",
+	"version": "0.0.0-alpha.76",
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -32,6 +32,8 @@
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
+		"perf": "node scripts/perf-run.mts",
+		"perf:compare": "node scripts/perf-run.mts --base",
 		"coverage:unit": "vitest run --coverage",
 		"coverage:e2e": "playwright test",
 		"coverage:merge": "node scripts/merge-coverage.mts",

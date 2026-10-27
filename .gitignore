@@ -117,9 +117,10 @@ react/dist
 # IDE files
 .idea
 *.code-workspace
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
+# Performance benchmarks (issue #289) — never merged into coverage artifacts
+perf-results/
+perf/.builds/
+
 reference_flutter_flip_book/
 react/example/assets/pages_data/en/pdf/sql_injection.pdf
