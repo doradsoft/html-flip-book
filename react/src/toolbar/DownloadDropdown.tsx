@@ -61,11 +61,20 @@ export interface DownloadDropdownProps {
 	/** Label for "Download" button. Default: "Download" */
 	ariaLabel?: string;
 	className?: string;
+	/**
+	 * Extra content rendered at the end of the open menu — for
+	 * application-specific hints or additional download actions.
+	 * Rendered as real children of the menu element, so interactive
+	 * children keep inside-menu click behavior, keyboard tabbing,
+	 * `dir` and React context. Re-mounts with each open.
+	 */
+	children?: React.ReactNode;
 }
 
 const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	ariaLabel = "Download",
 	className,
+	children,
 }) => {
 	const {
 		totalPages,
@@ -357,6 +366,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 								? "…"
 								: t("toolbarItem.download.download", locale)}
 					</button>
+					{children && <div className="flipbook-toolbar-download-extra">{children}</div>}
 				</div>
 			)}
 		</div>
