@@ -12,6 +12,7 @@ const heIL: LocaleConfig = {
 		"toolbarItem.download.from": "מ",
 		"toolbarItem.download.to": "עד",
 		"toolbarItem.download.download": "הורד",
+		"toolbarItem.download.error": "ההורדה נכשלה — נסו שוב",
 		"command.downloadEntireBook": "הורד את כל הספר",
 		"command.jumpToToc": "תוכן העניינים",
 		"command.jumpToFirstPage": "עמוד ראשון",
