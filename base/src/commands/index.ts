@@ -2,13 +2,23 @@ export { defaultCommands } from "./default-commands";
 export { downloadCommand } from "./download-command";
 export { flipNextCommand } from "./flip-next-command";
 export { flipPrevCommand } from "./flip-prev-command";
+export {
+	canUseFullscreen,
+	exitFullscreen,
+	fullscreenStateEvents,
+	getFullscreenElement,
+	requestFullscreen,
+} from "./fullscreen-utils";
 export { goToFirstCommand } from "./go-to-first-command";
 export { goToLastCommand } from "./go-to-last-command";
 export { goToTocCommand } from "./go-to-toc-command";
-export { getEffectiveKey, hotkeyMatches } from "./hotkey-utils";
+export { HoldHotkeyController } from "./hold-hotkeys";
+export { getEffectiveKey, hotkeyMatches, hotkeyReleased } from "./hotkey-utils";
 export { toggleDebugCommand } from "./toggle-debug-command";
 export { toggleFullscreenCommand } from "./toggle-fullscreen-command";
+export { toggleTextSelectionCommand } from "./toggle-text-selection-command";
 export type {
+	ActionCommandDefinition,
 	Command,
 	CommandContext,
 	CommandData,
@@ -20,4 +30,5 @@ export type {
 	HotkeyBinding,
 	JumpNavCommand,
 	NavCommand,
+	ToggleCommandDefinition,
 } from "./types";
