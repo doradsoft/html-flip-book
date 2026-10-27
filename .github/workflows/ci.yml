@@ -283,7 +283,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@2320916714171c258d01dbd81040d64d798c6f8e # v7.1.1
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           use_oidc: true
           files: .coverage/merged/lcov.info
