@@ -1,0 +1,71 @@
+name: Performance Benchmarks
+
+# Isolated performance harness (issue #289). Runs on every PR with the
+# standard read-only pull_request token — no secrets, no write permissions —
+# and produces no coverage output, so it cannot affect the merged LCOV,
+# Codecov, Codacy or badges. Video/screenshots/tracing stay off; a single
+# chromium instance drives all samples.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # base ref must be resolvable for the paired build
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Selfcheck (injected slowdown must be detected)
+        run: npm run perf:selfcheck -- --out perf-results/selfcheck
+
+      - name: Base vs candidate comparison
+        id: compare
+        # Exit 2 (inconclusive: noise floor / sample budget not met) is advisory,
+        # not a gate — issue #289 asks for advisory until calibration matures.
+        # Exit 1 (calibrated regression or harness error) still fails the job.
+        run: |
+          set +e
+          npm run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
+          code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::perf inconclusive — noise floor or sample budget not met; check the perf-results artifacts"
+            exit 0
+          fi
+          exit "$code"
+
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: perf-results
+          path: perf-results/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Report outcome
+        if: always()
+        run: |
+          echo "## Perf benchmark outcome" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -60 perf-results/compare/result.json 2>/dev/null | head -20 >> $GITHUB_STEP_SUMMARY || echo "no result.json" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
