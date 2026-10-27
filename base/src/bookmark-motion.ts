@@ -24,10 +24,10 @@ export interface BookmarkMotionFaces {
 interface MovingFaces {
 	data: BookmarkMotionFaces;
 	brief: HTMLElement;
-	briefHidden: boolean;
+	briefHidden: HTMLElement["hidden"];
 	reverseParent: Node | undefined;
 	reverseNext: ChildNode | null;
-	reverseHidden: boolean;
+	reverseHidden: HTMLElement["hidden"];
 	attributes: Map<string, string | null>;
 	visualFace: 0 | 1 | undefined;
 }
@@ -38,7 +38,7 @@ interface MovingBookmark {
 	rectangle: BookmarkSheetRectangle;
 	exposed: BookmarkSheetRectangle;
 	style: string;
-	hidden: boolean;
+	hidden: HTMLElement["hidden"];
 	inert: boolean;
 	surfaces: HTMLDivElement[];
 	visual: HTMLButtonElement;
