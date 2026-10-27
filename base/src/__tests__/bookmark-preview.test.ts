@@ -67,43 +67,40 @@ describe("bookmark previews", () => {
 			left: 300,
 			top: 250,
 		},
-	])("slides the same fixed rectangle from its $edge tip along its long axis", async ({
-		edge,
-		full,
-		tip,
-		left,
-		top,
-	}) => {
-		vi.mocked(source.getBoundingClientRect).mockReturnValue(
-			new DOMRect(full[0], full[1], full[2], full[3]),
-		);
-		vi.mocked(slot.getBoundingClientRect).mockReturnValue(
-			new DOMRect(tip[0], tip[1], tip[2], tip[3]),
-		);
-		preview.open(source, content, edge, "consumer-tabs");
-		const element = document.querySelector<HTMLElement>(".flipbook-bookmark-preview");
-		expect(element?.style.left).toBe(`${full[0]}px`);
-		expect(element?.style.top).toBe(`${full[1]}px`);
-		expect(element?.style.width).toBe(`${full[2]}px`);
-		expect(element?.style.height).toBe(`${full[3]}px`);
-		expect(element?.style.clipPath).not.toBe("inset(0px)");
-		expect(element?.querySelector("button")).toBe(source);
-		expect(document.querySelectorAll("button")).toHaveLength(1);
-		expect(host.querySelector(".flipbook-bookmark-placeholder")).not.toBeNull();
-		await vi.advanceTimersByTimeAsync(32);
-		expect(element?.style.left).toBe(`${left}px`);
-		expect(element?.style.top).toBe(`${top}px`);
-		expect(element?.style.width).toBe(`${full[2]}px`);
-		expect(element?.style.height).toBe(`${full[3]}px`);
-		expect(element?.style.clipPath).toBe("inset(0px)");
-		expect(element?.style.transform).toBe("");
-		expect(source.contains(content)).toBe(true);
-		expect(element?.classList.contains("consumer-tabs")).toBe(true);
-		expect(content.hidden).toBe(false);
-		preview.close();
-		expect(source.parentElement).toBe(slot);
-		expect(host.querySelector(".flipbook-bookmark-placeholder")).toBeNull();
-	});
+	])(
+		"slides the same fixed rectangle from its $edge tip along its long axis",
+		async ({ edge, full, tip, left, top }) => {
+			vi.mocked(source.getBoundingClientRect).mockReturnValue(
+				new DOMRect(full[0], full[1], full[2], full[3]),
+			);
+			vi.mocked(slot.getBoundingClientRect).mockReturnValue(
+				new DOMRect(tip[0], tip[1], tip[2], tip[3]),
+			);
+			preview.open(source, content, edge, "consumer-tabs");
+			const element = document.querySelector<HTMLElement>(".flipbook-bookmark-preview");
+			expect(element?.style.left).toBe(`${full[0]}px`);
+			expect(element?.style.top).toBe(`${full[1]}px`);
+			expect(element?.style.width).toBe(`${full[2]}px`);
+			expect(element?.style.height).toBe(`${full[3]}px`);
+			expect(element?.style.clipPath).not.toBe("inset(0px)");
+			expect(element?.querySelector("button")).toBe(source);
+			expect(document.querySelectorAll("button")).toHaveLength(1);
+			expect(host.querySelector(".flipbook-bookmark-placeholder")).not.toBeNull();
+			await vi.advanceTimersByTimeAsync(32);
+			expect(element?.style.left).toBe(`${left}px`);
+			expect(element?.style.top).toBe(`${top}px`);
+			expect(element?.style.width).toBe(`${full[2]}px`);
+			expect(element?.style.height).toBe(`${full[3]}px`);
+			expect(element?.style.clipPath).toBe("inset(0px)");
+			expect(element?.style.transform).toBe("");
+			expect(source.contains(content)).toBe(true);
+			expect(element?.classList.contains("consumer-tabs")).toBe(true);
+			expect(content.hidden).toBe(false);
+			preview.close();
+			expect(source.parentElement).toBe(slot);
+			expect(host.querySelector(".flipbook-bookmark-placeholder")).toBeNull();
+		},
+	);
 
 	it("clamps translation to the viewport without changing either rectangle dimension", async () => {
 		const width = window.innerWidth;

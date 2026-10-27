@@ -212,5 +212,5 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	);
 };
 
+export type { PageIndicatorMode, PageIndicatorProps };
 export { PageIndicator };
-export type { PageIndicatorProps, PageIndicatorMode };

@@ -162,25 +162,25 @@ describe("PageIndicator — semantic navigation (Hebrew perek style)", () => {
 				description: "perek 24 (the off-by-one candidate)",
 			},
 			{ inputText: "27", expectedJumpIndex: 53, description: "perek 27 (last)" },
-		])("typing '$inputText' ($description) → jumpToPage($expectedJumpIndex)", ({
-			inputText,
-			expectedJumpIndex,
-		}) => {
-			// Start on the cover (page 0)
-			const mockRef = renderIndicator(0);
+		])(
+			"typing '$inputText' ($description) → jumpToPage($expectedJumpIndex)",
+			({ inputText, expectedJumpIndex }) => {
+				// Start on the cover (page 0)
+				const mockRef = renderIndicator(0);
 
-			const input = screen.getByRole("textbox", { name: "Go to perek" });
+				const input = screen.getByRole("textbox", { name: "Go to perek" });
 
-			// Focus the input (simulating user click)
-			fireEvent.focus(input);
-			// Clear and type the desired perek number
-			fireEvent.change(input, { target: { value: inputText } });
-			// Press Enter to navigate
-			fireEvent.keyDown(input, { key: "Enter" });
+				// Focus the input (simulating user click)
+				fireEvent.focus(input);
+				// Clear and type the desired perek number
+				fireEvent.change(input, { target: { value: inputText } });
+				// Press Enter to navigate
+				fireEvent.keyDown(input, { key: "Enter" });
 
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledTimes(1);
-			expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(expectedJumpIndex);
-		});
+				expect(mockRef.current.jumpToPage).toHaveBeenCalledTimes(1);
+				expect(mockRef.current.jumpToPage).toHaveBeenCalledWith(expectedJumpIndex);
+			},
+		);
 	});
 
 	// ── off-by-one regression tests ──────────────────────────────

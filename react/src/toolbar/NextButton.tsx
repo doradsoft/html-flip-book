@@ -41,5 +41,5 @@ const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 	);
 };
 
-export { NextButton };
 export type { NextButtonProps };
+export { NextButton };

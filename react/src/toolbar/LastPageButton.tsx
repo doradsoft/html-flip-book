@@ -41,5 +41,5 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 	);
 };
 
-export { LastPageButton };
 export type { LastPageButtonProps };
+export { LastPageButton };

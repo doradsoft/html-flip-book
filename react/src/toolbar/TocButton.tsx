@@ -42,5 +42,5 @@ const TocButton: React.FC<TocButtonProps> = ({ children, ariaLabel: ariaLabelPro
 	);
 };
 
-export { TocButton };
 export type { TocButtonProps };
+export { TocButton };

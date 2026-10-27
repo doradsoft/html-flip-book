@@ -644,7 +644,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 
 FlipBookReact.displayName = "FlipBook";
 
-export { FlipBookReact as FlipBook };
 export type {
 	Bookmark,
 	BookmarkContext,
@@ -658,3 +657,4 @@ export type {
 export { createDefaultHistoryMapper } from "html-flip-book-vanilla";
 export type { TocEntry, TocPageProps } from "./TocPage";
 export { TocPage } from "./TocPage";
+export { FlipBookReact as FlipBook };

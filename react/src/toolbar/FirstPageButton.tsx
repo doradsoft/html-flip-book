@@ -41,5 +41,5 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 	);
 };
 
-export { FirstPageButton };
 export type { FirstPageButtonProps };
+export { FirstPageButton };

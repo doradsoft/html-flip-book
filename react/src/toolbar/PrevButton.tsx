@@ -41,5 +41,5 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 	);
 };
 
-export { PrevButton };
 export type { PrevButtonProps };
+export { PrevButton };

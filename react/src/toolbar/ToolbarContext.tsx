@@ -34,5 +34,5 @@ export function useToolbar(): ToolbarContextValue {
 	return context;
 }
 
-export { ToolbarContext };
 export type { ToolbarContextValue };
+export { ToolbarContext };
