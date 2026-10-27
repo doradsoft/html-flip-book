@@ -1,6 +1,7 @@
 import type React from "react";
+import { toggleTextSelectionCommand } from "../commands";
 import { t } from "../i18n";
-import { ToolbarButton } from "./ToolbarButton";
+import { ToggleButton } from "./ToggleButton";
 import { useToolbar } from "./ToolbarContext";
 
 export interface MouseModeButtonProps {
@@ -17,22 +18,18 @@ export const MouseModeButton: React.FC<MouseModeButtonProps> = ({
 	ariaLabel,
 	className,
 }) => {
-	const { flipBookRef, locale, mouseMode } = useToolbar();
+	const { locale } = useToolbar();
 	const label = ariaLabel ?? t("toolbarItem.selectText", locale);
 	return (
-		<ToolbarButton
-			onClick={() => {
-				flipBookRef.current?.setMouseMode(mouseMode === "turn" ? "select" : "turn");
-				window.getSelection()?.removeAllRanges();
-			}}
+		<ToggleButton
+			command={toggleTextSelectionCommand}
 			ariaLabel={label}
-			ariaPressed={mouseMode === "select"}
 			className={`flipbook-toolbar-mouse-mode ${className ?? ""}`.trim()}
 		>
 			<span className="flipbook-toolbar-mouse-mode-icon" aria-hidden="true">
 				<span className="flipbook-toolbar-mouse-mode-caret" />
 				<span>{letters ?? t("toolbarItem.selectionLetters", locale)}</span>
 			</span>
-		</ToolbarButton>
+		</ToggleButton>
 	);
 };

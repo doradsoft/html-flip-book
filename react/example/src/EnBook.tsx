@@ -176,6 +176,8 @@ function useTestParams() {
 }
 
 export interface EnBookConfig {
+	/** Start in this mode without remembering changes in this focused demo. */
+	mouseMode?: "turn" | "select";
 	/** Bookmarks are opt-in, including when a custom provider is supplied. */
 	enableBookmarks?: boolean;
 	/** Add bookmarks using this book's page titles and existing navigation. */
@@ -365,7 +367,8 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 			<FlipBook
 				ref={flipBookRef}
 				className="en-book"
-				mouseModeStorageKey="demo-en-mouse-mode"
+				mouseMode={config?.mouseMode}
+				mouseModeStorageKey={config?.mouseMode ? undefined : "demo-en-mouse-mode"}
 				pageShadow={config?.showPageShadow ?? true}
 				snapshotDuringFlip={config?.snapshotDuringFlip}
 				pages={enPages}

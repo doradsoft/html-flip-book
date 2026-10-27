@@ -1475,6 +1475,8 @@ for (const direction of ["ltr", "rtl"] as const) {
 		await expect(bookmarkForPage(page, 4)).toBeHidden();
 		// A focused tab can be portaled into its preview; count source identities across both hosts.
 		await expect(page.locator(".flipbook-bookmark[data-bookmark-id]")).toHaveCount(count);
+		// Leave any hover preview before measuring the bookmark's resting geometry.
+		await page.mouse.move(0, 0);
 		await page.keyboard.press("Escape");
 		await expect(page.locator(".flipbook-bookmark-preview")).toBeHidden();
 		const resting = await boundsOf(surface);
