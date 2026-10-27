@@ -253,14 +253,17 @@ export const scaling: ScenarioDriver = {
 	async audit(page, dist, size) {
 		const gc = () =>
 			page.evaluate(() => (window as unknown as { gc?: () => void }).gc?.());
-		await openFixture(page, dist, { audit: "1" });
-		// The renderer can still hold the previous document's nodes and
-		// listeners right after goto; settle and collect so the baseline
-		// reflects this page only.
+		// Baseline on a blank page after GC: the previous document's nodes
+		// and listeners can linger past a plain goto, which makes the
+		// retained-dom delta noise-dominated. A blank baseline is
+		// deterministic; fixture DOM that survives teardown is symmetric
+		// across variants and cancels out in the paired diff.
+		await page.goto("about:blank");
 		await page.waitForTimeout(300);
 		await gc();
 		await page.waitForTimeout(100);
 		const before = await resourceMetrics(page);
+		await openFixture(page, dist, { audit: "1" });
 		const s = (await page.evaluate(
 			(sz) => window.__scaling.run(sz, true),
 			size,

@@ -142,7 +142,8 @@ async function measureReactMount(app: HTMLElement, size: number): Promise<number
 		root.unmount();
 		reactHost.remove();
 		return ms;
-	} catch {
+	} catch (err) {
+		void err;
 		return "skipped";
 	}
 }
