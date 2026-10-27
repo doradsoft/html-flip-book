@@ -41,7 +41,18 @@ jobs:
 
       - name: Base vs candidate comparison
         id: compare
-        run: npm run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
+        # Exit 2 (inconclusive: noise floor / sample budget not met) is advisory,
+        # not a gate — issue #289 asks for advisory until calibration matures.
+        # Exit 1 (calibrated regression or harness error) still fails the job.
+        run: |
+          set +e
+          npm run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
+          code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::perf inconclusive — noise floor or sample budget not met; check the perf-results artifacts"
+            exit 0
+          fi
+          exit "$code"
 
       - uses: actions/upload-artifact@v6
         if: always()

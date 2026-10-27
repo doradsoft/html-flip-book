@@ -35,7 +35,10 @@ is `|median A/A diff| + 2 * MAD`. Verdicts per metric:
   improvement.
 
 Scenario outcome is the worst metric verdict. Exit codes: `0` all
-no-regression, `1` regression/error, `2` inconclusive only.
+no-regression, `1` regression/error, `2` inconclusive only. The CI
+workflow maps `2` to a step warning, not a failure — inconclusive is
+advisory while per-run calibration matures; a calibrated regression
+(`1`) still fails the job.
 
 ## Scenarios
 
