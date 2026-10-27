@@ -179,6 +179,16 @@
 	margin-top: 8px;
 }
 
+/* ── Consumer content slot (children prop) ── */
+.flipbook-toolbar-download-extra {
+	padding: 4px 16px 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	margin-top: 8px;
+	color: rgba(255, 255, 255, 0.75);
+	font-size: 13px;
+	text-align: start;
+}
+
 /* ── Unused class kept for compat ── */
 .flipbook-toolbar-download-range-download {
 	padding: 10px 16px;

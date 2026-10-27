@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createContext, type ReactNode, useContext } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { FlipBookHandle } from "../FlipBook";
 import { Toolbar } from "../toolbar";
@@ -117,5 +118,68 @@ describe("DownloadDropdown error lifecycle", () => {
 		fireEvent.click(primaryButton());
 		expect(await screen.findByRole("alert")).toBeTruthy();
 		expect(onDownloadError).toHaveBeenCalledWith(expect.any(Error));
+	});
+});
+
+describe("DownloadDropdown content slot", () => {
+	const renderWithChildren = (children: ReactNode) => {
+		const mockRef = createMockFlipBookRef(() => ({ onDownloadSefer: vi.fn() }));
+		render(
+			<Toolbar flipBookRef={mockRef}>
+				<DownloadDropdown>{children}</DownloadDropdown>
+			</Toolbar>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+	};
+
+	it("renders children inside the open menu, not in the document body", async () => {
+		renderWithChildren(<p data-testid="hint">hint text</p>);
+		const hint = await screen.findByTestId("hint");
+		const menu = screen.getByRole("menu");
+		expect(menu.contains(hint)).toBe(true);
+		expect(hint.closest(".flipbook-toolbar-download-extra")).toBeTruthy();
+	});
+
+	it("treats interactive child clicks as inside-menu actions", async () => {
+		const onAction = vi.fn();
+		renderWithChildren(
+			<button type="button" onClick={onAction}>
+				settings
+			</button>,
+		);
+		fireEvent.mouseDown(screen.getByRole("button", { name: "settings" }));
+		fireEvent.click(screen.getByRole("button", { name: "settings" }));
+		expect(onAction).toHaveBeenCalledOnce();
+		expect(screen.getByRole("menu")).toBeTruthy();
+	});
+
+	it("preserves React context for slot children", async () => {
+		const Ctx = createContext("unset");
+		// biome-ignore lint/correctness/noComponentHookFactories: test-scoped probe component reading context once
+		const Probe = () => {
+			const v = useContext(Ctx);
+			return <span data-testid="ctx">{v}</span>;
+		};
+		const mockRef = createMockFlipBookRef(() => ({ onDownloadSefer: vi.fn() }));
+		render(
+			<Ctx.Provider value="from-host">
+				<Toolbar flipBookRef={mockRef}>
+					<DownloadDropdown>
+						<Probe />
+					</DownloadDropdown>
+				</Toolbar>
+			</Ctx.Provider>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+		expect((await screen.findByTestId("ctx")).textContent).toBe("from-host");
+	});
+
+	it("unmounts slot content with the menu and remounts on reopen", async () => {
+		renderWithChildren(<p data-testid="hint">hint text</p>);
+		expect(await screen.findByTestId("hint")).toBeTruthy();
+		fireEvent.mouseDown(document.body);
+		expect(screen.queryByTestId("hint")).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+		expect(await screen.findByTestId("hint")).toBeTruthy();
 	});
 });
