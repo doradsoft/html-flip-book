@@ -132,9 +132,11 @@ export async function buildCandidate(repoRoot: string, outDir: string): Promise<
 }
 
 /**
- * Build a base ref without a second bun install: a temp worktree shares the
- * caller's node_modules through a symlink, so `bun run build` resolves the
- * same toolchain versions the candidate used.
+ * Build a base ref in a temp worktree. When the base's lockfile matches the
+ * candidate's, it shares the caller's node_modules through a symlink (the
+ * toolchain is identical, so a second install buys nothing). A differing
+ * lockfile means the PR bumps the toolchain itself — the base must install
+ * and build with its own declared dependencies.
  */
 export async function buildBase(
 	repoRoot: string,
@@ -144,7 +146,18 @@ export async function buildBase(
 	const wt = path.join(outDir, "base-wt");
 	execFileSync("git", ["worktree", "add", "--detach", wt, ref], { cwd: repoRoot, stdio: "pipe" });
 	try {
-		execFileSync("ln", ["-s", path.join(repoRoot, "node_modules"), path.join(wt, "node_modules")]);
+		let sameLock = false;
+		try {
+			execFileSync("cmp", ["-s", path.join(repoRoot, "bun.lock"), path.join(wt, "bun.lock")]);
+			sameLock = true;
+		} catch {
+			// Lockfiles differ or the base predates Bun — it needs its own install.
+		}
+		if (sameLock) {
+			execFileSync("ln", ["-s", path.join(repoRoot, "node_modules"), path.join(wt, "node_modules")]);
+		} else {
+			execSync("bun install", { cwd: wt, stdio: "inherit" });
+		}
 		execSync("bun run build", { cwd: wt, stdio: "inherit" });
 		const css = await pickCss(path.join(wt, "base", "dist"));
 		await copyDist(path.join(wt, "base", "dist"), path.join(outDir, "base"));
