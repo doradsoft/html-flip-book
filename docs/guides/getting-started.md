@@ -107,3 +107,9 @@ Add your own styles:
   background: white;
 }
 ```
+
+Page shading (hover shadows, edge highlights and fold shading) paints through
+each page's `::before`/`::after` overlays. They sit above positioned, opaque
+page content at `z-index: var(--flipbook-shading-z-index, 10)` and never
+intercept input. Raise the variable only if your content intentionally covers
+the shading.
