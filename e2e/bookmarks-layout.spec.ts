@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
 	activateBookmark,
 	bookmarkForPage,
+	bookmarkHitProbe,
 	boundsOf,
 	currentPages,
 	expectExpanded,
@@ -13,9 +14,12 @@ import {
 	fontFamilies,
 	inspectBookmark,
 	openBookmarks,
+	openStackProbe,
 	PLACEMENTS,
 	pullUpperCorner,
-} from "./bookmark-helpers";
+	scrollportMetrics,
+	spreadIndicesOf,
+} from "./bookmark-helpers.mts";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	test(`${direction}: custom and default bookmark typography survives hover`, async ({
@@ -156,19 +160,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 						"direction",
 						direction,
 					);
-				const metrics = await scrollport.evaluate((element) => {
-					const scrollport = element as HTMLElement;
-					const style = getComputedStyle(scrollport);
-					const borderLeft = parseFloat(style.borderLeftWidth) || 0;
-					const borderRight = parseFloat(style.borderRightWidth) || 0;
-					return {
-						clientLeft: scrollport.clientLeft,
-						gutter: scrollport.offsetWidth - scrollport.clientWidth - borderLeft - borderRight,
-						borderLeft,
-						scrollHeight: scrollport.scrollHeight,
-						clientHeight: scrollport.clientHeight,
-					};
-				});
+				const metrics = await scrollportMetrics(scrollport);
 				expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
 				if (!isMobile) expect(metrics.gutter).toBeGreaterThan(0);
 				if (metrics.gutter > 1)
@@ -217,22 +209,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 			inner,
 		);
 		expect(covered).toBe(true);
-		const hit = await page.evaluate(
-			({ inner, outer }) => ({
-				innerPage: (
-					document.elementFromPoint(inner.x, inner.y)?.closest(".page") as HTMLElement | null
-				)?.dataset.pageIndex,
-				innerTab: Boolean(
-					document.elementFromPoint(inner.x, inner.y)?.closest(".flipbook-bookmark"),
-				),
-				outerLeaf: (
-					document
-						.elementFromPoint(outer.x, outer.y)
-						?.closest(".flipbook-bookmark") as HTMLElement | null
-				)?.dataset.leafIndex,
-			}),
-			{ inner, outer },
-		);
+		const hit = await bookmarkHitProbe(page, inner, outer);
 		const stack = await book.evaluate((element) => ({
 			cover: getComputedStyle(element.querySelector('.page[data-page-index="0"]') as Element)
 				.zIndex,
@@ -261,32 +238,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 			x: direction === "ltr" ? openPaper.x + openPaper.width + 4 : openPaper.x - 4,
 			y: openTab.y + openTab.height / 2,
 		};
-		const openStack = await currentTab.evaluate(
-			(button, point) => ({
-				expected: (button as HTMLElement).dataset.bookmarkId,
-				owner: (button as HTMLElement).dataset.leafIndex,
-				tabZ: getComputedStyle(button).zIndex,
-				railZ: getComputedStyle(button.closest(".flipbook-bookmarks__rail") as Element).zIndex,
-				hit: document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>(".flipbook-bookmark")
-					?.dataset.bookmarkId,
-				pages: [
-					...new Set(
-						document
-							.elementsFromPoint(point.x, point.y)
-							.map((element) => element.closest<HTMLElement>(".page")?.dataset.pageIndex)
-							.filter(Boolean),
-					),
-				],
-				covers: Array.from(
-					button.closest(".flipbook")?.querySelectorAll<HTMLElement>(".page--cover") ?? [],
-				).map((cover) => ({
-					index: cover.dataset.pageIndex,
-					zIndex: getComputedStyle(cover).zIndex,
-					bounds: cover.getBoundingClientRect().toJSON(),
-				})),
-			}),
-			openPoint,
-		);
+		const openStack = await openStackProbe(currentTab, openPoint);
 		await testInfo.attach("bookmark-open-cover-stacking", {
 			body: JSON.stringify({ openPoint, openPaper, openTab, openStack }, null, 2),
 			contentType: "application/json",
@@ -353,9 +305,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 		}
 		const compact = await tabs.locator(".flipbook-bookmark__content").allTextContents();
 		expect(compact.every((text) => /[A-Za-z\u0590-\u05FF]/.test(text))).toBe(true);
-		const leaves = await tabs.evaluateAll((elements) =>
-			elements.map((element) => Number((element as HTMLElement).dataset.spreadIndex)),
-		);
+		const leaves = await spreadIndicesOf(tabs);
 		expect([...leaves].sort((a, b) => a - b)).toEqual(expected);
 		await page.locator(".bookmark-example-stage").screenshot({
 			path: testInfo.outputPath("bookmarks-built-in.png"),

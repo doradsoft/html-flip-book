@@ -5,6 +5,7 @@ import {
 	bookmarkSlot,
 	boundsOf,
 	checkExpansion,
+	constrainBookmarkStage,
 	currentPages,
 	dragBetween,
 	expectExpanded,
@@ -12,12 +13,13 @@ import {
 	expectTabMeetsLeaf,
 	expectTabWithinPage,
 	exposedBounds,
+	foldedPageIndices,
 	openBookmarks,
 	pageStyles,
 	pullUpperCorner,
 	railLayout,
 	tipCenterInMaterial,
-} from "./bookmark-helpers";
+} from "./bookmark-helpers.mts";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	test(`${direction}: bookmark jumps, custom actions, ordering, and provider updates`, async ({
@@ -71,14 +73,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 		await page.setViewportSize({ width: 1600, height: 1000 });
 		const book = await openBookmarks(page, direction);
 		await page.getByRole("combobox", { name: "Attachment", exact: true }).selectOption("pinned");
-		// Leave room to distinguish outward sliding from the viewport fallback.
-		await page.addStyleTag({
-			content: `
-				.bookmark-example-stage { width: 760px; height: 520px; flex: 0 0 auto; }
-				.bookmark-example-stage > .en-book-wrap,
-				.bookmark-example-stage > .he-book-wrap { height: 520px; flex: none; }
-			`,
-		});
+		await constrainBookmarkStage(page);
 		await page.getByRole("combobox", { name: "Click action", exact: true }).selectOption("inspect");
 		for (const orientation of ["perpendicular", "parallel"] as const) {
 			for (const edge of ["left", "right", "top", "bottom"] as const) {
@@ -152,13 +147,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 				{ x: start.x + sign * paper.width * 1.6, y: start.y },
 				async () => {
 					await expect(book.locator(".page--folded")).toHaveCount(2);
-					const moving = await book
-						.locator(".page--folded")
-						.evaluateAll((pages) =>
-							pages
-								.map((element) => Number((element as HTMLElement).dataset.pageIndex))
-								.sort((a, b) => a - b),
-						);
+					const moving = await foldedPageIndices(book);
 					expect(moving).toEqual(turn === "forward" ? [6, 7] : [4, 5]);
 					await page.screenshot({ path: testInfo.outputPath(`bookmarks-drag-${turn}-held.png`) });
 				},
