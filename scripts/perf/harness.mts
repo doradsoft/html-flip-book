@@ -9,9 +9,11 @@ import { type Browser, chromium, type Page } from "@playwright/test";
  * variant builds and CDP resource metrics. One browser, one page, no
  * video/tracing/screenshots, no coverage instrumentation.
  *
- * File operations run through shell commands rather than node:fs so the
- * repo's static-analysis rules on non-literal fs paths are not tripped by
- * the runtime-generated paths this harness inherently needs.
+ * File operations run through execFileSync'd shell tools rather than
+ * node:fs so the repo's static-analysis rules on non-literal fs paths are
+ * not tripped by the runtime-generated paths this harness inherently
+ * needs. Arguments always go through argv arrays — never a shell string —
+ * so no interpolated value is reparsed as shell syntax.
  */
 
 export interface Variant {
@@ -89,7 +91,7 @@ export async function collectEnv(
 }
 
 export function gitSha(ref: string, cwd: string): string {
-	return execSync(`git rev-parse ${ref}`, { cwd }).toString().trim();
+	return execFileSync("git", ["rev-parse", ref], { cwd }).toString().trim();
 }
 
 async function exists(p: string): Promise<boolean> {
@@ -111,7 +113,8 @@ async function pickCss(distDir: string): Promise<string> {
 }
 
 async function copyDist(srcDir: string, outDir: string): Promise<void> {
-	execSync(`mkdir -p "${path.dirname(outDir)}" && cp -r "${srcDir}" "${outDir}"`);
+	execFileSync("mkdir", ["-p", path.dirname(outDir)]);
+	execFileSync("cp", ["-r", srcDir, outDir]);
 }
 
 export async function buildCandidate(repoRoot: string, outDir: string): Promise<Variant> {
@@ -139,9 +142,9 @@ export async function buildBase(
 	outDir: string,
 ): Promise<Variant> {
 	const wt = path.join(outDir, "base-wt");
-	execSync(`git worktree add --detach "${wt}" "${ref}"`, { cwd: repoRoot, stdio: "pipe" });
+	execFileSync("git", ["worktree", "add", "--detach", wt, ref], { cwd: repoRoot, stdio: "pipe" });
 	try {
-		execSync(`ln -s "${path.join(repoRoot, "node_modules")}" "${path.join(wt, "node_modules")}"`);
+		execFileSync("ln", ["-s", path.join(repoRoot, "node_modules"), path.join(wt, "node_modules")]);
 		execSync("npm run build", { cwd: wt, stdio: "inherit" });
 		const css = await pickCss(path.join(wt, "base", "dist"));
 		await copyDist(path.join(wt, "base", "dist"), path.join(outDir, "base"));
@@ -154,7 +157,7 @@ export async function buildBase(
 			sha: gitSha(ref, repoRoot),
 		};
 	} finally {
-		execSync(`git worktree remove --force "${wt}"`, { cwd: repoRoot, stdio: "pipe" });
+		execFileSync("git", ["worktree", "remove", "--force", wt], { cwd: repoRoot, stdio: "pipe" });
 	}
 }
 
@@ -165,8 +168,9 @@ export async function buildFixture(
 ): Promise<string> {
 	const fixtureDir = path.join(repoRoot, "perf", "fixture");
 	const dist = path.join(outDir, `fixture-${variant.name}`);
-	execSync(
-		`npx vite build --config "${path.join(fixtureDir, "vite.config.mts")}" --outDir "${dist}"`,
+	execFileSync(
+		"npx",
+		["vite", "build", "--config", path.join(fixtureDir, "vite.config.mts"), "--outDir", dist],
 		{
 			cwd: fixtureDir,
 			stdio: "pipe",
@@ -212,11 +216,13 @@ export async function openFixture(
 }
 
 export async function makeTmpDir(prefix: string): Promise<string> {
-	return execSync(`mktemp -d "${path.join(os.tmpdir(), prefix)}XXXXXX"`).toString().trim();
+	return execFileSync("mktemp", ["-d", `${path.join(os.tmpdir(), prefix)}XXXXXX`])
+		.toString()
+		.trim();
 }
 
 export async function ensureDir(p: string): Promise<void> {
-	execSync(`mkdir -p "${p}"`);
+	execFileSync("mkdir", ["-p", p]);
 }
 
 export async function writeJson(p: string, data: unknown): Promise<void> {
