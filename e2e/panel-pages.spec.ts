@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import * as fs from "node:fs";
+import { access, mkdtemp, readdir, rm } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -12,12 +12,14 @@ import { expect, test } from "@playwright/test";
  * dormant (nothing to scroll) while the pane owns wheel/keyboard/touch
  * scrolling, and inner scroll positions must survive page turns.
  *
- * The spec builds a tiny consumer fixture against the workspace dist with
- * Vite — the same way a real bundler consumer resolves the package — so the
- * assertions exercise the shipped stylesheet, not example-app CSS.
+ * The spec builds the static fixture in e2e/fixtures/panels against the
+ * workspace dist with Vite — the same way a real bundler consumer resolves
+ * the package — so the assertions exercise the shipped stylesheet, not
+ * example-app CSS.
  */
 
 const repoRoot = process.cwd();
+const fixtureDir = path.join(repoRoot, "e2e", "fixtures", "panels");
 
 // Dev hosts on musl libc (Alpine) cannot run Playwright's bundled chromium;
 // HFB_CHROMIUM=/usr/bin/chromium points at a system build instead.
@@ -25,13 +27,21 @@ test.use({
 	launchOptions: process.env.HFB_CHROMIUM ? { executablePath: process.env.HFB_CHROMIUM } : {},
 });
 
-function ensureBuilt(): string {
+async function exists(p: string): Promise<boolean> {
+	try {
+		await access(p);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function ensureBuilt(): Promise<string> {
 	const distDir = path.join(repoRoot, "base", "dist");
-	const bundle = path.join(distDir, "flipbook.js");
-	if (!fs.existsSync(bundle)) {
+	if (!(await exists(path.join(distDir, "flipbook.js")))) {
 		execSync("npm run build:base", { cwd: repoRoot, stdio: "inherit" });
 	}
-	const css = fs.readdirSync(distDir).find((f) => f.endsWith(".css"));
+	const css = (await readdir(distDir)).find((f) => f.endsWith(".css"));
 	if (!css) throw new Error("base build produced no stylesheet");
 	return path.join(distDir, css);
 }
@@ -45,90 +55,22 @@ const MIME: Record<string, string> = {
 let distDir: string;
 let tmpRoot: string;
 
-const PANEL_ITEMS = Array.from({ length: 60 }, (_, i) => `<li>Panel line ${i + 1}</li>`).join("");
-
-function bookMarkup(dir: "ltr" | "rtl"): string {
-	const normal = (label: string) =>
-		`<div class="page"><article class="prose">${Array.from(
-			{ length: 40 },
-			(_, i) =>
-				`<p>${label} paragraph ${i + 1} — tall document content that overflows the page.</p>`,
-		).join("")}</article></div>`;
-	const panel = (label: string) =>
-		`<div class="page"><div class="flipbook-page-panel fixture-panel">
-      <header class="fixture-panel-header">${label} header</header>
-      <div class="fixture-pane" tabindex="0"><ol>${PANEL_ITEMS}</ol></div>
-      <footer class="fixture-panel-footer">${label} footer</footer>
-    </div></div>`;
-	return `<div class="book-wrap" data-dir="${dir}">
-    <div id="book-${dir}" class="fixture-book">
-      ${normal(`${dir} page 0`)}
-      ${panel(`${dir} page 1`)}
-      ${panel(`${dir} page 2`)}
-      ${normal(`${dir} page 3`)}
-      ${normal(`${dir} page 4`)}
-      ${normal(`${dir} page 5`)}
-    </div>
-  </div>`;
-}
-
-test.beforeAll(() => {
-	const cssPath = ensureBuilt();
-	tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hfb-panels-"));
-	const fixtureDir = path.join(tmpRoot, "fixture");
-	fs.mkdirSync(fixtureDir, { recursive: true });
-	fs.writeFileSync(
-		path.join(fixtureDir, "index.html"),
-		`<!doctype html><html><head><style>
-.book-wrap { width: 600px; height: 400px; margin-bottom: 32px; }
-.fixture-panel { display: flex; flex-direction: column; background: #fff; }
-.fixture-panel-header, .fixture-panel-footer { flex: 0 0 40px; background: #dde; }
-.fixture-pane { flex: 1; min-height: 0; overflow-y: auto; }
-.prose { padding: 16px; }
-</style></head><body>${bookMarkup("ltr")}${bookMarkup("rtl")}<script type="module" src="./main.ts"></script></body></html>`,
+test.beforeAll(async () => {
+	const cssPath = await ensureBuilt();
+	tmpRoot = await mkdtemp(path.join(os.tmpdir(), "hfb-panels-"));
+	distDir = path.join(tmpRoot, "dist");
+	execSync(
+		`npx vite build --config "${path.join(fixtureDir, "vite.config.mts")}" --outDir "${distDir}"`,
+		{
+			cwd: fixtureDir,
+			stdio: "inherit",
+			env: { ...process.env, HFB_PANEL_CSS: cssPath },
+		},
 	);
-	fs.writeFileSync(
-		path.join(fixtureDir, "main.ts"),
-		`import { FlipBook } from "html-flip-book-vanilla";
-import "flipbook-styles";
-for (const dir of ["ltr", "rtl"]) {
-  const book = new FlipBook({
-    pagesCount: 6,
-    direction: dir,
-    leafAspectRatio: { width: 3, height: 2 },
-    enableHistory: false,
-  });
-  book.render("#book-" + dir);
-  book.jumpToPage(1);
-  (window as any).books ??= {};
-  (window as any).books[dir] = book;
-}
-`,
-	);
-	fs.writeFileSync(
-		path.join(fixtureDir, "vite.config.mjs"),
-		`export default {
-  root: ${JSON.stringify(fixtureDir)},
-  resolve: {
-    alias: {
-      "html-flip-book-vanilla": ${JSON.stringify(path.join(repoRoot, "base/dist/flipbook.js"))},
-      "flipbook-styles": ${JSON.stringify(cssPath)},
-    },
-  },
-  build: { outDir: ${JSON.stringify(path.join(fixtureDir, "dist"))}, emptyOutDir: true },
-  logLevel: "warn",
-};
-`,
-	);
-	execSync(`npx vite build --config "${path.join(fixtureDir, "vite.config.mjs")}"`, {
-		cwd: repoRoot,
-		stdio: "inherit",
-	});
-	distDir = path.join(fixtureDir, "dist");
 });
 
-test.afterAll(() => {
-	fs.rmSync(tmpRoot, { recursive: true, force: true });
+test.afterAll(async () => {
+	await rm(tmpRoot, { recursive: true, force: true });
 });
 
 test.beforeEach(async ({ page }) => {

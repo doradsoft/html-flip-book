@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+	<head>
+		<style>
+			.book-wrap {
+				width: 600px;
+				height: 400px;
+				margin-bottom: 32px;
+			}
+			.fixture-panel {
+				display: flex;
+				flex-direction: column;
+				background: #fff;
+			}
+			.fixture-panel-header,
+			.fixture-panel-footer {
+				flex: 0 0 40px;
+				background: #dde;
+			}
+			.fixture-pane {
+				flex: 1;
+				min-height: 0;
+				overflow-y: auto;
+			}
+			.prose {
+				padding: 16px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="book-wrap" data-dir="ltr"><div id="book-ltr"></div></div>
+		<div class="book-wrap" data-dir="rtl"><div id="book-rtl"></div></div>
+		<script type="module" src="./main.ts"></script>
+	</body>
+</html>
