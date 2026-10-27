@@ -700,8 +700,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 						const slots = Array.from(
 							railElement.querySelectorAll<HTMLElement>(".flipbook-bookmark"),
 						).map((button) => {
-							const slotElement = (button.closest(".flipbook-bookmark-slot") ??
-								button) as HTMLElement;
+							const slotElement = button.closest<HTMLElement>(".flipbook-bookmark-slot") ?? button;
 							const rect = slotElement.getBoundingClientRect();
 							return {
 								id: button.dataset.bookmarkId,
