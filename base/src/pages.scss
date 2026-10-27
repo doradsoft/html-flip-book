@@ -60,6 +60,16 @@
   opacity: 0 !important;
 }
 
+// Per-page opt-out tagged by coverConfig.noShadow (React adapter adds
+// .page--no-shadow to cover pages). The shadow/highlight vars are written
+// inline by Leaf.applyTransform, so hide the overlays themselves — same
+// mechanism as the book-wide rule above. Declared before the folded rules
+// but with !important so a folded cover still paints no shading.
+.page--no-shadow::before,
+.page--no-shadow::after {
+  opacity: 0 !important;
+}
+
 // Paper surfaces share a moving crease; shading stays in page coordinates
 // so it follows the clipped fold without moving or cloning page content.
 .page--folded::before {

@@ -27,6 +27,7 @@ import Markdown from "react-markdown";
 import { exportEntireBookPdf } from "./pdfExport";
 import { mergePdfs } from "./pdfMerge";
 import {
+	TEST_PARAM_COVER_NO_SHADOW,
 	TEST_PARAM_FAST_DELTA_THRESHOLD,
 	TEST_PARAM_INITIAL_TURNED_LEAVES,
 } from "./test-url-params";
@@ -162,6 +163,7 @@ function useTestParams() {
 		const params = new URLSearchParams(window.location.search);
 		const initialTurnedLeaves = params.get(TEST_PARAM_INITIAL_TURNED_LEAVES);
 		const fastDeltaThreshold = params.get(TEST_PARAM_FAST_DELTA_THRESHOLD);
+		const coverNoShadow = params.has(TEST_PARAM_COVER_NO_SHADOW);
 
 		return {
 			initialTurnedLeaves: initialTurnedLeaves
@@ -171,6 +173,7 @@ function useTestParams() {
 						.filter((n) => !Number.isNaN(n))
 				: undefined,
 			fastDeltaThreshold: fastDeltaThreshold ? Number(fastDeltaThreshold) : undefined,
+			coverNoShadow,
 		};
 	}, []);
 }
@@ -380,6 +383,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				leavesBuffer={config?.leavesBuffer}
 				coverConfig={{
 					coverIndices: "auto",
+					noShadow: testParams.coverNoShadow,
 				}}
 				initialTurnedLeaves={testParams.initialTurnedLeaves ?? config?.initialTurnedLeaves}
 				fastDeltaThreshold={testParams.fastDeltaThreshold}
