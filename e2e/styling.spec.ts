@@ -10,7 +10,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 		});
 		const examples = section.getByRole("button");
 		for (const example of await examples.all()) {
-			const label = await example.innerText();
+			const label = await example.textContent();
 			await example.click();
 			const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
 			await expect(book.locator('.page[data-page-index="2"]')).toBeVisible();

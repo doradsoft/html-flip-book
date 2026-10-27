@@ -141,6 +141,16 @@ header {
 	min-height: 0;
 }
 
+/* FlipBook measures its container via clientWidth/clientHeight; fill available height (not half) */
+.en-book,
+.he-book {
+	width: 100%;
+	flex: 1;
+	min-height: 420px;
+	position: relative;
+	box-sizing: border-box;
+}
+
 /* Fullscreen: wrap fills viewport; stretch children so the book uses full width and height */
 .en-book-wrap:fullscreen,
 .en-book-wrap:-webkit-full-screen,
@@ -162,16 +172,6 @@ header {
 	width: 100%;
 	min-width: 0;
 	min-height: 0;
-}
-
-/* FlipBook measures its container via clientWidth/clientHeight; fill available height (not half) */
-.en-book,
-.he-book {
-	width: 100%;
-	flex: 1;
-	min-height: 420px;
-	position: relative;
-	box-sizing: border-box;
 }
 
 .he-book-container {
@@ -198,6 +198,11 @@ header {
 	text-align: right;
 	direction: rtl;
 	font-family: Tahoma, Arial, sans-serif;
+}
+
+.bible-content {
+	text-align: justify;
+	white-space: pre-wrap;
 }
 
 /* Psukim: justify; perek header (first line) bold */
@@ -539,11 +544,6 @@ header {
 	font-family: Tahoma, Arial, sans-serif;
 	font-size: 1.1rem;
 	line-height: 2;
-}
-
-.bible-content {
-	text-align: justify;
-	white-space: pre-wrap;
 }
 
 .loading {
