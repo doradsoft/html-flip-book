@@ -34,8 +34,13 @@ test("production bundle loads without runtime errors", async ({ page }, testInfo
 		stdio: "inherit",
 	});
 	const server = createServer((req, res) => {
-		const pathname = (req.url ?? "/").split("?")[0];
-		const filePath = path.resolve(distDir, pathname === "/" ? "index.html" : `.${pathname}`);
+		// CI builds with base /html-flip-book/ (GITHUB_ACTIONS env), matching the
+		// real Pages deployment — serve dist under the same prefix.
+		const pathname = (req.url ?? "/").split("?")[0].replace(/^\/html-flip-book/, "");
+		const filePath = path.resolve(
+			distDir,
+			pathname === "/" || pathname === "" ? "index.html" : `.${pathname}`,
+		);
 		if (!filePath.startsWith(distDir + path.sep)) {
 			res.statusCode = 404;
 			res.end();
@@ -57,7 +62,8 @@ test("production bundle loads without runtime errors", async ({ page }, testInfo
 		const port = typeof address === "object" && address ? address.port : 0;
 		const pageErrors: string[] = [];
 		page.on("pageerror", (error) => pageErrors.push(error.message));
-		await page.goto(`http://localhost:${port}/?example=rtl-comprehensive`);
+		const prefix = process.env.GITHUB_ACTIONS === "true" ? "/html-flip-book" : "";
+		await page.goto(`http://localhost:${port}${prefix}/?example=rtl-comprehensive`);
 		await expect(page.locator(".flipbook").first()).toBeVisible();
 		expect(pageErrors).toEqual([]);
 	} finally {
