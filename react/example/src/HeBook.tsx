@@ -132,6 +132,8 @@ function useTestParams() {
 }
 
 export interface HeBookConfig {
+	/** Start in this mode without remembering changes in this focused demo. */
+	mouseMode?: "turn" | "select";
 	/** Bookmarks are opt-in, including when a custom provider is supplied. */
 	enableBookmarks?: boolean;
 	/** Add bookmarks using this book's page titles and existing navigation. */
@@ -342,7 +344,8 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 			<FlipBook
 				ref={flipBookRef}
 				className="he-book"
-				mouseModeStorageKey="demo-he-mouse-mode"
+				mouseMode={config?.mouseMode}
+				mouseModeStorageKey={config?.mouseMode ? undefined : "demo-he-mouse-mode"}
 				pageShadow={config?.showPageShadow ?? true}
 				pages={hePages}
 				direction="rtl"

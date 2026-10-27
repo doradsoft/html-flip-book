@@ -24,10 +24,33 @@ export function hotkeyMatches(
 	if (effectiveKey !== binding.key) return false;
 
 	const modifiers = binding.modifiers ?? {};
-	if (!!modifiers.ctrl !== event.ctrlKey) return false;
-	if (!!modifiers.shift !== event.shiftKey) return false;
-	if (!!modifiers.alt !== event.altKey) return false;
-	if (!!modifiers.meta !== event.metaKey) return false;
+	if (binding.key !== "Control" && !!modifiers.ctrl !== event.ctrlKey) return false;
+	if (binding.key !== "Shift" && !!modifiers.shift !== event.shiftKey) return false;
+	if (binding.key !== "Alt" && !!modifiers.alt !== event.altKey) return false;
+	if (binding.key !== "Meta" && !!modifiers.meta !== event.metaKey) return false;
 
 	return true;
+}
+
+function hasReleasedModifier(binding: HotkeyBinding, event: KeyboardEvent): boolean {
+	const modifiers = binding.modifiers ?? {};
+	return [
+		modifiers.ctrl && !event.ctrlKey,
+		modifiers.shift && !event.shiftKey,
+		modifiers.alt && !event.altKey,
+		modifiers.meta && !event.metaKey,
+	].some(Boolean);
+}
+
+/** Whether a keyup releases the primary key or any modifier required by a hold. */
+export function hotkeyReleased(
+	binding: HotkeyBinding,
+	event: KeyboardEvent,
+	direction: "ltr" | "rtl",
+): boolean {
+	const key = getEffectiveKey(event.key, direction);
+	if (key === binding.key) return true;
+	// Shift may change a printable key's case before it is released.
+	if (key.length === 1 && key.toLowerCase() === binding.key.toLowerCase()) return true;
+	return hasReleasedModifier(binding, event);
 }

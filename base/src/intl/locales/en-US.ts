@@ -25,6 +25,9 @@ const enUS: LocaleConfig = {
 		"toolbarItem.goToPage": "Go to page",
 		"toolbarItem.selectText": "Select text with mouse",
 		"toolbarItem.selectionLetters": "Aa",
+		"toolbarItem.enterFullscreen": "Enter fullscreen",
+		"toolbarItem.exitFullscreen": "Exit fullscreen",
+		"toolbarItem.fullscreenUnsupported": "Fullscreen is not supported by this browser",
 	},
 };
 
