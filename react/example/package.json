@@ -1,6 +1,7 @@
 {
 	"name": "html-flip-book-react-example",
-	"version": "0.0.0-alpha.82",
+	"version": "0.0.0-alpha.83",
+
 	"private": true,
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
@@ -9,9 +10,9 @@
 		"node": ">=24.0.0"
 	},
 	"scripts": {
-		"predev": "node -e \"try{require('child_process').execSync('npx kill-port 5173',{stdio:'ignore'})}catch{}\"",
+		"predev": "node -e \"try{require('child_process').execSync('bunx kill-port 5173',{stdio:'ignore'})}catch{}\"",
 		"dev": "vite",
-		"predeploy": "npm run build",
+		"predeploy": "bun run build",
 		"deploy": "gh-pages -d dist -r https://github.com/doradsoft/html-flip-book.git",
 		"build": "vite build --mode development",
 		"generate:en-pdf": "node scripts/generate-en-pdf.mts"

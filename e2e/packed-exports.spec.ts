@@ -7,6 +7,10 @@ import { expect, test } from "@playwright/test";
 // gitignored) — the exact resolution a downstream app performs, with no
 // monorepo aliases. File contents reach the test through page.route +
 // route.fulfill({path}), so the spec needs no dynamic fs calls.
+//
+// npm is used deliberately here despite the repo's bun package manager:
+// the published artifacts target npm-registry consumers, so pack/install
+// behavior is validated with the reference client (bun has no `pm pack`).
 
 const repoRoot = process.cwd();
 const consumerDir = "e2e/fixtures/packed-consumer";

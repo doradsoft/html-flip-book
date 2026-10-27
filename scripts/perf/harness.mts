@@ -118,7 +118,7 @@ async function copyDist(srcDir: string, outDir: string): Promise<void> {
 }
 
 export async function buildCandidate(repoRoot: string, outDir: string): Promise<Variant> {
-	execSync("npm run build", { cwd: repoRoot, stdio: "inherit" });
+	execSync("bun run build", { cwd: repoRoot, stdio: "inherit" });
 	const css = await pickCss(path.join(repoRoot, "base", "dist"));
 	await copyDist(path.join(repoRoot, "base", "dist"), path.join(outDir, "base"));
 	await copyDist(path.join(repoRoot, "react", "dist"), path.join(outDir, "react"));
@@ -132,8 +132,8 @@ export async function buildCandidate(repoRoot: string, outDir: string): Promise<
 }
 
 /**
- * Build a base ref without a second npm install: a temp worktree shares the
- * caller's node_modules through a symlink, so `npm run build` resolves the
+ * Build a base ref without a second bun install: a temp worktree shares the
+ * caller's node_modules through a symlink, so `bun run build` resolves the
  * same toolchain versions the candidate used.
  */
 export async function buildBase(
@@ -145,7 +145,7 @@ export async function buildBase(
 	execFileSync("git", ["worktree", "add", "--detach", wt, ref], { cwd: repoRoot, stdio: "pipe" });
 	try {
 		execFileSync("ln", ["-s", path.join(repoRoot, "node_modules"), path.join(wt, "node_modules")]);
-		execSync("npm run build", { cwd: wt, stdio: "inherit" });
+		execSync("bun run build", { cwd: wt, stdio: "inherit" });
 		const css = await pickCss(path.join(wt, "base", "dist"));
 		await copyDist(path.join(wt, "base", "dist"), path.join(outDir, "base"));
 		await copyDist(path.join(wt, "react", "dist"), path.join(outDir, "react"));
@@ -169,7 +169,7 @@ export async function buildFixture(
 	const fixtureDir = path.join(repoRoot, "perf", "fixture");
 	const dist = path.join(outDir, `fixture-${variant.name}`);
 	// Vite's JS entry is invoked through node directly: execFileSync cannot
-	// spawn the npx .cmd shim on Windows, and argv arrays must never go
+	// spawn package-manager .cmd shims on Windows, and argv arrays must never go
 	// through a shell.
 	execFileSync(
 		process.execPath,

@@ -11,6 +11,8 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import semver from "semver";
+
 const rootDir = join(import.meta.dirname, "..");
 
 type ReleaseType = "patch" | "minor" | "major" | "prerelease";
@@ -20,12 +22,26 @@ function getCurrentVersion(): string {
 	return packageJson.version;
 }
 
+function writePackageJson(pkgPath: string, packageJson: Record<string, unknown>): void {
+	// Manifests keep a blank line after "version" — restore it since
+	// JSON.stringify collapses separators.
+	const text = `${JSON.stringify(packageJson, null, "\t")}\n`.replace(
+		/("version": "[^"]+",)\n(\t")/,
+		"$1\n\n$2",
+	);
+	writeFileSync(pkgPath, text);
+}
+
 function getNextVersion(releaseType: ReleaseType): string {
-	const result = execSync(`npm version ${releaseType} --no-git-tag-version`, {
-		cwd: rootDir,
-		encoding: "utf-8",
-	});
-	return result.trim().replace(/^v/, "");
+	const rootPkgPath = join(rootDir, "package.json");
+	const packageJson = JSON.parse(readFileSync(rootPkgPath, "utf-8"));
+	const next = semver.inc(packageJson.version, releaseType);
+	if (!next) {
+		throw new Error(`Cannot bump ${packageJson.version} as ${releaseType}`);
+	}
+	packageJson.version = next;
+	writePackageJson(rootPkgPath, packageJson);
+	return next;
 }
 
 function updateChangelog(version: string): void {
@@ -80,13 +96,13 @@ function syncPackageVersions(version: string): void {
 		const pkgPath = join(rootDir, pkg);
 		const packageJson = JSON.parse(readFileSync(pkgPath, "utf-8"));
 		packageJson.version = version;
-		writeFileSync(pkgPath, `${JSON.stringify(packageJson, null, "\t")}\n`);
+		writePackageJson(pkgPath, packageJson);
 		console.log(`✅ Updated ${pkg} to version ${version}`);
 	}
 
 	// Keep workspace entries in the root lockfile consistent with the manifests.
-	execSync("npm install --package-lock-only --ignore-scripts", { cwd: rootDir });
-	console.log("✅ Synced package-lock.json workspace versions");
+	execSync("bun install --lockfile-only", { cwd: rootDir });
+	console.log("✅ Synced bun.lock workspace versions");
 }
 
 function createGitCommitAndTag(version: string): void {
@@ -119,7 +135,7 @@ function main(): void {
 
 Next steps:
   git push origin master --tags
-  npm publish (in base/ and react/ directories)
+  npm publish --access public --provenance (in base/ and react/ directories)
 `);
 }
 

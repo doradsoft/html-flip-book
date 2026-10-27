@@ -18,14 +18,16 @@ jobs:
           ref: master
           token: ${{ secrets.BOT_PAT }}
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version-file: package.json
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Compute the next version
         env:
@@ -36,7 +38,8 @@ jobs:
 
       - name: Update manifests and lockfile
         run: |
-          npm version "$NEXT_VERSION" --no-git-tag-version --ignore-scripts --workspaces --include-workspace-root
+          node -e 'const fs = require("fs"); for (const p of ["package.json", "base/package.json", "react/package.json", "react/example/package.json"]) { const j = JSON.parse(fs.readFileSync(p, "utf8")); j.version = process.env.NEXT_VERSION; fs.writeFileSync(p, JSON.stringify(j, null, "\t").replace(/("version": "[^"]+",)\n(\t")/, "$1\n\n$2") + "\n"); }'
+          bun install --lockfile-only
 
       - name: Open a checked version-bump pull request
         env:
@@ -46,7 +49,7 @@ jobs:
           git switch -c "$BRANCH"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json base/package.json react/package.json react/example/package.json
+          git add package.json bun.lock base/package.json react/package.json react/example/package.json
           HUSKY=0 git commit -m "chore: prepare version $NEXT_VERSION"
           git push --set-upstream origin "$BRANCH"
           PR_URL=$(gh pr create --base master --head "$BRANCH" --title "chore: prepare version $NEXT_VERSION [skip ci]" --body "Prepare the next package version after the published release. CI must pass before this change reaches protected master. The squash commit skips master CI so this bump does not create another release.")

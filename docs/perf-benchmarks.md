@@ -11,8 +11,8 @@ and candidate (the working tree), then drives byte-identical fixture pages in
 one chromium instance. Paired samples interleave base and candidate so
 machine-wide drift hits both sides of a pair.
 
-- `npm run perf -- --base origin/master` compares a ref against the checkout.
-- `npm run perf:selfcheck` runs candidate-vs-candidate with an injected
+- `bun run perf -- --base origin/master` compares a ref against the checkout.
+- `bun run perf:selfcheck` runs candidate-vs-candidate with an injected
   per-frame delay; it must report `regression`, proving the harness detects a
   representative slowdown. CI runs this gate before the real comparison.
 

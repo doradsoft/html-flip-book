@@ -10,9 +10,9 @@ Thank you for your interest in contributing to HTML Flip Book!
    cd html-flip-book
    ```
 
-2. Install dependencies:
+2. Install dependencies ([Bun](https://bun.com) is the package manager):
    ```bash
-   npm install
+   bun install
    ```
 
 3. Install pre-commit hooks:
@@ -23,18 +23,18 @@ Thank you for your interest in contributing to HTML Flip Book!
 
 4. Start development:
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 ## Commands
 
 | Task | Command |
 |------|---------|
-| Build | `npm run build` |
-| Unit Tests | `npm test` |
-| E2E Tests | `npm run test:e2e` |
-| Lint & Format | `npx biome check --write .` |
-| Generate Docs | `npm run docs` |
+| Build | `bun run build` |
+| Unit Tests | `bun run test` |
+| E2E Tests | `bun run test:e2e` |
+| Lint & Format | `bunx biome check --write .` |
+| Generate Docs | `bun run docs` |
 
 ## Guidelines
 
@@ -55,11 +55,7 @@ Thank you for your interest in contributing to HTML Flip Book!
 
 1. Create a feature branch from `master`
 2. Make your changes
-3. Bump the version:
-   ```bash
-   cd base && npm version patch --no-git-tag-version
-   cd ../react && npm version patch --no-git-tag-version
-   ```
+3. Bump the version in `package.json`, `base/package.json`, `react/package.json`, and `react/example/package.json` to the same higher version
 4. Submit a PR
 
 ## License

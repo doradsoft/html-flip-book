@@ -73,6 +73,6 @@ E2E tests verify complete user flows through the application, testing the integr
 
 | Task           | Command           |
 | -------------- | ----------------- |
-| Unit Tests     | `npm test`        |
-| E2E Tests      | `npm run test:e2e`|
-| All Tests      | `npm run test:all`|
+| Unit Tests     | `bun run test`        |
+| E2E Tests      | `bun run test:e2e`|
+| All Tests      | `bun run test:all`|

@@ -6,9 +6,11 @@ version: 2
 build:
   os: ubuntu-24.04
   tools:
-    nodejs: "22"
+    nodejs: "24"
   commands:
-    - npm ci
-    - npm run docs
+    # RTD has no bun tool; npm ships the official bun binary.
+    - npm install -g bun
+    - bun install --frozen-lockfile
+    - bun run docs
     - mkdir -p $READTHEDOCS_OUTPUT/html
     - cp -r docs-dist/* $READTHEDOCS_OUTPUT/html/

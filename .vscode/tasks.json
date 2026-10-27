@@ -3,9 +3,11 @@
 	"tasks": [
 		{
 			"label": "base watch",
-			"type": "npm",
-			"script": "watch",
-			"path": "./base",
+			"type": "shell",
+			"command": "bun run watch",
+			"options": {
+				"cwd": "${workspaceFolder}/base"
+			},
 			"isBackground": true,
 			"problemMatcher": []
 		}

@@ -10,17 +10,17 @@ updates:
           - minor
           - patch
 
-  - package-ecosystem: npm
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
     groups:
-      npm-development:
+      bun-development:
         dependency-type: development
         update-types:
           - minor
           - patch
-      npm-production:
+      bun-production:
         dependency-type: production
         update-types:
           - patch

@@ -20,8 +20,8 @@ Each entry should include:
 
 - Configuration in `biome.json`
 - Uses tabs for indentation, double quotes, semicolons always
-- Run `npx biome check --write .` to fix all issues
-- Run `npx biome format --write <file>` for specific files
+- Run `bunx biome check --write .` to fix all issues
+- Run `bunx biome format --write <file>` for specific files
 
 ---
 
@@ -34,8 +34,8 @@ Each entry should include:
 
 - Configuration in `vitest.config.ts`
 - Uses jsdom environment for DOM testing
-- Run `npm test` to execute all unit tests
-- Supports watch mode with `npm run test:watch`
+- Run `bun run test` to execute all unit tests
+- Supports watch mode with `bun run test:watch`
 
 ---
 
@@ -48,5 +48,5 @@ Each entry should include:
 
 - Configuration in `playwright.config.ts`
 - E2E tests in `e2e/` directory
-- Run `npm run test:e2e` to execute E2E tests
+- Run `bun run test:e2e` to execute E2E tests
 - Supports multiple browsers (chromium, firefox, webkit)

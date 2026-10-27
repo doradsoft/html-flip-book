@@ -1,6 +1,7 @@
 {
 	"name": "html-flip-book",
-	"version": "0.0.0-alpha.82",
+	"version": "0.0.0-alpha.83",
+
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -14,7 +15,7 @@
 	"engines": {
 		"node": ">=24.0.0"
 	},
-	"packageManager": "npm@12.2.1",
+	"packageManager": "bun@1.4.4",
 	"workspaces": [
 		"base",
 		"react",
@@ -22,12 +23,12 @@
 	],
 	"scripts": {
 		"prepare": "husky",
-		"update": "npx npm-check-updates --peer --deep -u && npm install",
-		"build": "npm run build:react",
+		"update": "bunx npm-check-updates --peer --deep -u && bun install",
+		"build": "bun run build:react",
 		"build:base": "cross-env BUILD_TARGET=base vite build && tsc -p base/tsconfig.json --emitDeclarationOnly",
-		"build:react": "npm run build:base && cross-env BUILD_TARGET=react vite build && tsc -p react/tsconfig.json --emitDeclarationOnly",
-		"build:example": "npm run build --workspace=html-flip-book-react-example",
-		"dev": "npm run dev --workspace=html-flip-book-react-example",
+		"build:react": "bun run build:base && cross-env BUILD_TARGET=react vite build && tsc -p react/tsconfig.json --emitDeclarationOnly",
+		"build:example": "bun --filter html-flip-book-react-example build",
+		"dev": "bun --filter html-flip-book-react-example dev",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
@@ -42,8 +43,8 @@
 		"format:check": "biome format .",
 		"lint": "biome lint .",
 		"check": "biome check .",
-		"ci-test": "vitest run --coverage && playwright test && npm run coverage:merge",
-		"all": "npm run check && npm run test:coverage && npm run build",
+		"ci-test": "vitest run --coverage && playwright test && bun run coverage:merge",
+		"all": "bun run check && bun run test:coverage && bun run build",
 		"docs": "typedoc",
 		"release": "node scripts/release.mts",
 		"release:patch": "node scripts/release.mts patch",
@@ -79,9 +80,9 @@
 		"vite": "^7.3.7",
 		"vitest": "^4.0.18"
 	},
-	"allowScripts": {
-		"@swc/core@1.16.20": true,
-		"esbuild@0.28.2": true,
-		"@parcel/watcher@2.6.0": true
-	}
+	"trustedDependencies": [
+		"@swc/core",
+		"esbuild",
+		"@parcel/watcher"
+	]
 }

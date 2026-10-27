@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig, type LibraryFormats } from "vite";
 
 // Build configuration for different modules
-// Use: npm run build:base, npm run build:react, etc.
+// Use: bun run build:base, bun run build:react, etc.
 export default defineConfig(() => {
 	const target = process.env.BUILD_TARGET || "base";
 

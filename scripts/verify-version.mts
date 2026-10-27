@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env node
 /**
  * Unified version verification script.
  * Performs two checks:
@@ -132,7 +132,9 @@ function verifyVersionBump(currentVersion: string): boolean {
 		`   ❌ ERROR: Version ${currentVersion} is NOT greater than released version ${releasedVersion}`,
 	);
 	console.error("   Please bump the version before committing.");
-	console.error("   Run in base/: npm version patch (or minor/major/prerelease)");
+	console.error(
+		"   Set the same higher version in package.json, base/package.json, react/package.json, react/example/package.json",
+	);
 	return false;
 }
 

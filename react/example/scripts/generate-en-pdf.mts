@@ -1,7 +1,7 @@
 /**
  * Generate EN book PDFs one per page (for merging on the fly in the app).
- * Run from react/example: npm run generate:en-pdf
- * Requires: npm install @mdpdf/mdpdf (dev)
+ * Run from react/example: bun run generate:en-pdf
+ * Requires: bun add -d @mdpdf/mdpdf
  * Output: public/downloads/en/page-00.pdf, page-01.pdf, ...
  */
 import fs from "node:fs";
