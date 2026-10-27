@@ -4,3 +4,4 @@
  */
 export const TEST_PARAM_INITIAL_TURNED_LEAVES = "test-initialTurnedLeaves";
 export const TEST_PARAM_FAST_DELTA_THRESHOLD = "test-fastDeltaThreshold";
+export const TEST_PARAM_COVER_NO_SHADOW = "test-coverNoShadow";
