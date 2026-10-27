@@ -25,7 +25,7 @@ jobs:
       playwright_version: ${{ steps.get_playwright_version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Get Playwright version
         id: get_playwright_version
@@ -42,12 +42,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Need full history for git tags
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -56,7 +56,7 @@ jobs:
         run: npm ci
 
       - name: Verify Version
-        run: npx tsx scripts/verify-version.mts
+        run: node scripts/verify-version.mts
 
   # ============================================================================
   # Lint Job - Fast feedback on code quality
@@ -68,10 +68,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -93,10 +93,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -125,10 +125,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -154,18 +154,25 @@ jobs:
   # ============================================================================
   # E2E Tests Job - Depends on Build, with Playwright caching
   # ============================================================================
+  # The dev server compiles the packages from source via vite aliases, so the
+  # example's production build is not needed here; `npm run build` still runs
+  # once per shard so the example's type checker resolves package `exports`.
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    needs: [setup, build]
+    needs: [setup]
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     permissions:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -183,9 +190,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Build Example
-        run: npm run build:example
-
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
@@ -195,12 +199,12 @@ jobs:
         run: npx playwright install-deps chromium
 
       - name: E2E Tests
-        run: npm run test:e2e
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
       - name: Upload E2E Coverage
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-coverage
+          name: e2e-coverage-${{ matrix.shard }}
           path: .coverage/e2e
           retention-days: 7
           if-no-files-found: warn
@@ -209,7 +213,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: monocart-report/
           retention-days: 7
 
@@ -225,10 +229,10 @@ jobs:
       id-token: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: package.json
           cache: npm
@@ -246,7 +250,7 @@ jobs:
         uses: actions/download-artifact@v8
         continue-on-error: true
         with:
-          name: e2e-coverage
+          pattern: e2e-coverage-*
           path: .coverage/e2e
 
       - name: Merge Coverage
@@ -263,7 +267,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@2320916714171c258d01dbd81040d64d798c6f8e # v7.1.1
         with:
           use_oidc: true
           files: .coverage/merged/lcov.info
@@ -304,7 +308,7 @@ jobs:
         uses: actions/configure-pages@v6
 
       - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           name: github-pages
           path: artifacts/react/example/dist
@@ -325,7 +329,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -347,7 +351,7 @@ jobs:
 
       - name: Create Release
         if: steps.check_tag.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}

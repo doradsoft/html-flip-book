@@ -4,7 +4,7 @@
  * 2. Updating the version in package.json files
  * 3. Creating a git tag
  *
- * Usage: npx tsx scripts/release.mts [patch|minor|major|prerelease]
+ * Usage: node scripts/release.mts [patch|minor|major|prerelease]
  */
 
 import { execSync } from "node:child_process";
@@ -83,6 +83,10 @@ function syncPackageVersions(version: string): void {
 		writeFileSync(pkgPath, `${JSON.stringify(packageJson, null, "\t")}\n`);
 		console.log(`✅ Updated ${pkg} to version ${version}`);
 	}
+
+	// Keep workspace entries in the root lockfile consistent with the manifests.
+	execSync("npm install --package-lock-only --ignore-scripts", { cwd: rootDir });
+	console.log("✅ Synced package-lock.json workspace versions");
 }
 
 function createGitCommitAndTag(version: string): void {
