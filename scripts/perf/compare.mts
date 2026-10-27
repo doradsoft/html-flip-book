@@ -190,10 +190,23 @@ async function main(): Promise<void> {
 			let invalidCand = 0;
 			const reasons: string[] = [];
 
+			// A sample that throws is invalid, not a harness crash.
+			const safeSample = async (dist: string, delay: number) => {
+				try {
+					return await scenario.runSample(page, dist, size, delay);
+				} catch (err) {
+					return {
+						metrics: {},
+						valid: false,
+						invalidReason: `threw: ${String(err).slice(0, 160)}`,
+					};
+				}
+			};
+
 			// Paired samples, interleaved base/candidate.
 			for (let i = 0; i < cli.samples; i++) {
-				const rb = await scenario.runSample(page, distBase, size, 0);
-				const rc = await scenario.runSample(page, distCand, size, cli.delayCandidateMs);
+				const rb = await safeSample(distBase, 0);
+				const rc = await safeSample(distCand, cli.delayCandidateMs);
 				console.log(`  ${name}${size ? `/${size}` : ""} pair ${i + 1}/${cli.samples} done`);
 				if (rb.valid) baseSamples.push(rb.metrics);
 				else invalidBase++;
@@ -209,8 +222,8 @@ async function main(): Promise<void> {
 			// Invalid A/A samples count toward the error budget: calibration
 			// failure is an environment problem, not a free pass.
 			for (let i = 0; i < cli.samples; i++) {
-				const a = await scenario.runSample(page, distBase, size, 0);
-				const b = await scenario.runSample(page, distBase, size, 0);
+				const a = await safeSample(distBase, 0);
+				const b = await safeSample(distBase, 0);
 				if (a.valid) aaA.push(a.metrics);
 				else {
 					invalidBase++;

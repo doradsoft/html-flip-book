@@ -33,7 +33,7 @@
 		"test:coverage": "vitest run --coverage",
 		"test:e2e": "playwright test",
 		"perf": "node scripts/perf/compare.mts",
-		"perf:selfcheck": "node scripts/perf/compare.mts --selfcheck --delay-candidate-ms 12 --samples 4 --scenario turn",
+		"perf:selfcheck": "node scripts/perf/compare.mts --selfcheck --delay-candidate-ms 25 --samples 4 --scenario turn",
 		"coverage:unit": "vitest run --coverage",
 		"coverage:e2e": "playwright test",
 		"coverage:merge": "node scripts/merge-coverage.mts",

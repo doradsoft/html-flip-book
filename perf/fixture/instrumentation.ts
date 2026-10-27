@@ -38,57 +38,24 @@ declare global {
 	}
 }
 
-export function installInstrumentation(): PerfInstrumentation {
-	const delayMs = Number(new URLSearchParams(location.search).get("delay") ?? "0");
-
-	function spin(ms: number): void {
-		if (ms <= 0) return;
-		const until = performance.now() + ms;
-		while (performance.now() < until) {
-			/* injected slowdown for selfcheck */
-		}
-	}
-
-	// rAF capture: wrap callbacks to record invocation timestamps. Gaps are
-	// derived between successive callback times inside a capture window.
-	let rafCapturing = false;
-	const rafTimes: number[] = [];
-	const nativeRaf = window.requestAnimationFrame.bind(window);
-	window.requestAnimationFrame = (cb: FrameRequestCallback): number =>
-		nativeRaf((t) => {
-			if (rafCapturing) rafTimes.push(t);
-			if (delayMs > 0) spin(delayMs);
-			cb(t);
-		});
-
-	const longtasks: PerformanceEntry[] = [];
-	try {
-		new PerformanceObserver((list) => {
-			longtasks.push(...list.getEntries());
-		}).observe({ entryTypes: ["longtask"] });
-	} catch {
-		// longtask unsupported: leave the array empty; scenario marks it.
-	}
-	let loaf: PerformanceEntry[] | "unsupported";
-	try {
-		const entries: PerformanceEntry[] = [];
-		new PerformanceObserver((list) => {
-			entries.push(...list.getEntries());
-		}).observe({ entryTypes: ["long-animation-frame"] });
-		loaf = entries;
-	} catch {
-		loaf = "unsupported";
-	}
-
-	// Pending-work audit counters (instrumented pass): pending timers and
-	// live rAF requests still outstanding when checked.
+/** Pending-work audit counters (instrumented pass): pending timers and
+ * live rAF requests still outstanding when checked. */
+function instrumentTimers(
+	delayMs: number,
+	onRafCallback: (t: number) => void,
+): {
+	pending(): number;
+	rafPending(): number;
+} {
 	const nativeSetTimeout = window.setTimeout.bind(window);
 	const nativeSetInterval = window.setInterval.bind(window);
 	const nativeClearTimeout = window.clearTimeout.bind(window);
 	const nativeClearInterval = window.clearInterval.bind(window);
 	const nativeCancelRaf = window.cancelAnimationFrame.bind(window);
+	const nativeRaf = window.requestAnimationFrame.bind(window);
 	const timerAlive = new Set<number>();
 	const intervalAlive = new Set<number>();
+	const rafLive = new Set<number>();
 	window.setTimeout = ((cb: TimerHandler, ms?: number, ...args: unknown[]): number => {
 		const id = nativeSetTimeout(
 			(...inner: unknown[]) => {
@@ -114,11 +81,11 @@ export function installInstrumentation(): PerfInstrumentation {
 		if (id !== undefined) intervalAlive.delete(id);
 		nativeClearInterval(id);
 	}) as typeof clearInterval;
-	const patchedRaf = window.requestAnimationFrame;
-	const rafLive = new Set<number>();
 	window.requestAnimationFrame = (cb: FrameRequestCallback): number => {
-		const id = patchedRaf((t) => {
+		const id = nativeRaf((t) => {
 			rafLive.delete(id);
+			onRafCallback(t);
+			if (delayMs > 0) spinBusy(delayMs);
 			cb(t);
 		});
 		rafLive.add(id);
@@ -128,9 +95,15 @@ export function installInstrumentation(): PerfInstrumentation {
 		rafLive.delete(id);
 		nativeCancelRaf(id);
 	}) as typeof cancelAnimationFrame;
+	return {
+		pending: () => timerAlive.size + intervalAlive.size,
+		rafPending: () => rafLive.size,
+	};
+}
 
-	// Observer audit: count observers that called observe() and have not
-	// disconnected — a leak signal after destroy(), not a correctness check.
+/** Observer audit: count observers that called observe() and have not
+ * disconnected — a leak signal after destroy(), not a correctness check. */
+function instrumentObservers(): { active(): number } {
 	const liveObservers = new Set<object>();
 	for (const Ctor of [MutationObserver, ResizeObserver, IntersectionObserver]) {
 		const proto = Ctor.prototype;
@@ -145,11 +118,14 @@ export function installInstrumentation(): PerfInstrumentation {
 			return origDisconnect.apply(this);
 		};
 	}
+	return { active: () => liveObservers.size };
+}
 
-	// First visual mutation after arming (input latency measurement).
+/** First visual mutation after arming (input latency measurement). */
+function instrumentMutations(): { arm(): void; firstAt(): number | null } {
 	let mutationObserver: MutationObserver | null = null;
 	let firstMutationAt: number | null = null;
-	const mutations = {
+	return {
 		arm(): void {
 			firstMutationAt = null;
 			mutationObserver?.disconnect();
@@ -167,6 +143,58 @@ export function installInstrumentation(): PerfInstrumentation {
 		},
 		firstAt: () => firstMutationAt,
 	};
+}
+
+/** Busy-wait helper scenarios call inside measured windows when delay > 0. */
+function spinBusy(ms: number): void {
+	const until = performance.now() + ms;
+	while (performance.now() < until) {
+		/* injected slowdown for selfcheck */
+	}
+}
+
+export function installInstrumentation(): PerfInstrumentation {
+	const delayMs = Number(new URLSearchParams(location.search).get("delay") ?? "0");
+
+	function spin(ms: number): void {
+		if (ms <= 0) return;
+		spinBusy(ms);
+	}
+
+	// rAF capture: gaps are accumulated incrementally between successive
+	// callback timestamps inside a capture window.
+	let rafCapturing = false;
+	let prevRafTime: number | null = null;
+	let rafCallbacks = 0;
+	const rafGaps: number[] = [];
+	const timers = instrumentTimers(delayMs, (t) => {
+		if (!rafCapturing) return;
+		rafCallbacks++;
+		if (prevRafTime !== null) rafGaps.push(t - prevRafTime);
+		prevRafTime = t;
+	});
+
+	const longtasks: PerformanceEntry[] = [];
+	try {
+		new PerformanceObserver((list) => {
+			longtasks.push(...list.getEntries());
+		}).observe({ entryTypes: ["longtask"] });
+	} catch {
+		// longtask unsupported: leave the array empty; scenario marks it.
+	}
+	let loaf: PerformanceEntry[] | "unsupported";
+	try {
+		const entries: PerformanceEntry[] = [];
+		new PerformanceObserver((list) => {
+			entries.push(...list.getEntries());
+		}).observe({ entryTypes: ["long-animation-frame"] });
+		loaf = entries;
+	} catch {
+		loaf = "unsupported";
+	}
+
+	const observers = instrumentObservers();
+	const mutations = instrumentMutations();
 
 	// Pointer-event receive timestamp for input latency pairing.
 	let pointerReceivedAt: number | null = null;
@@ -190,24 +218,21 @@ export function installInstrumentation(): PerfInstrumentation {
 		spin,
 		raf: {
 			start() {
-				rafTimes.length = 0;
+				rafGaps.length = 0;
+				rafCallbacks = 0;
+				prevRafTime = null;
 				rafCapturing = true;
 			},
 			stop() {
 				rafCapturing = false;
-				const gaps: number[] = [];
-				for (let i = 1; i < rafTimes.length; i++) gaps.push(rafTimes[i] - rafTimes[i - 1]);
-				return gaps;
+				return [...rafGaps];
 			},
-			callbackCount: () => rafTimes.length,
+			callbackCount: () => rafCallbacks,
 		},
 		longtasks,
 		loaf,
-		timers: {
-			pending: () => timerAlive.size + intervalAlive.size,
-			rafPending: () => rafLive.size,
-		},
-		observers: { active: () => liveObservers.size },
+		timers,
+		observers,
 		mutations,
 		input,
 	};

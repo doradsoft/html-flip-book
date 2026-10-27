@@ -54,6 +54,47 @@ function pageEl(label: string): HTMLElement {
 	return page;
 }
 
+function mountBook(host: HTMLElement): FlipBook {
+	const book = new FlipBook({
+		pagesCount: PAGES,
+		direction: "ltr",
+		leafAspectRatio: { width: 3, height: 2 },
+		enableHistory: false,
+	});
+	book.render(`#${host.id}`);
+	return book;
+}
+
+async function runTurns(book: FlipBook): Promise<TurnSample> {
+	const perf = window.__perf;
+	const turnMs: number[] = [];
+	const initialPageIndex = book.currentPageIndex;
+	perf.raf.start();
+	for (let i = 0; i < TURNS; i++) {
+		const t0 = performance.now();
+		await book.flipNext();
+		turnMs.push(performance.now() - t0);
+		// Injected slowdown applies inside the measured command window
+		// (selfcheck) as well as inside rAF callbacks.
+		perf.spin(perf.delayMs);
+	}
+	const gaps = perf.raf.stop();
+	const loafCount = perf.loaf === "unsupported" ? "unsupported" : perf.loaf.length;
+	return {
+		gaps,
+		turnMs,
+		inputLatencies: [],
+		longtaskCount: perf.longtasks.length,
+		longtaskTotal: perf.longtasks.reduce((s, e) => s + e.duration, 0),
+		loafCount,
+		rafCallbacks: perf.raf.callbackCount(),
+		completedTurns: turnMs.length,
+		expectedTurns: TURNS,
+		initialPageIndex,
+		finalPageIndex: book.currentPageIndex,
+	};
+}
+
 export function registerTurnScenario(): void {
 	let book: FlipBook | undefined;
 
@@ -71,47 +112,14 @@ export function registerTurnScenario(): void {
 			host.id = "perf-book";
 			for (let i = 0; i < PAGES; i++) host.appendChild(pageEl(`turn page ${i}`));
 			app.appendChild(host);
-			book = new FlipBook({
-				pagesCount: PAGES,
-				direction: "ltr",
-				leafAspectRatio: { width: 3, height: 2 },
-				enableHistory: false,
-			});
-			book.render(`#${host.id}`);
+			book = mountBook(host);
 			// Let the initial layout settle before measuring.
 			await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 		},
 
-		async runTurns(): Promise<TurnSample> {
+		runTurns: () => {
 			if (!book) throw new Error("prepare() first");
-			const perf = window.__perf;
-			const turnMs: number[] = [];
-			const initialPageIndex = book.currentPageIndex;
-			perf.raf.start();
-			for (let i = 0; i < TURNS; i++) {
-				const t0 = performance.now();
-				await book.flipNext();
-				turnMs.push(performance.now() - t0);
-				// Injected slowdown applies inside the measured command window
-				// (selfcheck) as well as inside rAF callbacks.
-				perf.spin(perf.delayMs);
-			}
-			const gaps = perf.raf.stop();
-			const loafCount = perf.loaf === "unsupported" ? "unsupported" : perf.loaf.length;
-			const sample: TurnSample = {
-				gaps,
-				turnMs,
-				inputLatencies: [],
-				longtaskCount: perf.longtasks.length,
-				longtaskTotal: perf.longtasks.reduce((s, e) => s + e.duration, 0),
-				loafCount,
-				rafCallbacks: perf.raf.callbackCount(),
-				completedTurns: turnMs.length,
-				expectedTurns: TURNS,
-				initialPageIndex,
-				finalPageIndex: book.currentPageIndex,
-			};
-			return sample;
+			return runTurns(book);
 		},
 
 		armInput(): void {
