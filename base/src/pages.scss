@@ -23,6 +23,10 @@
   backface-visibility: hidden;
   transition: opacity 120ms ease;
   will-change: opacity;
+  // Stacking contract: shading overlays paint above positioned/opaque page
+  // content (each page's `contain: paint` scopes this to the page itself).
+  // Apps with intentional overlays can tune --flipbook-shading-z-index.
+  z-index: var(--flipbook-shading-z-index, 10);
 }
 
 // Inner shadow: simulates shadow cast by lifted page onto the page below
