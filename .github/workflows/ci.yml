@@ -222,6 +222,7 @@ jobs:
     needs: [unit-tests, e2e-tests]
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -264,7 +265,7 @@ jobs:
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: .coverage/merged/lcov.info
           flags: base,react
           fail_ci_if_error: true
