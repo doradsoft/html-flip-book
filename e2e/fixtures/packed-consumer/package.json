@@ -4,7 +4,7 @@
 	"type": "module",
 	"description": "Clean consumer for e2e/packed-exports.spec.ts — installs the packed tarballs with no monorepo aliases. node_modules is gitignored.",
 	"dependencies": {
-		"html-flip-book-react": "file:../../../react/html-flip-book-react-0.0.0-alpha.78.tgz",
-		"html-flip-book-vanilla": "file:../../../base/html-flip-book-vanilla-0.0.0-alpha.78.tgz"
+		"html-flip-book-react": "file:../../../react/html-flip-book-react-0.0.0-alpha.80.tgz",
+		"html-flip-book-vanilla": "file:../../../base/html-flip-book-vanilla-0.0.0-alpha.80.tgz"
 	}
 }
