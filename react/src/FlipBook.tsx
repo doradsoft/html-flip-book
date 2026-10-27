@@ -64,7 +64,7 @@ export interface FlipBookHandle {
 	/** Current mouse interaction mode. Touch gestures are unaffected. */
 	getMouseMode: () => MouseMode;
 	/** Switch between continuous page turning and native text selection. */
-	setMouseMode: (mode: MouseMode) => void;
+	setMouseMode: (mode: MouseMode, options?: { persist?: boolean }) => void;
 }
 
 /**
@@ -176,8 +176,9 @@ export interface FlipBookProps {
 	 */
 	handlers?: FlipBookHandlers;
 	/**
-	 * When set, syncs the flip-book with browser history: pushState on flip, restore page on back/forward.
-	 * Default: undefined.
+	 * When set, syncs the flip-book with browser history: pushState on flip, restore page on back/forward,
+	 * and adopt the page named by the current URL on mount.
+	 * When omitted and enableHistory is not false, the built-in `#page/{name}` hash mapper is used.
 	 */
 	historyMapper?: HistoryMapper;
 	/**
@@ -188,6 +189,7 @@ export interface FlipBookProps {
 	/**
 	 * Download configuration: entire book and page-range handlers plus filename hints.
 	 * Toolbar's DownloadDropdown reads this from the flipbook ref.
+	 * When omitted and enableDownload is not false, the built-in JSON page-index default is used.
 	 */
 	downloadConfig?: DownloadConfig;
 	/**
@@ -203,13 +205,14 @@ export interface FlipBookProps {
 	 */
 	snapshotDuringFlip?: boolean;
 	/**
-	 * When false, history integration is disabled. When true or omitted, the provided historyMapper
-	 * is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 * When false, history integration is disabled entirely. When true or omitted, the provided
+	 * historyMapper is used, or the built-in hash-based default when none is provided.
 	 */
 	enableHistory?: boolean;
 	/**
-	 * When false, download is disabled (getDownloadConfig returns undefined). When true or omitted,
-	 * the provided downloadConfig is used; there is no default implementation. See base FlipBookOptions and issue #168.
+	 * When false, download is disabled entirely (getDownloadConfig returns undefined). When true or
+	 * omitted, the provided downloadConfig is used, or the built-in JSON page-index default when none
+	 * is provided.
 	 */
 	enableDownload?: boolean;
 }
@@ -296,6 +299,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// affected by this debounce.
 		const BUFFER_DEBOUNCE_MS = 80;
 		const pageChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+		// Leaves whose flip animation is in flight. The base keeps their page
+		// wrappers visible even outside the leavesBuffer window, so their content
+		// must stay mounted too — otherwise a revealed flipping page renders blank
+		// (issue #167). Cleared once flips settle and the buffer window recenters.
+		const inflightLeavesRef = useRef<Set<number>>(new Set());
+		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
 			setPageIndexRef.current?.(index);
 		});
@@ -310,8 +319,27 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
+				inflightLeavesRef.current.clear();
 				setPageIndexRef.current?.(index);
 			}, BUFFER_DEBOUNCE_MS);
+		};
+		const onPageFlippingRef = useRef((params: PageFlipParams) => {
+			handlers?.onPageFlipping?.(params);
+		});
+		onPageFlippingRef.current = (params) => {
+			if (leavesBuffer != null) {
+				// The flipping leaf holds the page on the trailing edge of the target
+				// spread: backward flips carry pageIndices[1] on their back, forward
+				// flips carry pageIndices[0] on their front.
+				const edgePage =
+					params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
+				const flippingLeaf = Math.floor(edgePage / 2);
+				if (!inflightLeavesRef.current.has(flippingLeaf)) {
+					inflightLeavesRef.current.add(flippingLeaf);
+					setInflightVersion((v) => v + 1);
+				}
+			}
+			handlers?.onPageFlipping?.(params);
 		};
 
 		// Clean up debounce timer on unmount.
@@ -337,7 +365,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				coverAspectRatio: coverAspectRatio,
 				coverPageIndices: coverConfig?.coverIndices,
 				onPageChanged: (index: number) => onPageChangedRef.current(index),
-				onPageFlipping: handlers?.onPageFlipping,
+				onPageFlipping: (params) => onPageFlippingRef.current(params),
 				onPageFlipped: handlers?.onPageFlipped,
 				historyMapper,
 				tocPageIndex: tocPageIndex ?? 4,
@@ -372,9 +400,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				getDownloadConfig: () => flipBook.current.getDownloadConfig(),
 				getTocPageIndex: () => flipBook.current.getTocPageIndex(),
 				getMouseMode: () => flipBook.current.getMouseMode(),
-				setMouseMode: (mode: MouseMode) => {
+				setMouseMode: (mode: MouseMode, options?: { persist?: boolean }) => {
 					flipBook.current.setMouseMode(mode);
-					if (mouseModeStorageKey) {
+					if (mouseModeStorageKey && options?.persist !== false) {
 						try {
 							localStorage.setItem(mouseModeStorageKey, mode);
 						} catch {
@@ -563,9 +591,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 								inRange.add(partner);
 							}
 						}
-						return (index: number) => (inRange.has(index) ? pagesWithKeys[index] : null);
+						return (index: number) =>
+							inRange.has(index) || inflightLeavesRef.current.has(Math.floor(index / 2))
+								? (pagesWithKeys.at(index) ?? null)
+								: null;
 					})()
-				: (index: number) => pagesWithKeys[index];
+				: (index: number) => pagesWithKeys.at(index) ?? null;
 
 		/** Wrap interior cover pages with the endpaper inset frame (3-sided: no inset on spine). */
 		const renderPageContent = (index: number) => {
@@ -624,5 +655,6 @@ export type {
 	PageFlipParams,
 	PageSemantics,
 } from "html-flip-book-vanilla";
+export { createDefaultHistoryMapper } from "html-flip-book-vanilla";
 export type { TocEntry, TocPageProps } from "./TocPage";
 export { TocPage } from "./TocPage";

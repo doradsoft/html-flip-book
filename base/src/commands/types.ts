@@ -19,6 +19,8 @@ export interface FlipBookHandleLike {
 	getDownloadConfig?: () => import("../download/types").DownloadConfig | undefined;
 	/** Get the configured table of contents page index. */
 	getTocPageIndex?: () => number;
+	getMouseMode?: () => "turn" | "select";
+	setMouseMode?: (mode: "turn" | "select", options?: { persist?: boolean }) => void;
 }
 
 /**
@@ -28,6 +30,10 @@ export interface FlipBookHandleLike {
 export interface HotkeyBinding {
 	/** The key to listen for (e.g., "ArrowLeft", "Home", "f") */
 	key: string;
+	/** Hold temporarily forces a toggle state until the key or a required modifier is released. */
+	mode?: "press" | "hold";
+	/** State to force for a hold binding. Defaults to true. Only toggle commands support holds. */
+	active?: boolean;
 	/** Modifier keys required */
 	modifiers?: {
 		ctrl?: boolean;
@@ -56,13 +62,15 @@ export interface CommandData {
 export interface CommandContext {
 	handle: FlipBookHandleLike | null;
 	data?: CommandData;
+	/** Temporary state changes must not persist the user's preference. */
+	transient?: boolean;
 }
 
 /**
  * Command definition: object with id, enName, execute, etc.
  * Used when defining commands (e.g. in default-commands).
  */
-export interface CommandDefinition {
+interface CommandDefinitionBase {
 	/** Unique command identifier */
 	id: string;
 	/** Static English name (fallback when name from intl is not set) */
@@ -85,6 +93,21 @@ export interface CommandDefinition {
 	canExecute?: (context: CommandContext) => boolean;
 }
 
+/** An ordinary command runs once per matching keydown. Existing definitions need no kind. */
+export interface ActionCommandDefinition extends CommandDefinitionBase {
+	kind?: "action";
+}
+
+/** A stateful command can also be temporarily forced by a hold hotkey. */
+export interface ToggleCommandDefinition extends CommandDefinitionBase {
+	kind: "toggle";
+	isActive: (context: CommandContext) => boolean;
+	/** Set an explicit state; honor context.transient when persisting preferences. */
+	setActive: (context: CommandContext, active: boolean) => boolean | undefined;
+}
+
+export type CommandDefinition = ActionCommandDefinition | ToggleCommandDefinition;
+
 /**
  * Command: same as CommandDefinition and callable. When invoked as a function `command()` it runs execute internally.
  */
@@ -93,7 +116,7 @@ export type Command = CommandDefinition & (() => void);
 /**
  * Base for navigation commands (flip or jump).
  */
-export interface NavCommand extends CommandDefinition {
+export interface NavCommand extends ActionCommandDefinition {
 	navKind?: "jump" | "flip";
 }
 

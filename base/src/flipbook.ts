@@ -6,6 +6,8 @@ import { throttle } from "throttle-debounce";
 import type { AspectRatio } from "./aspect-ratio";
 import { BookmarkLayer, type BookmarkProvider } from "./bookmarks";
 import { createDefaultBookmarkProvider } from "./default-bookmarks";
+import { createDefaultHistoryMapper } from "./default-history-mapper";
+import { createDefaultDownloadConfig } from "./download/default-config";
 import type { DownloadConfig } from "./download/types";
 import type {
 	FlipBookOptions,
@@ -32,6 +34,14 @@ const HOVER_STRENGTH_MAX = 0.12;
 const MOUSE_MOVE_THROTTLE_MS = 16;
 const historyOwnerEpoch = Date.now().toString(36);
 let nextHistoryOwner = 0;
+/**
+ * Last URL written by any flipbook instance in this document.
+ * Distinguishes book-authored position entries from genuine external deep
+ * links: a URL no book wrote is a request to open at that page, while a
+ * leftover book-authored URL is positional state and must not pull other
+ * (or later-mounted) books to its page.
+ */
+let lastAuthoredUrl: string | undefined;
 
 /** State for a single flip operation - enables concurrent page flipping */
 interface FlipState {
@@ -164,9 +174,14 @@ class FlipBook {
 		}
 		const pageIndex = this.currentPageIndex;
 		const semantic = this.getSemanticForPage(pageIndex);
-		if (this.onPageChanged) this.onPageChanged(pageIndex);
-		const params = this.lastFlipParams ?? this.buildPageFlipParams(pageIndex, "forward");
-		if (this.onPageFlipped) this.onPageFlipped(params);
+		// The initial sync only stamps history state; the page hasn't changed,
+		// so it must not fire change notifications. Deep-link adoption already
+		// fired them via restorePage — a real transition.
+		if (!isInitial) {
+			if (this.onPageChanged) this.onPageChanged(pageIndex);
+			const params = this.lastFlipParams ?? this.buildPageFlipParams(pageIndex, "forward");
+			if (this.onPageFlipped) this.onPageFlipped(params);
+		}
 		if (typeof window !== "undefined" && this.historyMapper && !this._isRestoringFromHistory) {
 			const route = this.historyMapper.pageToRoute(pageIndex, semantic);
 			// When pageToRoute returns null the consumer signals "this page has
@@ -197,6 +212,7 @@ class FlipBook {
 			} else {
 				History.prototype.pushState.call(window.history, state, "", url);
 			}
+			lastAuthoredUrl = url;
 		}
 	}
 
@@ -250,10 +266,20 @@ class FlipBook {
 		this.onPageChanged = options.onPageChanged;
 		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
-		this.historyMapper = options.enableHistory !== false ? options.historyMapper : undefined;
+		this.historyMapper =
+			options.enableHistory !== false
+				? (options.historyMapper ?? createDefaultHistoryMapper(options.pageSemantics))
+				: undefined;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
-		this.downloadConfig = options.enableDownload !== false ? options.downloadConfig : undefined;
+		this.downloadConfig =
+			options.enableDownload !== false
+				? (options.downloadConfig ??
+					createDefaultDownloadConfig({
+						pagesCount: options.pagesCount,
+						pageSemantics: options.pageSemantics,
+					}))
+				: undefined;
 		this.pageShadow = options.pageShadow ?? true;
 		this.snapshotDuringFlip = options.snapshotDuringFlip ?? true;
 		this._tocPageIndex = options.tocPageIndex ?? 4;
@@ -724,8 +750,23 @@ class FlipBook {
 		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
 
-		// History: initial replaceState and popstate listener
+		// History: adopt the deep-linked page, then initial replaceState and popstate listener
 		if (typeof window !== "undefined" && this.historyMapper) {
+			const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+			// A URL no book wrote is an external deep link — open at its page.
+			// A book-authored URL (this or another book's last write) is positional
+			// state, not a request, so it must not reposition this book.
+			if (currentUrl !== lastAuthoredUrl) {
+				const initialPage = this.historyMapper.routeToPage(currentUrl);
+				if (
+					initialPage !== null &&
+					initialPage >= 0 &&
+					initialPage < this.pagesCount &&
+					initialPage !== this.currentPageIndex
+				) {
+					this.restorePage(initialPage);
+				}
+			}
 			this.syncHistoryAndNotifyFlipped(true);
 			this._boundPopstate = this.handlePopstate.bind(this);
 			window.addEventListener("popstate", this._boundPopstate, true);
@@ -769,9 +810,14 @@ class FlipBook {
 			const leaf = this.leaves[i];
 			const isWithinBuffer = i >= bufferStart && i <= bufferEnd;
 			const isCoverLeaf = coverLeafIndices.has(i);
+			// A leaf whose flip is in flight must stay visible even outside the
+			// buffer window — during rapid consecutive flips the window can move
+			// past leaves that are still mid-animation, and hiding them makes the
+			// turning page vanish and reappear (the flicker of issue #167).
+			const isFlipping = this.activeFlips.has(i) || leaf.isFlipping;
 
 			// Cover leaves are always visible; other leaves follow the buffer range.
-			const visible = isCoverLeaf || isWithinBuffer;
+			const visible = isCoverLeaf || isWithinBuffer || isFlipping;
 
 			// Update both pages of the leaf
 			for (const page of leaf.pages) {
@@ -987,6 +1033,8 @@ class FlipBook {
 				isDuringAutoFlip: false,
 			};
 			this.activeFlips.set(leaf.index, flipState);
+			// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+			this.updateLeavesBufferVisibility();
 		}
 
 		// Update delta
@@ -1346,6 +1394,8 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+		this.updateLeavesBufferVisibility();
 		const targetPageIndex = this.currentPageIndex + 2;
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
@@ -1379,6 +1429,8 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
+		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
+		this.updateLeavesBufferVisibility();
 		const targetPageIndex = this.currentPageIndex - 2;
 		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
@@ -1575,6 +1627,7 @@ class FlipBook {
 export { FlipBook, type PageSemantics };
 export type { Bookmark, BookmarkContext, BookmarkPlacement, BookmarkProvider } from "./bookmarks";
 export { createDefaultBookmarkProvider } from "./default-bookmarks";
+export { createDefaultHistoryMapper } from "./default-history-mapper";
 export type {
 	FlipPageSemantic,
 	HistoryMapper,

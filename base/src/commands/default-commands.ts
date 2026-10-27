@@ -6,6 +6,7 @@ import { goToLastCommand } from "./go-to-last-command";
 import { goToTocCommand } from "./go-to-toc-command";
 import { toggleDebugCommand } from "./toggle-debug-command";
 import { toggleFullscreenCommand } from "./toggle-fullscreen-command";
+import { toggleTextSelectionCommand } from "./toggle-text-selection-command";
 import type { CommandDefinition } from "./types";
 
 /**
@@ -19,5 +20,6 @@ export const defaultCommands: CommandDefinition[] = [
 	goToTocCommand,
 	toggleFullscreenCommand,
 	toggleDebugCommand,
+	toggleTextSelectionCommand,
 	downloadCommand,
 ];

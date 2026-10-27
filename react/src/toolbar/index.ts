@@ -1,17 +1,30 @@
 // Toolbar components barrel export
 
-export type { Command, CommandDefinition, CommandOptions, HotkeyBinding } from "../commands";
+export type {
+	ActionCommandDefinition,
+	Command,
+	CommandDefinition,
+	CommandOptions,
+	HotkeyBinding,
+	ToggleCommandDefinition,
+} from "../commands";
 // Commands
 export {
+	canUseFullscreen,
 	defaultCommands,
 	downloadCommand,
+	exitFullscreen,
 	flipNextCommand,
 	flipPrevCommand,
+	fullscreenStateEvents,
+	getFullscreenElement,
 	goToFirstCommand,
 	goToLastCommand,
 	goToTocCommand,
+	requestFullscreen,
 	toggleDebugCommand,
 	toggleFullscreenCommand,
+	toggleTextSelectionCommand,
 	useCommands,
 } from "../commands";
 export type {
@@ -22,6 +35,7 @@ export type {
 	SeferDownloadHandler,
 	SemanticPageInfo,
 } from "../download/types";
+export { createDefaultDownloadConfig } from "../download/types";
 export type { IconProps } from "../icons";
 // Icons
 export {
@@ -64,6 +78,8 @@ export type { PrevButtonProps } from "./PrevButton";
 export { PrevButton } from "./PrevButton";
 export type { TocButtonProps } from "./TocButton";
 export { TocButton } from "./TocButton";
+export type { ToggleButtonProps } from "./ToggleButton";
+export { ToggleButton } from "./ToggleButton";
 export type { ToolbarProps } from "./Toolbar";
 export { Toolbar } from "./Toolbar";
 export type { ToolbarButtonProps } from "./ToolbarButton";

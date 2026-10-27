@@ -121,6 +121,13 @@ export class Leaf {
 	get isTurning(): boolean {
 		return this.flipPosition !== 0;
 	}
+	/**
+	 * True while a drag or animation holds this leaf promoted
+	 * (a `beginFlip` without its matching `endFlip`).
+	 */
+	get isFlipping(): boolean {
+		return this.flipRefCount > 0;
+	}
 	get isCover(): boolean {
 		return this.isFirst || this.isLast;
 	}

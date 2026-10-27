@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { setTocPageIndex } from "html-flip-book-vanilla/store";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FlipBookHandle } from "../FlipBook";
 import {
 	ActionButton,
@@ -215,13 +215,25 @@ describe("TocButton", () => {
 			</Toolbar>,
 		);
 
-		const button = screen.getByRole("button", { name: /table of contents/i }) as HTMLButtonElement;
-		expect(button.disabled).toBe(true);
+		const button = screen.getByRole("button", { name: /table of contents/i });
+		expect(button).toHaveProperty("disabled", true);
 	});
 });
 
 describe("FullscreenButton", () => {
+	function stubFullscreenApi() {
+		(HTMLElement.prototype as HTMLElement & { requestFullscreen?: unknown }).requestFullscreen = vi
+			.fn()
+			.mockResolvedValue(undefined);
+	}
+	function cleanupFullscreenApi() {
+		delete (HTMLElement.prototype as HTMLElement & { requestFullscreen?: unknown })
+			.requestFullscreen;
+	}
+	afterEach(cleanupFullscreenApi);
+
 	it("should render with enter fullscreen label by default", () => {
+		stubFullscreenApi();
 		const mockRef = createMockFlipBookRef();
 		render(
 			<Toolbar flipBookRef={mockRef}>
@@ -233,6 +245,7 @@ describe("FullscreenButton", () => {
 	});
 
 	it("should use custom aria labels when provided", () => {
+		stubFullscreenApi();
 		const mockRef = createMockFlipBookRef();
 		render(
 			<Toolbar flipBookRef={mockRef}>
