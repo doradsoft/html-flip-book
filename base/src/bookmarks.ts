@@ -610,7 +610,6 @@ export class BookmarkLayer {
 		});
 		item.button.addEventListener("pointerdown", (event) => {
 			this.preview.cancelHover();
-			this.preview.close();
 			this.preview.suppressUntilPointerMove();
 			this.onPointerDown?.(event);
 		});
