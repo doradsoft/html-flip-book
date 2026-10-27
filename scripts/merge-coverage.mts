@@ -1,9 +1,13 @@
 /**
  * Merge unit and e2e coverage into a single lcov report.
  * Based on approach from bible-on-site.
+ *
+ * E2E coverage may arrive as multiple Playwright shard reports
+ * (.coverage/e2e/e2e-coverage-N/lcov.info) or as a single flat report
+ * (.coverage/e2e/lcov.info) from a local unsharded run; all are merged.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,47 +15,58 @@ const __dirname = dirname(__filename)
 
 const COVERAGE_DIR = resolve(__dirname, '../.coverage')
 const UNIT_LCOV = resolve(COVERAGE_DIR, 'unit/lcov.info')
-const E2E_LCOV = resolve(COVERAGE_DIR, 'e2e/lcov.info')
+const E2E_DIR = resolve(COVERAGE_DIR, 'e2e')
 const MERGED_DIR = resolve(COVERAGE_DIR, 'merged')
 const MERGED_LCOV = resolve(MERGED_DIR, 'lcov.info')
 
+function findLcovFiles(dir: string, depth = 2): string[] {
+	if (!existsSync(dir) || depth < 0) return []
+	return readdirSync(dir).flatMap((entry) => {
+		const full = join(dir, entry)
+		if (entry === 'lcov.info' && statSync(full).isFile()) return [full]
+		return statSync(full).isDirectory() ? findLcovFiles(full, depth - 1) : []
+	})
+}
+
 function main(): void {
-  console.log('Merging coverage reports...')
+	console.log('Merging coverage reports...')
 
-  // Ensure merged directory exists
-  if (!existsSync(MERGED_DIR)) {
-    mkdirSync(MERGED_DIR, { recursive: true })
-  }
+	// Ensure merged directory exists
+	if (!existsSync(MERGED_DIR)) {
+		mkdirSync(MERGED_DIR, { recursive: true })
+	}
 
-  const parts: string[] = []
+	const parts: string[] = []
 
-  // Add unit coverage if exists
-  if (existsSync(UNIT_LCOV)) {
-    console.log(`  - Adding unit coverage from ${UNIT_LCOV}`)
-    parts.push(readFileSync(UNIT_LCOV, 'utf8'))
-  } else {
-    console.log(`  - Unit coverage not found at ${UNIT_LCOV}`)
-  }
+	// Add unit coverage if exists
+	if (existsSync(UNIT_LCOV)) {
+		console.log(`  - Adding unit coverage from ${UNIT_LCOV}`)
+		parts.push(readFileSync(UNIT_LCOV, 'utf8'))
+	} else {
+		console.log(`  - Unit coverage not found at ${UNIT_LCOV}`)
+	}
 
-  // Add e2e coverage if exists
-  if (existsSync(E2E_LCOV)) {
-    console.log(`  - Adding E2E coverage from ${E2E_LCOV}`)
-    parts.push(readFileSync(E2E_LCOV, 'utf8'))
-  } else {
-    console.log(`  - E2E coverage not found at ${E2E_LCOV}`)
-  }
+	// Add every e2e coverage report (flat file and/or per-shard directories)
+	const e2eFiles = findLcovFiles(E2E_DIR).sort()
+	for (const file of e2eFiles) {
+		console.log(`  - Adding e2e coverage from ${file}`)
+		parts.push(readFileSync(file, 'utf8'))
+	}
+	if (e2eFiles.length === 0) {
+		console.log(`  - E2E coverage not found under ${E2E_DIR}`)
+	}
 
-  if (parts.length === 0) {
-    console.error('No coverage files found to merge!')
-    process.exit(1)
-  }
+	if (parts.length === 0) {
+		console.error('No coverage files found to merge!')
+		process.exit(1)
+	}
 
-  // Simple concatenation - lcov format supports multiple records per file
-  // For more accurate merging, consider using lcov-cli
-  const merged = parts.join('\n')
-  writeFileSync(MERGED_LCOV, merged)
+	// Simple concatenation - lcov format supports multiple records per file
+	// For more accurate merging, consider using lcov-cli
+	const merged = parts.join('\n')
+	writeFileSync(MERGED_LCOV, merged)
 
-  console.log(`\nMerged coverage written to ${MERGED_LCOV}`)
+	console.log(`\nMerged coverage written to ${MERGED_LCOV}`)
 }
 
 main()
