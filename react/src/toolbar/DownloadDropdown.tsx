@@ -102,6 +102,9 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	const [openUp, setOpenUp] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
+	// Generation of the current error-reporting attempt: only the latest attempt's
+	// (possibly async) onDownloadError result may change the displayed error.
+	const errorAttemptRef = useRef(0);
 
 	const selectablePages = useMemo(
 		() => getSelectablePages(totalPages, pageSemantics),
@@ -125,8 +128,16 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	}, [open, hasSefer, firstSelectablePage, lastSelectablePage]);
 
 	const closeDropdown = useCallback(() => {
+		errorAttemptRef.current += 1;
 		setOpen(false);
 		setError(null);
+	}, []);
+
+	// A still-pending error hook must not apply after the component unmounts.
+	useEffect(() => {
+		return () => {
+			errorAttemptRef.current += 1;
+		};
 	}, []);
 
 	// One lifecycle for handler rejections and browser-side save failures:
@@ -137,6 +148,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	// hook that resolves a string replaces the fallback once it settles.
 	const reportError = useCallback(
 		(cause: unknown) => {
+			const attempt = ++errorAttemptRef.current;
 			const fallback = t("toolbarItem.download.error", locale);
 			const config = flipBookRef.current?.getDownloadConfig?.();
 			let custom: unknown;
@@ -145,8 +157,10 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 			} catch {
 				custom = undefined;
 			}
-			const applyMessage = (value: unknown) =>
+			const applyMessage = (value: unknown) => {
+				if (errorAttemptRef.current !== attempt) return;
 				setError(typeof value === "string" && value ? value : fallback);
+			};
 			if (custom && typeof (custom as PromiseLike<unknown>).then === "function") {
 				applyMessage(undefined);
 				void (custom as PromiseLike<unknown>).then(applyMessage, () => {});
@@ -208,6 +222,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	const handleEntireBook = useCallback(async () => {
 		const config = flipBookRef.current?.getDownloadConfig?.();
 		if (!config?.onDownloadSefer) return;
+		errorAttemptRef.current += 1;
 		setLoading("sefer");
 		setError(null);
 		try {
@@ -232,6 +247,7 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 				const info = selectablePages.find((sp) => sp.pageIndex === i);
 				if (info) semanticPages.push(info);
 			}
+			errorAttemptRef.current += 1;
 			setLoading("range");
 			setError(null);
 			try {
