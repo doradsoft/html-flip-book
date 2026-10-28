@@ -17,7 +17,9 @@
 			"!**/dist",
 			"!**/node_modules",
 			"!**/.coverage",
-			"!**/monocart-report"
+			"!**/monocart-report",
+			"!**/research/**/paraglide",
+			"!**/research/**/out"
 		]
 	},
 	"formatter": {
