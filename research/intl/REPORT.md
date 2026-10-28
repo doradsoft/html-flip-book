@@ -108,11 +108,15 @@ generated `runtime.js` carries cookie/URL strategy machinery — inert when
 ## Reproduce
 
 ```
+bun add -d @inlang/paraglide-js@2.29.1 @inlang/plugin-message-format@4.5.5
 bun run research/intl/scripts/measure.mts   # bundle table
 bun run research/intl/scripts/runtime-bench.mts  # ns/op table
 bunx paraglide-js compile --project ./research/intl/paraglide-proto/project.inlang \
   --outdir ./research/intl/paraglide-proto/paraglide
 ```
+
+(Deps intentionally not committed to package.json — the report's
+recommendation is retain; reproducing is a one-off `bun add`.)
 
 Prototype adapter: `research/intl/paraglide-proto/intl-paraglide.ts`
 (API-compatible, verified). Scale catalogs: `research/intl/scale/`.

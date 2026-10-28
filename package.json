@@ -1,6 +1,7 @@
 {
 	"name": "html-flip-book",
 	"version": "0.0.0-alpha.92",
+
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -54,8 +55,6 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.2",
-		"@inlang/paraglide-js": "2.29.1",
-		"@inlang/plugin-message-format": "4.5.5",
 		"@playwright/test": "^1.64.1",
 		"@testing-library/dom": "^10.4.2",
 		"@testing-library/react": "^16.3.3",
