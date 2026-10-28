@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { Profiler } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FlipBook } from "../FlipBook";
 
@@ -37,6 +38,11 @@ function Pair({ showSecond }: { showSecond: boolean }) {
 		</>
 	);
 }
+
+let commitCount = 0;
+const countCommit = () => {
+	commitCount++;
+};
 
 describe("FlipBook React Component", () => {
 	beforeEach(() => {
@@ -281,5 +287,48 @@ describe("FlipBook React Component", () => {
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		});
 		expect(screen.queryByText("Page 12")).toBeNull();
+	});
+
+	it("does not commit a re-render on page changes when leavesBuffer is unset (issue #343)", async () => {
+		commitCount = 0;
+		render(
+			<Profiler id="no-buffer" onRender={countCommit}>
+				<FlipBook pages={[<div key="c">p</div>]} className="no-buffer-book" />
+			</Profiler>,
+		);
+		const options = mocked.instances[0].options;
+		const onPageChanged = options.onPageChanged as (index: number) => void;
+		const after = commitCount;
+
+		// Without a buffer window, currentPageIndex drives nothing in render;
+		// onPageChanged must not pay a full-tree reconcile per turn.
+		act(() => {
+			onPageChanged(1);
+		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		});
+		expect(commitCount).toBe(after);
+	});
+
+	it("recenters the buffer window on page change when leavesBuffer is set (issue #343)", async () => {
+		// Buffer window around page 0 mounts pages 0..(leavesBuffer+margin)*2;
+		// a far page's content starts unmounted and mounts once the window moves.
+		const pages = Array.from({ length: 24 }, (_, i) => `Far Page ${i}`).map((label) => (
+			<div key={label}>{label}</div>
+		));
+		render(<FlipBook pages={pages} className="buffer-book" leavesBuffer={1} />);
+		const options = mocked.instances[0].options;
+		const onPageChanged = options.onPageChanged as (index: number) => void;
+
+		expect(screen.queryByText("Far Page 20")).toBeNull();
+		act(() => {
+			onPageChanged(20);
+		});
+		// The debounced buffer update is a transition — let it commit.
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		});
+		expect(screen.getByText("Far Page 20")).toBeTruthy();
 	});
 });

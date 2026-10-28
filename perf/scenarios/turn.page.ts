@@ -17,6 +17,17 @@ import "flipbook-styles";
 
 const TURNS = 4;
 const PAGES = 10;
+// ?heavy=1 loads a bible-on-site-scale workload: a scrollable pane of
+// per-word/verse markup (~640 nodes/page) plus book-wide bookmarks, so the
+// turn path is measured under realistic layout cost instead of ~4 nodes.
+// ?bounded=1 additionally tags each content root .flipbook-page-bounded —
+// the DOM contract bible-on-site ships since #2742.
+const QUERY = new URLSearchParams(location.search);
+const HEAVY = QUERY.has("heavy");
+const BOUNDED = QUERY.has("bounded");
+const HEAVY_VERSES = 40;
+const HEAVY_WORDS = 14;
+const HEAVY_BOOKMARKS = 36;
 
 interface TurnSample {
 	gaps: number[];
@@ -49,10 +60,44 @@ function pageEl(label: string): HTMLElement {
 	page.className = "page";
 	const content = document.createElement("div");
 	content.className = "fixture-page-content";
-	content.textContent = label;
+	if (HEAVY) {
+		if (BOUNDED) {
+			content.classList.add("flipbook-page-bounded");
+			content.style.display = "flex";
+			content.style.flexDirection = "column";
+		}
+		content.classList.add("fixture-heavy-pane");
+		for (let v = 0; v < HEAVY_VERSES; v++) {
+			const verse = document.createElement("span");
+			verse.className = "fixture-verse";
+			const ref = document.createElement("a");
+			ref.className = "fixture-verse-num";
+			ref.href = `#v${v}`;
+			ref.textContent = `${v + 1} `;
+			verse.appendChild(ref);
+			for (let w = 0; w < HEAVY_WORDS; w++) {
+				const word = document.createElement("span");
+				word.className = "fixture-word";
+				word.textContent = `w${(v * HEAVY_WORDS + w) % 97} `;
+				verse.appendChild(word);
+			}
+			content.appendChild(verse);
+		}
+	} else {
+		content.textContent = label;
+	}
 	page.appendChild(content);
 	return page;
 }
+
+const heavyBookmarkProvider = {
+	getBookmarks: () =>
+		Array.from({ length: HEAVY_BOOKMARKS }, (_, i) => ({
+			id: `bm-${i}`,
+			pageIndex: Math.floor((i * PAGES) / HEAVY_BOOKMARKS),
+			label: `BM ${i + 1}`,
+		})),
+};
 
 function mountBook(host: HTMLElement): FlipBook {
 	const book = new FlipBook({
@@ -60,6 +105,7 @@ function mountBook(host: HTMLElement): FlipBook {
 		direction: "ltr",
 		leafAspectRatio: { width: 3, height: 2 },
 		enableHistory: false,
+		...(HEAVY ? { enableBookmarks: true, bookmarkProvider: heavyBookmarkProvider } : {}),
 	});
 	book.render(`#${host.id}`);
 	return book;
@@ -96,6 +142,8 @@ async function runTurns(book: FlipBook): Promise<TurnSample> {
 }
 
 export function registerTurnScenario(): void {
+	// ?adapter=react hands window.__turn to the React-adapter scenario.
+	if (QUERY.get("adapter") === "react") return;
 	let book: FlipBook | undefined;
 
 	window.__turn = {
