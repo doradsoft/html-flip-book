@@ -154,10 +154,10 @@ describe("FlipBook React Component", () => {
 		const hosts = container.querySelectorAll(".same-book");
 		expect(hosts).toHaveLength(2);
 		expect(hosts[0]).not.toBe(hosts[1]);
-		for (let i = 0; i < 2; i++) {
-			expect(mocked.instances[i].render).toHaveBeenCalledTimes(1);
-			expect(mocked.instances[i].render).toHaveBeenCalledWith(hosts[i], false);
-		}
+		expect(mocked.instances[0].render).toHaveBeenCalledTimes(1);
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(hosts[0], false);
+		expect(mocked.instances[1].render).toHaveBeenCalledTimes(1);
+		expect(mocked.instances[1].render).toHaveBeenCalledWith(hosts[1], false);
 	});
 
 	it("mounts with an empty className (issue #333)", async () => {
