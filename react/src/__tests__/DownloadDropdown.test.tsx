@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createContext, type ReactNode, useContext } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { downloadCommand, useCommands } from "../commands";
@@ -41,6 +41,16 @@ function renderDropdown(downloadConfig: Parameters<typeof createMockFlipBookRef>
 }
 
 const primaryButton = () => screen.getByRole("menuitem");
+
+function deferred<T>() {
+	let resolve!: (value: T) => void;
+	let reject!: (reason?: unknown) => void;
+	const promise = new Promise<T>((res, rej) => {
+		resolve = res;
+		reject = rej;
+	});
+	return { promise, resolve, reject };
+}
 
 function CommandProbe() {
 	const { execute } = useCommands();
@@ -203,6 +213,126 @@ describe("DownloadDropdown error lifecycle", () => {
 		fireEvent.click(primaryButton());
 		const alert = await screen.findByRole("alert");
 		await waitFor(() => expect(alert.textContent).toBe("Async custom message"));
+	});
+
+	it("ignores a late-resolving async hook from a superseded attempt", async () => {
+		const first = deferred<string>();
+		const onDownloadError = vi
+			.fn()
+			.mockReturnValueOnce(first.promise)
+			.mockReturnValueOnce("Second failure");
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError,
+		}));
+
+		fireEvent.click(primaryButton());
+		const alert = await screen.findByRole("alert");
+		expect(alert.textContent).toContain("Download failed");
+
+		await waitFor(() => expect(primaryButton()).toHaveProperty("disabled", false));
+		fireEvent.click(primaryButton());
+		await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Second failure"));
+
+		await act(async () => first.resolve("First failure"));
+		expect(screen.getByRole("alert").textContent).toBe("Second failure");
+	});
+
+	it("applies the newer attempt's async message even when the older hook settles first", async () => {
+		const first = deferred<string>();
+		const second = deferred<string>();
+		const onDownloadError = vi
+			.fn()
+			.mockReturnValueOnce(first.promise)
+			.mockReturnValueOnce(second.promise);
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError,
+		}));
+
+		fireEvent.click(primaryButton());
+		expect(await screen.findByRole("alert")).toBeTruthy();
+		await waitFor(() => expect(primaryButton()).toHaveProperty("disabled", false));
+		fireEvent.click(primaryButton());
+
+		await act(async () => first.resolve("First failure"));
+		expect(screen.getByRole("alert").textContent).toContain("Download failed");
+
+		await act(async () => second.resolve("Second failure"));
+		expect(screen.getByRole("alert").textContent).toBe("Second failure");
+	});
+
+	it("clears a pending error hook when the retry succeeds", async () => {
+		const first = deferred<string>();
+		const onDownloadError = vi.fn().mockReturnValueOnce(first.promise);
+		const onDownloadSefer = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("boom"))
+			.mockResolvedValueOnce({ ext: "bin", data: "aGk=" });
+		renderDropdown(() => ({ onDownloadSefer, onDownloadError }));
+
+		fireEvent.click(primaryButton());
+		expect(await screen.findByRole("alert")).toBeTruthy();
+
+		await waitFor(() => expect(primaryButton()).toHaveProperty("disabled", false));
+		fireEvent.click(primaryButton());
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+
+		await act(async () => first.resolve("First failure"));
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
+
+	it("keeps the localized fallback when the current attempt's hook resolves null", async () => {
+		const hook = deferred<string | null>();
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => hook.promise,
+		}));
+
+		fireEvent.click(primaryButton());
+		const alert = await screen.findByRole("alert");
+		await act(async () => hook.resolve(null));
+		expect(alert.textContent).toContain("Download failed");
+	});
+
+	it("does not resurrect a dismissed error after close and reopen", async () => {
+		const first = deferred<string>();
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => first.promise,
+		}));
+
+		fireEvent.click(primaryButton());
+		expect(await screen.findByRole("alert")).toBeTruthy();
+
+		fireEvent.mouseDown(document.body);
+		expect(screen.queryByRole("menu")).toBeNull();
+
+		await act(async () => first.resolve("First failure"));
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+		expect(await screen.findByRole("menu")).toBeTruthy();
+		expect(screen.queryByRole("alert")).toBeNull();
+	});
+
+	it("ignores a pending error hook after unmount", async () => {
+		const first = deferred<string>();
+		const mockRef = createMockFlipBookRef(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => first.promise,
+		}));
+		const { unmount } = render(
+			<Toolbar flipBookRef={mockRef}>
+				<DownloadDropdown />
+			</Toolbar>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Download" }));
+		fireEvent.click(primaryButton());
+		expect(await screen.findByRole("alert")).toBeTruthy();
+
+		unmount();
+		await act(async () => first.resolve("Late failure"));
+		expect(screen.queryByRole("alert")).toBeNull();
 	});
 });
 
