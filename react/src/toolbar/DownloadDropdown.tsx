@@ -130,14 +130,30 @@ const DownloadDropdown: React.FC<DownloadDropdownProps> = ({
 	}, []);
 
 	// One lifecycle for handler rejections and browser-side save failures:
-	// notify the host, keep the menu open for retry, show a localized alert.
+	// notify the host, open the menu so command-triggered failures stay visible
+	// and retryable, and show a localized alert. A host onDownloadError hook that
+	// throws (or an async hook whose promise rejects) falls back to the
+	// localized message instead of escaping as an unhandled rejection; an async
+	// hook that resolves a string replaces the fallback once it settles.
 	const reportError = useCallback(
 		(cause: unknown) => {
+			const fallback = t("toolbarItem.download.error", locale);
 			const config = flipBookRef.current?.getDownloadConfig?.();
-			const custom = config?.onDownloadError?.(cause);
-			setError(
-				typeof custom === "string" && custom ? custom : t("toolbarItem.download.error", locale),
-			);
+			let custom: unknown;
+			try {
+				custom = config?.onDownloadError?.(cause);
+			} catch {
+				custom = undefined;
+			}
+			const applyMessage = (value: unknown) =>
+				setError(typeof value === "string" && value ? value : fallback);
+			if (custom && typeof (custom as PromiseLike<unknown>).then === "function") {
+				applyMessage(undefined);
+				void (custom as PromiseLike<unknown>).then(applyMessage, () => {});
+			} else {
+				applyMessage(custom);
+			}
+			setOpen(true);
 		},
 		[flipBookRef, locale],
 	);
