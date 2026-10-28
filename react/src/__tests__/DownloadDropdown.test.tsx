@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createContext, type ReactNode, useContext } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { downloadCommand, useCommands } from "../commands";
 import type { FlipBookHandle } from "../FlipBook";
 import { Toolbar } from "../toolbar";
 import { DownloadDropdown } from "../toolbar/DownloadDropdown";
@@ -40,6 +41,31 @@ function renderDropdown(downloadConfig: Parameters<typeof createMockFlipBookRef>
 }
 
 const primaryButton = () => screen.getByRole("menuitem");
+
+function CommandProbe() {
+	const { execute } = useCommands();
+	return (
+		<>
+			<button type="button" data-testid="exec-entire" onClick={() => execute(downloadCommand)} />
+			<button
+				type="button"
+				data-testid="exec-range"
+				onClick={() => execute(downloadCommand, { from: 1, to: 2 })}
+			/>
+		</>
+	);
+}
+
+function renderClosedDropdown(downloadConfig: Parameters<typeof createMockFlipBookRef>[0]) {
+	const mockRef = createMockFlipBookRef(downloadConfig);
+	render(
+		<Toolbar flipBookRef={mockRef}>
+			<DownloadDropdown />
+			<CommandProbe />
+		</Toolbar>,
+	);
+	return mockRef;
+}
 
 describe("DownloadDropdown error lifecycle", () => {
 	it("shows an alert and keeps the menu open when the entire-book handler rejects", async () => {
@@ -118,6 +144,65 @@ describe("DownloadDropdown error lifecycle", () => {
 		fireEvent.click(primaryButton());
 		expect(await screen.findByRole("alert")).toBeTruthy();
 		expect(onDownloadError).toHaveBeenCalledWith(expect.any(Error));
+	});
+
+	it("opens the menu with the alert when an entire-book command fails while closed", async () => {
+		const onDownloadError = vi.fn();
+		const onDownloadSefer = vi.fn().mockRejectedValue(new Error("boom"));
+		renderClosedDropdown(() => ({ onDownloadSefer, onDownloadError }));
+
+		fireEvent.click(screen.getByTestId("exec-entire"));
+		const alert = await screen.findByRole("alert");
+		expect(alert.textContent).toContain("Download failed");
+		expect(screen.getByRole("menu")).toBeTruthy();
+		expect(onDownloadError).toHaveBeenCalledWith(expect.any(Error));
+	});
+
+	it("opens the menu with the alert when a range command fails while closed", async () => {
+		const onDownloadPageRange = vi.fn().mockRejectedValue(new Error("boom"));
+		renderClosedDropdown(() => ({ onDownloadPageRange }));
+
+		fireEvent.click(screen.getByTestId("exec-range"));
+		const alert = await screen.findByRole("alert");
+		expect(alert.textContent).toContain("Download failed");
+		expect(screen.getByRole("menu")).toBeTruthy();
+		expect(onDownloadPageRange).toHaveBeenCalledWith([1, 2], expect.any(Array), undefined);
+	});
+
+	it("falls back to the localized alert when onDownloadError throws", async () => {
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => {
+				throw new Error("hook failed");
+			},
+		}));
+
+		fireEvent.click(primaryButton());
+		const alert = await screen.findByRole("alert");
+		expect(alert.textContent).toContain("Download failed");
+	});
+
+	it("keeps the localized alert when an async onDownloadError rejects", async () => {
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => Promise.reject(new Error("hook failed")),
+		}));
+
+		fireEvent.click(primaryButton());
+		const alert = await screen.findByRole("alert");
+		expect(alert.textContent).toContain("Download failed");
+		await waitFor(() => expect(alert.textContent).toContain("Download failed"));
+	});
+
+	it("uses the resolved string when an async onDownloadError settles", async () => {
+		renderDropdown(() => ({
+			onDownloadSefer: vi.fn().mockRejectedValue(new Error("boom")),
+			onDownloadError: () => Promise.resolve("Async custom message"),
+		}));
+
+		fireEvent.click(primaryButton());
+		const alert = await screen.findByRole("alert");
+		await waitFor(() => expect(alert.textContent).toBe("Async custom message"));
 	});
 });
 
