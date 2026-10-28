@@ -18,6 +18,7 @@ const mocked = vi.hoisted(() => ({
 	MockFlipBook: class {
 		render = vi.fn();
 		destroy = vi.fn();
+		setDownloadConfig = vi.fn();
 		bookElement: HTMLElement | null = null;
 		options: Record<string, unknown>;
 

@@ -6,12 +6,14 @@ const mocked = vi.hoisted(() => ({
 	instances: [] as Array<{
 		render: ReturnType<typeof vi.fn>;
 		destroy: ReturnType<typeof vi.fn>;
+		setDownloadConfig: ReturnType<typeof vi.fn>;
 		bookElement: HTMLElement | null;
 		options: Record<string, unknown>;
 	}>,
 	MockFlipBook: class {
 		render = vi.fn();
 		destroy = vi.fn();
+		setDownloadConfig = vi.fn();
 		bookElement: HTMLElement | null = null;
 		options: Record<string, unknown>;
 
@@ -26,6 +28,15 @@ const mocked = vi.hoisted(() => ({
 vi.mock("html-flip-book-vanilla", () => ({
 	FlipBook: mocked.MockFlipBook,
 }));
+
+function Pair({ showSecond }: { showSecond: boolean }) {
+	return (
+		<>
+			<FlipBook pages={[<div key="1">a</div>]} className="same-book" />
+			{showSecond ? <FlipBook pages={[<div key="1">b</div>]} className="same-book" /> : null}
+		</>
+	);
+}
 
 describe("FlipBook React Component", () => {
 	beforeEach(() => {
@@ -116,20 +127,72 @@ describe("FlipBook React Component", () => {
 		expect(article?.querySelector("a")?.getAttribute("href")).toBe("#updated");
 	});
 
-	it("should call FlipBook.render on mount", async () => {
+	it("should call FlipBook.render on mount with the owned host element", async () => {
 		const pages = [<div key="1">Page 1</div>];
 
-		render(<FlipBook pages={pages} className="test-flipbook" />);
+		const { container } = render(<FlipBook pages={pages} className="test-flipbook" />);
 
-		expect(mocked.instances[0].render).toHaveBeenCalledWith(".test-flipbook", false);
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(container.firstChild, false);
 	});
 
 	it("should pass debug prop to render", async () => {
 		const pages = [<div key="1">Page 1</div>];
 
-		render(<FlipBook pages={pages} className="test-flipbook" debug={true} />);
+		const { container } = render(<FlipBook pages={pages} className="test-flipbook" debug={true} />);
 
-		expect(mocked.instances[0].render).toHaveBeenCalledWith(".test-flipbook", true);
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(container.firstChild, true);
+	});
+
+	it("binds same-className books to their own roots (issue #333)", async () => {
+		const { container } = render(
+			<>
+				<FlipBook pages={[<div key="1">a</div>]} className="same-book" />
+				<FlipBook pages={[<div key="1">b</div>]} className="same-book" />
+			</>,
+		);
+		expect(mocked.instances).toHaveLength(2);
+		const hosts = container.querySelectorAll(".same-book");
+		expect(hosts).toHaveLength(2);
+		expect(hosts[0]).not.toBe(hosts[1]);
+		expect(mocked.instances[0].render).toHaveBeenCalledTimes(1);
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(hosts[0], false);
+		expect(mocked.instances[1].render).toHaveBeenCalledTimes(1);
+		expect(mocked.instances[1].render).toHaveBeenCalledWith(hosts[1], false);
+	});
+
+	it("mounts with an empty className (issue #333)", async () => {
+		const { container } = render(<FlipBook pages={[<div key="1">a</div>]} className="" />);
+		expect(mocked.instances[0].render).toHaveBeenCalledWith(container.firstChild, false);
+	});
+
+	it("unmounting one same-className book leaves the sibling engine alive (issue #333)", async () => {
+		const { rerender } = render(<Pair showSecond={true} />);
+		rerender(<Pair showSecond={false} />);
+		expect(mocked.instances[1].destroy).toHaveBeenCalledTimes(1);
+		expect(mocked.instances[0].destroy).not.toHaveBeenCalled();
+	});
+
+	it("bridges onPageFlipped and downloadConfig changes into the mounted engine (issue #332)", async () => {
+		const first = vi.fn();
+		const second = vi.fn();
+		const props = (handler: typeof first, filename: string) => (
+			<FlipBook
+				pages={[<div key="1">a</div>]}
+				className="bridge-book"
+				handlers={{ onPageFlipped: handler }}
+				downloadConfig={{ entireBookFilename: filename }}
+			/>
+		);
+		const { rerender } = render(props(first, "first"));
+		const engine = mocked.instances[0];
+		expect(engine.setDownloadConfig).toHaveBeenLastCalledWith({ entireBookFilename: "first" });
+		rerender(props(second, "second"));
+		expect(mocked.instances).toHaveLength(1);
+		expect(engine.setDownloadConfig).toHaveBeenLastCalledWith({ entireBookFilename: "second" });
+		const params = { leafIndex: 0, pageIndices: [0, 1], direction: "forward" };
+		(engine.options.onPageFlipped as (p: unknown) => void)(params);
+		expect(second).toHaveBeenCalledWith(params);
+		expect(first).not.toHaveBeenCalled();
 	});
 
 	it("should pass direction to FlipBook constructor", async () => {

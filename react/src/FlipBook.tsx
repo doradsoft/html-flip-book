@@ -128,11 +128,18 @@ export interface FlipBookHandlers {
 
 /**
  * Props for the FlipBook React component.
+ *
+ * `handlers`, `bookmarkProvider`, `enableBookmarks`, `pageShadow`, and `downloadConfig`
+ * update the mounted engine in place. The remaining options are initialization-only;
+ * changing them after mount does not rebuild the engine (`className`, `pageSemantics`,
+ * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`,
+ * `coverConfig`, `leafAspectRatio`, `coverAspectRatio`, `historyMapper`, `tocPageIndex`,
+ * `snapshotDuringFlip`, `enableHistory`, `enableDownload`).
  */
 export interface FlipBookProps {
 	/** Array of React elements to render as pages */
 	pages: React.ReactNode[];
-	/** CSS class name for the flipbook container */
+	/** CSS class name for the flipbook container. Styling only: the instance binds to its own DOM root, so classes need not be unique or selector-safe. */
 	className: string;
 	/** Define which pages are covers for special styling */
 	pageSemantics?: PageSemantics;
@@ -302,7 +309,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// that recalculates which pages to mount/unmount — expensive with complex
 		// content (e.g. Hebrew text, perushim).  By debouncing, rapid flips (>1 at
 		// a time) batch into a single re-render after settling.  The page indicator
-		// reads directly from the imperative handle (flipBook.current) and is not
+		// reads directly from the imperative handle (flipBook) and is not
 		// affected by this debounce.
 		const BUFFER_DEBOUNCE_MS = 80;
 		const pageChangedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -348,6 +355,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			}
 			handlers?.onPageFlipping?.(params);
 		};
+		const onPageFlippedRef = useRef((params: PageFlipParams) => {
+			handlers?.onPageFlipped?.(params);
+		});
+		onPageFlippedRef.current = (params) => {
+			handlers?.onPageFlipped?.(params);
+		};
+		const hostRef = useRef<HTMLDivElement | null>(null);
 
 		// Clean up debounce timer on unmount.
 		useEffect(() => {
@@ -358,57 +372,62 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			};
 		}, []);
 
-		const flipBook = useRef(
-			new FlipBookBase({
-				pageSemantics: pageSemantics,
-				enableBookmarks,
-				pagesCount: pages.length,
-				direction: direction,
-				mouseMode,
-				initialTurnedLeaves: initialTurnedLeaves,
-				fastDeltaThreshold: fastDeltaThreshold,
-				leavesBuffer: leavesBuffer,
-				leafAspectRatio: leafAspectRatio,
-				coverAspectRatio: coverAspectRatio,
-				coverPageIndices: coverConfig?.coverIndices,
-				onPageChanged: (index: number) => onPageChangedRef.current(index),
-				onPageFlipping: (params) => onPageFlippingRef.current(params),
-				onPageFlipped: handlers?.onPageFlipped,
-				historyMapper,
-				tocPageIndex: tocPageIndex ?? 4,
-				downloadConfig,
-				pageShadow,
-				snapshotDuringFlip,
-				enableHistory,
-				enableDownload,
-			}),
+		// useState lazy-init: construct exactly one engine per mount; useRef(arg) would build (and discard) an engine on every render.
+		const [flipBook] = useState(
+			() =>
+				new FlipBookBase({
+					pageSemantics: pageSemantics,
+					enableBookmarks,
+					pagesCount: pages.length,
+					direction: direction,
+					mouseMode,
+					initialTurnedLeaves: initialTurnedLeaves,
+					fastDeltaThreshold: fastDeltaThreshold,
+					leavesBuffer: leavesBuffer,
+					leafAspectRatio: leafAspectRatio,
+					coverAspectRatio: coverAspectRatio,
+					coverPageIndices: coverConfig?.coverIndices,
+					onPageChanged: (index: number) => onPageChangedRef.current(index),
+					onPageFlipping: (params) => onPageFlippingRef.current(params),
+					onPageFlipped: (params: PageFlipParams) => onPageFlippedRef.current(params),
+					historyMapper,
+					tocPageIndex: tocPageIndex ?? 4,
+					downloadConfig,
+					pageShadow,
+					snapshotDuringFlip,
+					enableHistory,
+					enableDownload,
+				}),
 		);
+
+		// The engine captures downloadConfig at mount; bridge prop changes into it.
+		useEffect(() => {
+			flipBook.setDownloadConfig(downloadConfig);
+		}, [downloadConfig, flipBook]);
 
 		// Expose imperative handle: flipbook methods (called by commands) and getters (for UI)
 		useImperativeHandle(
 			ref,
 			() => ({
-				flipNext: () => flipBook.current.flipNext(),
-				flipPrev: () => flipBook.current.flipPrev(),
-				flipToPage: (pageIndex: number) => flipBook.current.flipToPage(pageIndex),
-				jumpToPage: (pageIndex: number) => flipBook.current.jumpToPage(pageIndex),
-				restorePage: (pageIndex: number) => flipBook.current.restorePage(pageIndex),
+				flipNext: () => flipBook.flipNext(),
+				flipPrev: () => flipBook.flipPrev(),
+				flipToPage: (pageIndex: number) => flipBook.flipToPage(pageIndex),
+				jumpToPage: (pageIndex: number) => flipBook.jumpToPage(pageIndex),
+				restorePage: (pageIndex: number) => flipBook.restorePage(pageIndex),
 				toggleDebugBar: () => {
-					const selectorClass = className.split(/\s+/)[0];
-					const root = document.querySelector(`.${selectorClass}`);
-					const bar = root?.querySelector(".flipbook-debug-bar");
+					const bar = hostRef.current?.querySelector(".flipbook-debug-bar");
 					if (bar) bar.classList.toggle("flipbook-debug-bar--hidden");
 				},
-				getCurrentPageIndex: () => flipBook.current.currentPageIndex,
-				getTotalPages: () => flipBook.current.totalPages,
-				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.current.totalPages),
-				isFirstPage: () => flipBook.current.isFirstPage,
-				isLastPage: () => flipBook.current.isLastPage,
-				getDownloadConfig: () => flipBook.current.getDownloadConfig(),
-				getTocPageIndex: () => flipBook.current.getTocPageIndex(),
-				getMouseMode: () => flipBook.current.getMouseMode(),
+				getCurrentPageIndex: () => flipBook.currentPageIndex,
+				getTotalPages: () => flipBook.totalPages,
+				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.totalPages),
+				isFirstPage: () => flipBook.isFirstPage,
+				isLastPage: () => flipBook.isLastPage,
+				getDownloadConfig: () => flipBook.getDownloadConfig(),
+				getTocPageIndex: () => flipBook.getTocPageIndex(),
+				getMouseMode: () => flipBook.getMouseMode(),
 				setMouseMode: (mode: MouseMode, options?: { persist?: boolean }) => {
-					flipBook.current.setMouseMode(mode);
+					flipBook.setMouseMode(mode);
 					if (mouseModeStorageKey && options?.persist !== false) {
 						try {
 							localStorage.setItem(mouseModeStorageKey, mode);
@@ -418,13 +437,14 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					}
 				},
 			}),
-			[className, mouseModeStorageKey],
+			[mouseModeStorageKey, flipBook],
 		);
 
 		useEffect(() => {
-			const currentFlipBook = flipBook.current;
-			const selectorClass = className.split(/\s+/)[0];
-			currentFlipBook.render(`.${selectorClass}`, debug);
+			const currentFlipBook = flipBook;
+			const host = hostRef.current;
+			if (!host) return;
+			currentFlipBook.render(host, debug);
 			if (mouseModeStorageKey) {
 				try {
 					const savedMode = localStorage.getItem(mouseModeStorageKey);
@@ -440,17 +460,17 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			return () => {
 				currentFlipBook.destroy();
 			};
-		}, [className, debug, mouseModeStorageKey]);
+		}, [debug, mouseModeStorageKey, flipBook]);
 
 		const previousBookmarksEnabled = useRef(enableBookmarks);
 		useEffect(() => {
 			if (previousBookmarksEnabled.current === enableBookmarks) return;
 			previousBookmarksEnabled.current = enableBookmarks;
-			flipBook.current.setBookmarksEnabled(enableBookmarks);
-		}, [enableBookmarks]);
+			flipBook.setBookmarksEnabled(enableBookmarks);
+		}, [enableBookmarks, flipBook]);
 
 		useEffect(() => {
-			const currentFlipBook = flipBook.current;
+			const currentFlipBook = flipBook;
 			if (!bookmarkProvider) {
 				setBookmarkSlots([]);
 				return;
@@ -504,19 +524,18 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				active = false;
 				currentFlipBook.setBookmarkProvider(undefined);
 			};
-		}, [bookmarkProvider]);
+		}, [bookmarkProvider, flipBook]);
 
 		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
 		useEffect(() => {
-			const selectorClass = className.split(/\s+/)[0];
-			const el = document.querySelector(`.${selectorClass}`);
+			const el = hostRef.current;
 			if (!el) return;
 			if (pageShadow) {
 				el.classList.remove("flipbook--no-page-shadow");
 			} else {
 				el.classList.add("flipbook--no-page-shadow");
 			}
-		}, [className, pageShadow]);
+		}, [pageShadow]);
 
 		// Use Children.toArray to get stable keys for each page element
 		const pagesWithKeys = Children.toArray(pages);
@@ -629,7 +648,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		};
 
 		return (
-			<div className={className}>
+			<div ref={hostRef} className={className}>
 				{pagesWithKeys.map((_, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness

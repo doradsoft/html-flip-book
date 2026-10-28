@@ -182,6 +182,17 @@ describe("FlipBook", () => {
 	});
 
 	describe("render", () => {
+		it("accepts an owned element instead of a selector", () => {
+			createPages(4);
+			const book = new FlipBook({ pagesCount: 4 });
+			try {
+				book.render(container);
+				expect(container.classList.contains("flipbook")).toBe(true);
+			} finally {
+				book.destroy();
+			}
+		});
+
 		it("preserves SPA framework history state on initial and later page routes", () => {
 			createPages(6);
 			const originalState = window.history.state;
