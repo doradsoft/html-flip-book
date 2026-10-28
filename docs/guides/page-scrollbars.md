@@ -22,7 +22,7 @@ Fixed-height reader panels — a stationary header and footer around an independ
 
 The root keeps `height: 100%; max-height: 100%` (the same box `.page > *` gives its own children), the page's scrollport never engages, and scrolling belongs to the consumer's inner panes. A book can mix tagged and untagged roots, so document pages and panel pages coexist. Inner scroll positions survive page turns because the content root is never re-wrapped or resized.
 
-`TocPage` also shares the page's main scrollport when rendered inside a book, so its contents list uses the same inward scrollbar. A standalone `TocPage` retains its own scrolling area.
+`TocPage` also shares the page's main scrollport when rendered inside a book, so its contents list uses the same inward scrollbar. A standalone `TocPage` retains its own scrolling area, and so does an in-book `TocPage` whose root is tagged `flipbook-page-bounded`: the page scrollport stays put while the list scrolls inside the panel.
 
 ## Vanilla and framework markup
 

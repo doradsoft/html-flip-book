@@ -20,8 +20,9 @@
 	overflow-y: auto;
 }
 
-/* Inside a book, the page scrollport supplies the spine-side scrollbar. */
-.flipbook-page-content .toc-page__scroll {
+/* Inside a book, the page scrollport supplies the spine-side scrollbar.
+   A bounded TOC keeps scroll ownership in its own pane instead. */
+.flipbook-page-content .toc-page:not(.flipbook-page-bounded) .toc-page__scroll {
 	flex: 0 0 auto;
 	overflow: visible;
 }
