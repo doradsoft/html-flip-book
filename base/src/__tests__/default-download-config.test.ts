@@ -83,4 +83,21 @@ describe("FlipBook default download integration", () => {
 		expect(book.getDownloadConfig()?.onDownloadSefer).toBe(onDownloadSefer);
 		expect(book.getDownloadConfig()?.onDownloadPageRange).toBeUndefined();
 	});
+
+	it("setDownloadConfig replaces the config and undefined restores the default", () => {
+		const first = () => Promise.resolve(null);
+		const second = () => Promise.resolve(null);
+		const book = new FlipBook({ pagesCount: 4, downloadConfig: { onDownloadSefer: first } });
+		book.setDownloadConfig({ onDownloadSefer: second });
+		expect(book.getDownloadConfig()?.onDownloadSefer).toBe(second);
+		book.setDownloadConfig(undefined);
+		expect(book.getDownloadConfig()?.onDownloadSefer).toBeTypeOf("function");
+		expect(book.getDownloadConfig()?.onDownloadSefer).not.toBe(first);
+	});
+
+	it("setDownloadConfig stays disabled when enableDownload is false", () => {
+		const book = new FlipBook({ pagesCount: 4, enableDownload: false });
+		book.setDownloadConfig({ onDownloadSefer: () => Promise.resolve(null) });
+		expect(book.getDownloadConfig()).toBeUndefined();
+	});
 });

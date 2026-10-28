@@ -103,7 +103,8 @@ class FlipBook {
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
 	private readonly coverPageIndices?: number[] | "auto";
-	private readonly downloadConfig: DownloadConfig | undefined;
+	private downloadConfig: DownloadConfig | undefined;
+	private readonly downloadEnabled: boolean;
 	private readonly pageShadow: boolean;
 	private readonly snapshotDuringFlip: boolean;
 	private leaves: Leaf[] = [];
@@ -274,14 +275,9 @@ class FlipBook {
 				: undefined;
 		this.leavesBuffer = options.leavesBuffer;
 		this.coverPageIndices = options.coverPageIndices;
-		this.downloadConfig =
-			options.enableDownload !== false
-				? (options.downloadConfig ??
-					createDefaultDownloadConfig({
-						pagesCount: options.pagesCount,
-						pageSemantics: options.pageSemantics,
-					}))
-				: undefined;
+		this.downloadEnabled = options.enableDownload !== false;
+		this.downloadConfig = undefined;
+		this.setDownloadConfig(options.downloadConfig);
 		this.pageShadow = options.pageShadow ?? true;
 		this.snapshotDuringFlip = options.snapshotDuringFlip ?? true;
 		this._tocPageIndex = options.tocPageIndex ?? 4;
@@ -467,6 +463,21 @@ class FlipBook {
 		return this.downloadConfig;
 	}
 
+	/**
+	 * Replace the download configuration on a mounted book. Passing undefined restores the
+	 * built-in default (when download is enabled); callers can disable download only at
+	 * construction via `enableDownload: false`.
+	 */
+	setDownloadConfig(config: DownloadConfig | undefined): void {
+		this.downloadConfig = this.downloadEnabled
+			? (config ??
+				createDefaultDownloadConfig({
+					pagesCount: this.pagesCount,
+					pageSemantics: this.pageSemantics,
+				}))
+			: undefined;
+	}
+
 	/** Build the set of page indices that use cover sizing. */
 	private buildCoverPageIndicesSet(): Set<number> {
 		const coverPageIndicesSet = new Set<number>();
@@ -557,10 +568,14 @@ class FlipBook {
 		scrollport.scrollTop = scrollTop;
 	}
 
-	render(selector: string, debug = false) {
-		const bookElement = document.querySelector(selector);
+	render(target: string | HTMLElement, debug = false) {
+		const bookElement = typeof target === "string" ? document.querySelector(target) : target;
 		if (!bookElement) {
-			throw new Error(`Couldn't find container with selector: ${selector}`);
+			throw new Error(
+				typeof target === "string"
+					? `Couldn't find container with selector: ${target}`
+					: "Couldn't find container element",
+			);
 		}
 		this.bookElement = bookElement as HTMLElement;
 		this.setMouseMode(this.mouseMode);
