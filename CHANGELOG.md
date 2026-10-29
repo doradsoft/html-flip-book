@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Page turns avoid redundant bookmark attributes, styles and rail moves, and only change the page's folded class when its fold state changes, reducing animation-time DOM work while preserving live geometry and provider updates.
+- Destroying a book now stops its debug refresh timer and removes the debug bar, preventing background updates from accumulating after reader remounts.
+- Dragging from a turnable page margin keeps turning when the pointer enters an excluded content pane before the gesture is recognized; gestures that start inside excluded panes remain native.
+- Books opened at a chapter mark only the active spread as current, and clear old active-page markers when mounted again.
 - The GitHub Pages example no longer renders a blank page: the `gematry` dependency ships a webpack dev bundle that `eval()`s its own module code, which throws inside the strict-mode ESM output of `vite build`. The example vendors equivalent `toLetters`/`toNumber` helpers instead, and a new e2e smoke test loads the production bundle so this class of breakage can't regress (#267).
 - Pressing a bookmark now blocks its hover preview from reopening until the pointer moves, so an activation click always lands on the button in its rail slot instead of the preview overlay (#270).
 - `coverConfig.noShadow` now actually suppresses the page's inner shadow and edge highlight on tagged covers: the shipped stylesheet hides the `page--no-shadow` pseudo-elements so cover opt-out works without consumer CSS, while interior pages keep their normal shading (#277).
@@ -60,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Engineering
 
+- The React performance fixture now fills its sized host and rejects zero-area pages, so frame and gesture probes measure a visible reader.
 - Package management moved to Bun (`packageManager: bun@1.4.4`, `bun.lock` replacing `package-lock.json`, `bunfig.toml` with hoisted linking, exact saves, and a 24h supply-chain freshness gate). CI installs via `bun install --frozen-lockfile` with the Bun dependency cache, Playwright browser caching keys off the resolved version in `bun.lock`, and the publish pipeline still uses `npm publish --provenance` since Bun has no provenance flag. Script lifecycle allowlisting moved to `trustedDependencies`.
 - Release versions are now derived from git tags (`scripts/next-version.mts`), so pull requests no longer carry version bumps: every master merge releases `latestTag + 1` even if it lands before the post-release bump PR merges, and a manifest version ahead of the tag sequence (a deliberate major/minor prep change) is honored. The pre-commit hook and PR check only enforce that all manifests stay in sync.
 - Rebalanced e2e shards: `bookmarks.spec.ts` (the ~13-minute shard hotspot) is split into `bookmarks-dense`, `bookmarks-layout`, and `bookmarks-interaction` specs sharing `bookmark-helpers.ts`, so Playwright's file-level sharding distributes the bookmark suite across all three shards. Migrated `biome.json` to schema 2.6.3 (`recommended` field replaced by `preset`) and reordered example stylesheet selectors to clear descending-specificity warnings.
