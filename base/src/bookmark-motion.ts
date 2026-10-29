@@ -423,8 +423,8 @@ export class BookmarkMotion {
 			this.placeContent(item, content, frame, surface.face);
 			if (content.parentElement !== wrapper) wrapper.append(content);
 		}
-		for (let index = surfaces.length; index < item.surfaces.length; index++) {
-			writeHidden(item.surfaces[index], true);
+		for (const surface of item.surfaces.slice(surfaces.length)) {
+			writeHidden(surface, true);
 		}
 	}
 

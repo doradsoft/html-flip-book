@@ -44,6 +44,7 @@ export interface BookmarkProvider<Content = string | HTMLElement> {
 }
 
 type Edge = "top" | "right" | "bottom" | "left";
+type RailPlacementCursors = Map<HTMLElement, HTMLElement>;
 
 export interface BookmarkInsets {
 	top: number;
@@ -181,7 +182,7 @@ export class BookmarkLayer {
 		writeStyle(this.element, "--bookmark-count", String(bookmarks.length));
 		writeHidden(this.element, bookmarks.length === 0);
 		this.removeRetiredBookmarks(bookmarks);
-		const placements = new Map<HTMLElement, HTMLElement>();
+		const placements: RailPlacementCursors = new Map();
 		bookmarks.forEach((bookmark, index) => {
 			this.placeItem(bookmark, context, index, bookmarks.length, placements);
 		});
@@ -213,7 +214,7 @@ export class BookmarkLayer {
 		context: BookmarkContext,
 		slot: number,
 		count: number,
-		placements: Map<HTMLElement, HTMLElement>,
+		placements: RailPlacementCursors,
 	): void {
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
 		const bookmark = item.bookmark;
