@@ -71,6 +71,51 @@ function dualFaces(host: HTMLElement, button: HTMLButtonElement): BookmarkMotion
 
 describe("bookmark motion surfaces", () => {
 	it.each([true, false])(
+		"does not mutate an unchanged fold frame but still updates geometry (LTR=%s)",
+		(isLTR) => {
+			const { host, page, button, motion, frame } = setup(isLTR);
+			const faces = dualFaces(host, button);
+			const bookmark = { id: "chapter", pageIndex: 2 };
+			motion.sync(bookmark, button, frame, page, "", faces);
+			const surface = host.querySelector<HTMLElement>(".flipbook-bookmark-surface");
+			const before = surface?.style.transform;
+			const observer = new MutationObserver(() => {});
+			observer.observe(host, {
+				attributes: true,
+				childList: true,
+				characterData: true,
+				subtree: true,
+			});
+			motion.sync(bookmark, button, frame, page, "", faces);
+			expect(observer.takeRecords()).toHaveLength(0);
+			page.style.top = "12px";
+			observer.takeRecords();
+			motion.sync(bookmark, button, frame, page, "updated-theme", faces);
+			expect(observer.takeRecords().length).toBeGreaterThan(0);
+			expect(surface?.style.top).toBe("12px");
+			expect(surface?.classList.contains("updated-theme")).toBe(true);
+			expect(surface?.style.transform).toBe(before);
+			observer.disconnect();
+			motion.destroy();
+			host.remove();
+		},
+	);
+
+	it("does not reattach fully concealed material on an unchanged frame", () => {
+		const { host, page, button, motion, frame } = setup();
+		button.getBoundingClientRect = () => box(800, 100, 0, 28);
+		const bookmark = { id: "chapter", pageIndex: 2 };
+		motion.sync(bookmark, button, frame, page);
+		const observer = new MutationObserver(() => {});
+		observer.observe(host, { attributes: true, childList: true, subtree: true });
+		motion.sync(bookmark, button, frame, page);
+		expect(observer.takeRecords()).toHaveLength(0);
+		observer.disconnect();
+		motion.destroy();
+		host.remove();
+	});
+
+	it.each([true, false])(
 		"moves a tab with its actual folded material and restores its slot (LTR=%s)",
 		(isLTR) => {
 			const { host, page, rail, button, motion, frame } = setup(isLTR);

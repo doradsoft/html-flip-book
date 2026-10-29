@@ -355,7 +355,7 @@ export class Leaf {
 		this.pages.forEach((page, index) => {
 			const isLTR = this.bookProperties.isLTR;
 			if (!page) return;
-			page.classList.remove("page--folded");
+			if (page.classList.contains("page--folded")) page.classList.remove("page--folded");
 			page.style.clipPath = "";
 			page.style.removeProperty("--fold-shading");
 
@@ -479,7 +479,7 @@ export class Leaf {
 				x: mirror ? width - point.x : point.x,
 				y: point.y,
 			}));
-			page.classList.add("page--folded");
+			if (!page.classList.contains("page--folded")) page.classList.add("page--folded");
 			page.style.transformOrigin = "0px 0px";
 			page.style.transform = front
 				? `translateX(${offsetX}px)`

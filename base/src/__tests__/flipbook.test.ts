@@ -468,6 +468,41 @@ describe("FlipBook", () => {
 			expect(pages[0].classList.contains("odd")).toBe(true);
 		});
 
+		it.each(["ltr", "rtl"] as const)(
+			"marks only the active %s spread after initialization, a turn, and a remount",
+			async (direction) => {
+				vi.useFakeTimers();
+				const pages = createPages(22);
+				const flipBook = new FlipBook({
+					pagesCount: pages.length,
+					direction,
+					initialTurnedLeaves: Array.from({ length: 8 }, (_, index) => index),
+					enableHistory: false,
+				});
+				const currentPages = () =>
+					pages.flatMap((page, index) => (page.classList.contains("current-page") ? [index] : []));
+				try {
+					flipBook.render(".flipbook-container");
+					expect(flipBook.currentPageIndex).toBe(15);
+					expect(currentPages()).toEqual([15, 16]);
+
+					const turn = flipBook.flipNext();
+					await vi.advanceTimersByTimeAsync(1000);
+					await turn;
+					expect(flipBook.currentPageIndex).toBe(17);
+					expect(currentPages()).toEqual([17, 18]);
+
+					flipBook.destroy();
+					flipBook.render(".flipbook-container");
+					expect(flipBook.currentPageIndex).toBe(15);
+					expect(currentPages()).toEqual([15, 16]);
+				} finally {
+					flipBook.destroy();
+					vi.useRealTimers();
+				}
+			},
+		);
+
 		it("should set odd/even classes on pages", () => {
 			const pages = createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -546,6 +581,50 @@ describe("FlipBook", () => {
 			expect(debugBar?.innerHTML).toContain("None");
 
 			vi.useRealTimers();
+		});
+
+		it("stops debug updates and removes the bar on destroy", () => {
+			vi.useFakeTimers();
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4, enableHistory: false });
+			try {
+				flipBook.render(".flipbook-container", true);
+				vi.advanceTimersByTime(200);
+				const debugBar = container.querySelector(".flipbook-debug-bar");
+				expect(debugBar?.innerHTML).toContain("LTR");
+
+				flipBook.destroy();
+				if (debugBar) debugBar.textContent = "stopped";
+				vi.advanceTimersByTime(600);
+				expect(debugBar?.textContent).toBe("stopped");
+				expect(container.querySelector(".flipbook-debug-bar")).toBeNull();
+				expect(vi.getTimerCount()).toBe(0);
+			} finally {
+				flipBook.destroy();
+				vi.useRealTimers();
+			}
+		});
+
+		it("keeps one debug timer across destroy and render cycles", () => {
+			vi.useFakeTimers();
+			createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4, enableHistory: false });
+			try {
+				for (let cycle = 0; cycle < 3; cycle++) {
+					flipBook.render(".flipbook-container", true);
+					vi.advanceTimersByTime(200);
+					expect(container.querySelectorAll(".flipbook-debug-bar")).toHaveLength(1);
+					expect(vi.getTimerCount()).toBe(1);
+					flipBook.destroy();
+					expect(vi.getTimerCount()).toBe(0);
+				}
+				flipBook.render(".flipbook-container", false);
+				expect(container.querySelector(".flipbook-debug-bar")).toBeNull();
+				expect(vi.getTimerCount()).toBe(0);
+			} finally {
+				flipBook.destroy();
+				vi.useRealTimers();
+			}
 		});
 	});
 
@@ -921,6 +1000,79 @@ describe("FlipBook", () => {
 				}),
 			);
 		}
+
+		it.each(["pointerdown", "mousedown", "touchstart"])(
+			"keeps a turnable %s origin active when recognition enters a no-flip child",
+			async (pressType) => {
+				vi.useFakeTimers();
+				const pages = createPages(8);
+				const excluded = document.createElement("div");
+				excluded.dataset.flipbookNoFlip = "";
+				pages[2].append(excluded);
+				const flipBook = new FlipBook({
+					pagesCount: pages.length,
+					direction: "rtl",
+					initialTurnedLeaves: [0],
+					enableHistory: false,
+				});
+				try {
+					flipBook.render(".flipbook-container");
+					const touch = pressType === "touchstart";
+					if (touch) dispatchTouchPress(pages[2]);
+					else dispatchMousePress(pages[2], pressType);
+					const start = touch ? 700 : 100;
+					const movement = new PointerEvent("pointermove", {
+						bubbles: true,
+						pointerType: touch ? "touch" : "mouse",
+						clientX: start + 80,
+						clientY: 200,
+					});
+					excluded.dispatchEvent(movement);
+					const recognized = {
+						...createDragEvent("start", { x: start + 80, y: 200 }),
+						deltaX: 80,
+						deltaY: 0,
+						pointerType: touch ? "touch" : "mouse",
+						srcEvent: movement,
+					};
+					const internals = getFlipBookInternals(flipBook);
+					internals.onDragStart(recognized);
+					expect(internals.activeFlips.size).toBe(1);
+					internals.onDragUpdate({ ...recognized, center: { x: start + 600, y: 200 } });
+					internals.onDragEnd(createDragEvent("end", { velocityX: 1 }));
+					await vi.runAllTimersAsync();
+					expect(flipBook.currentPageIndex).toBe(3);
+				} finally {
+					flipBook.destroy();
+					vi.useRealTimers();
+				}
+			},
+		);
+
+		it("uses the pan target to exclude synthetic gestures without a recorded press", () => {
+			const pages = createPages(6);
+			const excluded = document.createElement("div");
+			excluded.dataset.flipbookNoFlip = "";
+			pages[0].append(excluded);
+			const flipBook = new FlipBook({ pagesCount: pages.length, enableHistory: false });
+			try {
+				flipBook.render(".flipbook-container");
+				const movement = new MouseEvent("mousemove", { bubbles: true });
+				excluded.dispatchEvent(movement);
+				const internals = getFlipBookInternals(flipBook);
+				const event = {
+					...createDragEvent("start", { x: 600, y: 200 }),
+					deltaX: -100,
+					pointerType: "mouse",
+					srcEvent: movement,
+				};
+				internals.onDragStart(event);
+				internals.onDragUpdate(event);
+				expect(internals.activeFlips.size).toBe(0);
+			} finally {
+				flipBook.destroy();
+			}
+		});
 
 		it.each(["pointerdown", "mousedown"])(
 			"keeps a %s origin in a no-flip child excluded after leaving it",

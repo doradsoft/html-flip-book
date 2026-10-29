@@ -116,6 +116,7 @@ export function registerReactTurnScenario(): void {
 
 	window.__turn = {
 		book: () => undefined,
+		currentPageIndex: () => book.currentPageIndex,
 
 		async prepare(): Promise<void> {
 			const app = document.getElementById("app");
@@ -124,10 +125,16 @@ export function registerReactTurnScenario(): void {
 			app.innerHTML = "";
 			const host = document.createElement("div");
 			host.id = "perf-book";
+			host.style.width = "100%";
+			host.style.height = "100%";
 			app.appendChild(host);
 			root = createRoot(host);
 			flushSync(() => root.render(createElement(FlipBook, props)));
 			await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+			const surface = host.querySelector<HTMLElement>(".page")?.getBoundingClientRect();
+			if (!surface || surface.width <= 0 || surface.height <= 0) {
+				throw new Error("React turn fixture must render a nonzero page surface");
+			}
 		},
 
 		runTurns: async () => {

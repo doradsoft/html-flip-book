@@ -114,7 +114,8 @@ class FlipBook {
 	private pendingFlipStartingY: number | undefined;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
-	private gestureStartedInNoFlipZone = false;
+	/** Undefined until a native press records the origin; synthetic pans use their target. */
+	private gestureStartedInNoFlipZone: boolean | undefined;
 	private cancelBookmarkPointerDrag: (() => void) | undefined;
 	/** Set after a drag ends; the next click event is suppressed so child buttons/links don't fire. */
 	private _suppressNextClick = false;
@@ -136,6 +137,8 @@ class FlipBook {
 	private hammer: HammerManager | undefined;
 	// Resize observer for re-layout on container size changes
 	private resizeObserver: ResizeObserver | undefined;
+	private debugTimer: ReturnType<typeof setInterval> | undefined;
+	private debugBar: HTMLElement | undefined;
 	private spineX = 0;
 
 	private static readonly NO_FLIP_SELECTOR = "[data-flipbook-no-flip]";
@@ -713,6 +716,16 @@ class FlipBook {
 			}
 		}
 
+		// Both faces of a leaf exist in the DOM, but only one face of each
+		// visible leaf belongs to the active spread. Also clear stale markers
+		// when an existing engine is rendered again after destroy().
+		this.pageElements.forEach((pageElement, pageIndex) => {
+			pageElement.classList.toggle(
+				"current-page",
+				this.prevVisiblePageIndices?.includes(pageIndex) ?? false,
+			);
+		});
+
 		this.bookmarkLayer = new BookmarkLayer(
 			this.bookElement,
 			() => ({
@@ -853,7 +866,8 @@ class FlipBook {
 		const debugBar = document.createElement("div");
 		debugBar.className = "flipbook-debug-bar flipbook-debug-bar--hidden";
 		this.bookElement?.appendChild(debugBar);
-		setInterval(() => {
+		this.debugBar = debugBar;
+		this.debugTimer = setInterval(() => {
 			// Populate debug bar with relevant information (throttled to reduce flicker)
 			const activeFlipsInfo = Array.from(this.activeFlips.entries())
 				.map(([idx, state]) => `${idx}:${state.leaf.flipPosition.toFixed(2)}`)
@@ -933,7 +947,7 @@ class FlipBook {
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
 		if (
 			!fromBookmark &&
-			(this.gestureStartedInNoFlipZone || this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
+			(this.gestureStartedInNoFlipZone ?? this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
 		) {
 			this.gestureStartedInNoFlipZone = true;
 			return;
@@ -971,7 +985,11 @@ class FlipBook {
 
 		// Get or create the current manual flip state
 		let flipState = this.currentManualFlip;
-		if (!fromBookmark && !flipState && this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
+		if (
+			!fromBookmark &&
+			!flipState &&
+			(this.gestureStartedInNoFlipZone ?? this.isInsideNoFlipZone(event.srcEvent?.target ?? null))
+		)
 			return;
 
 		const currentPos = event.center.x;
@@ -1104,7 +1122,7 @@ class FlipBook {
 	}
 
 	private onDragEnd(event: HammerInput, cancelled = false) {
-		this.gestureStartedInNoFlipZone = false;
+		this.gestureStartedInNoFlipZone = undefined;
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
 
@@ -1604,6 +1622,13 @@ class FlipBook {
 	 * Should be called when the FlipBook is no longer needed.
 	 */
 	destroy() {
+		this.gestureStartedInNoFlipZone = undefined;
+		if (this.debugTimer !== undefined) {
+			clearInterval(this.debugTimer);
+			this.debugTimer = undefined;
+		}
+		this.debugBar?.remove();
+		this.debugBar = undefined;
 		this.cancelBookmarkPointerDrag?.();
 		this.bookmarkLayer?.destroy();
 		this.bookmarkLayer = undefined;

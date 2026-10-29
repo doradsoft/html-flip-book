@@ -37,6 +37,37 @@ describe("Leaf", () => {
 	});
 
 	describe("constructor", () => {
+		it("avoids redundant folded-class mutations while preserving real fold transitions", () => {
+			for (const page of [mockPage1, mockPage2]) {
+				page.style.width = "320px";
+				page.style.height = "480px";
+				page.className = "consumer-page";
+			}
+			const leaf = new Leaf(
+				1,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+			const observer = new MutationObserver(() => {});
+			for (const page of [mockPage1, mockPage2])
+				observer.observe(page, { attributes: true, attributeFilter: ["class"] });
+			leaf.applyTransform(0.25);
+			expect(observer.takeRecords()).toHaveLength(2);
+			leaf.applyTransform(0.3);
+			expect(observer.takeRecords()).toHaveLength(0);
+			leaf.applyTransform(0);
+			expect(observer.takeRecords()).toHaveLength(2);
+			leaf.applyTransform(0);
+			expect(observer.takeRecords()).toHaveLength(0);
+			for (const page of [mockPage1, mockPage2]) {
+				expect(page.classList.contains("consumer-page")).toBe(true);
+				expect(page.classList.contains("page--folded")).toBe(false);
+			}
+			observer.disconnect();
+		});
+
 		it("should create a leaf with NOT_FLIPPED state", () => {
 			const leaf = new Leaf(
 				0,

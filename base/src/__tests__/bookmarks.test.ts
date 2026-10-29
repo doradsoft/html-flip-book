@@ -58,6 +58,56 @@ describe("BookmarkLayer", () => {
 		expect(bookmarks.map((bookmark) => bookmark.id)).toEqual(["later", "first", "middle"]);
 	});
 
+	it("does not mutate an unchanged refresh or resting frame, while honoring provider updates", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		const bounds = { left: 100, top: 40, width: 600, height: 500 };
+		layer.layout(bounds);
+		const page = document.createElement("div");
+		host.append(page);
+		const frame = {
+			width: 300,
+			height: 500,
+			isLTR: true,
+			position: 0,
+			restingPosition: 0,
+			kind: "paper" as const,
+			backwardPreview: false,
+			zIndices: [20, 21] as [number, number],
+		};
+		layer.updateLeaf(0, frame, page);
+		const observer = new MutationObserver(() => {});
+		observer.observe(document.body, {
+			attributes: true,
+			childList: true,
+			characterData: true,
+			subtree: true,
+		});
+		layer.refresh();
+		layer.updateLeaf(0, frame, page);
+		expect(observer.takeRecords()).toHaveLength(0);
+		const updated = [
+			{ id: "first", pageIndex: 2, label: "Updated first" },
+			...bookmarks.slice(0, 1),
+		];
+		layer.setProvider({
+			getBookmarks: () => updated,
+			order: "reverse-page",
+			className: "new-theme",
+			placement: "top",
+			attachment: "pinned",
+		});
+		expect(observer.takeRecords().length).toBeGreaterThan(0);
+		expect(railIds("top")).toEqual(["later", "first"]);
+		expect(tabButton("first").getAttribute("aria-label")).toBe("Updated first");
+		expect(tabButton("first").textContent).toBe("Updated first");
+		context.currentPageIndex = 8;
+		context.currentLeafIndex = 3;
+		layer.refresh();
+		expect(tabButton("later").getAttribute("aria-current")).toBe("page");
+		expect(tabButton("first").hasAttribute("aria-current")).toBe(false);
+		observer.disconnect();
+	});
+
 	it("supports reverse page order and a custom comparator", () => {
 		layer.setProvider({
 			getBookmarks: () => bookmarks,

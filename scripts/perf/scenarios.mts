@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { median, percentile } from "./stats.mts";
 import { openFixture, resourceMetrics, type Variant } from "./harness.mts";
+import { inputProbePath } from "./input-probe.mts";
 
 /**
  * Scenario drivers (issues #290/#291): one sample = one fresh fixture page
@@ -99,34 +100,42 @@ async function runTurnSample(
 		mark("prepare done");
 
 		// Input latency probes first: the book still has pages ahead, so the
-		// right-edge lift-drag is available. A real pointer press triggers the
+		// forward sheet-edge lift-drag is available. A real pointer press triggers the
 		// lift path; first style mutation after pointerdown is the first
-		// visible state update (not INP, no attribution claimed). A short drag
-		// snaps back without completing a turn.
+		// visible state update (not INP, no attribution claimed). Each probe
+		// then completes a real turn, checked against the engine's page index.
 		const inputLatencies: number[] = [];
-		const book = await page.locator(".flipbook").boundingBox();
-		if (book) {
+		{
 			for (let i = 0; i < INPUT_PROBES; i++) {
 				mark(`probe ${i} start`);
+				const before = await page.evaluate(() => window.__turn.currentPageIndex());
+				const forwardPage = before === 0 ? 0 : before + 1;
+				const sheet = await page.locator(`.flipbook .page[data-page-index="${forwardPage}"]`).boundingBox();
+				if (!sheet) throw new Error(`Input probe has no visible forward page ${forwardPage}`);
+				const { start, lift, end } = inputProbePath(sheet, extraParams.adapter === "react" ? "rtl" : "ltr");
+				await page.mouse.move(start.x, start.y);
 				await page.evaluate(() => window.__turn.armInput());
-				const x = book.x + book.width - 10;
-				const y = book.y + book.height / 2;
 				try {
-					await page.mouse.move(x, y);
 					await page.mouse.down();
-					await page.mouse.move(x - 15, y, { steps: 2 });
+					await page.mouse.move(lift.x, lift.y, { steps: 2 });
 					const latency = await page
-						.waitForFunction(() => window.__turn.inputLatency(), null, {
+						.waitForFunction(() => {
+							const value = window.__turn.inputLatency();
+							return value !== null && value >= 0 ? { value } : null;
+						}, null, {
 							timeout: 1500,
 							polling: 100,
 						})
-						.then((h) => h.jsonValue())
+						.then(async (h) => (await h.jsonValue())?.value ?? null)
 						.catch(() => null);
 					if (typeof latency === "number" && latency >= 0) inputLatencies.push(latency);
+					await page.mouse.move(end.x, end.y, { steps: 6 });
 				} finally {
 					await page.mouse.up().catch(() => {});
 				}
-				// Let the leaf snap back and settle before the next probe.
+				const expected = before === 0 ? 1 : before + 2;
+				await page.waitForFunction((index) => window.__turn.currentPageIndex() === index, expected, { timeout: 1500, polling: 100 });
+				// Let the completed turn settle before the next probe.
 				await page.waitForTimeout(300);
 			}
 		}
@@ -168,14 +177,12 @@ async function runTurnSample(
 		// leftmost index by 2 minus the initial single-page spread: after N
 		// flips from index 0 the book sits at 2N - 1.
 		const expectedFinal = sample.initialPageIndex + sample.expectedTurns * 2 - 1;
-		// Input-latency probes are auxiliary: a run that records turns and
-		// frames is a valid sample even if no probe captured a latency (the
-		// input metrics then carry -1, get filtered out, and degrade to
-		// "unsupported" only if every sample missed).
+		// An uncaptured input sample is evidence that the fixture or gesture
+		// did not execute; it must not silently pass as unsupported latency.
 		const valid =
 			sample.completedTurns === sample.expectedTurns &&
 			sample.finalPageIndex === expectedFinal &&
-			gaps.length > 10;
+			gaps.length > 10 && inputLatencies.length === INPUT_PROBES;
 		return {
 			metrics,
 			valid,
