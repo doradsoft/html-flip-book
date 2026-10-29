@@ -1,2 +1,2 @@
-# Run pre-commit framework
-pre-commit run --files $(git diff --cached --name-only --diff-filter=ACM | tr '\n' ' ')
+# Run pre-commit framework (defaults to staged files)
+pre-commit run
