@@ -112,7 +112,27 @@ async function runTurnSample(
 				const forwardPage = before === 0 ? 0 : before + 1;
 				const sheet = await page.locator(`.flipbook .page[data-page-index="${forwardPage}"]`).boundingBox();
 				if (!sheet) throw new Error(`Input probe has no visible forward page ${forwardPage}`);
-				const { start, lift, end } = inputProbePath(sheet, extraParams.adapter === "react" ? "rtl" : "ltr");
+				const book = await page.locator(".flipbook").boundingBox();
+				if (!book) throw new Error("Input probe has no .flipbook container");
+				const rtl = extraParams.adapter === "react";
+				const probe = inputProbePath(sheet, book, rtl ? "rtl" : "ltr");
+				let start = probe.start;
+				// Attached bookmark overlays can own the sheet's outer strip: walk
+				// inward until a real page element is under the pointer. A sheet
+				// with no draggable surface is a fixture bug, not a silent pass.
+				for (let step = 0; step < 8; step++) {
+					const onPage = await page.evaluate(
+						(p) =>
+							document.elementFromPoint(p.x, p.y)?.closest(".flipbook .page") != null,
+						start,
+					);
+					if (onPage) break;
+					if (step === 7)
+						throw new Error(`Input probe found no draggable page surface on page ${forwardPage}`);
+					start = { x: start.x + (rtl ? 12 : -12), y: start.y };
+				}
+				const lift = { x: start.x + (rtl ? 15 : -15), y: start.y };
+				const { end } = probe;
 				await page.mouse.move(start.x, start.y);
 				await page.evaluate(() => window.__turn.armInput());
 				try {
