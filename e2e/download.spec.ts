@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 test.describe("Download dropdown", () => {
 	// Tests navigate individually since LTR and RTL are separate examples

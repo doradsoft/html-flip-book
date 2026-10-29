@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
 import { PDFDocument } from "pdf-lib";
+import { expect, test } from "./fixtures/coverage-test";
 
 test.describe("Download range (EN book)", () => {
 	test.beforeEach(async ({ page }) => {

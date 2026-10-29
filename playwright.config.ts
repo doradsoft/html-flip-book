@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { isLibraryCoverageSource, libraryCoveragePath } from "./scripts/coverage-paths.mts";
 
 const isCI = !!process.env.CI;
 
@@ -21,9 +22,10 @@ export default defineConfig({
 					name: "E2E Coverage Report",
 					outputDir: ".coverage/e2e",
 					reports: ["lcovonly", "text"],
-					sourceFilter: (sourcePath: string) => {
-						return sourcePath.includes("/base/src/") || sourcePath.includes("/react/src/");
-					},
+					sourcePath: libraryCoveragePath,
+					sourceFilter: isLibraryCoverageSource,
+					outputFilter: (entry: { sourcePath: string }) =>
+						isLibraryCoverageSource(entry.sourcePath),
 				},
 			},
 		],

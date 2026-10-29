@@ -1,4 +1,3 @@
-import { expect, test } from "@playwright/test";
 import {
 	activateBookmark,
 	bookmarkForPage,
@@ -20,6 +19,7 @@ import {
 	scrollportMetrics,
 	spreadIndicesOf,
 } from "./bookmark-helpers.mts";
+import { expect, test } from "./fixtures/coverage-test";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	test(`${direction}: custom and default bookmark typography survives hover`, async ({

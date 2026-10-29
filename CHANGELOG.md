@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Engineering
 
+- Browser tests now collect Chromium execution coverage and map it back to the original library sources. CI requires useful unit coverage and every browser shard's LCOV report instead of silently publishing unit-only coverage.
 - The React performance fixture now fills its sized host and rejects zero-area pages, so frame and gesture probes measure a visible reader.
 - Package management moved to Bun (`packageManager: bun@1.4.4`, `bun.lock` replacing `package-lock.json`, `bunfig.toml` with hoisted linking, exact saves, and a 24h supply-chain freshness gate). CI installs via `bun install --frozen-lockfile` with the Bun dependency cache, Playwright browser caching keys off the resolved version in `bun.lock`, and the publish pipeline still uses `npm publish --provenance` since Bun has no provenance flag. Script lifecycle allowlisting moved to `trustedDependencies`.
 - Release versions are now derived from git tags (`scripts/next-version.mts`), so pull requests no longer carry version bumps: every master merge releases `latestTag + 1` even if it lands before the post-release bump PR merges, and a manifest version ahead of the tag sequence (a deliberate major/minor prep change) is honored. The pre-commit hook and PR check only enforce that all manifests stay in sync.

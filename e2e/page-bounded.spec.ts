@@ -1,9 +1,9 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator, test } from "./fixtures/coverage-test";
 
 const bookClass = (direction: string) => `.${direction === "ltr" ? "en" : "he"}-book.flipbook`;
 
 /** The dev server can show a typecheck overlay that intercepts pointer input. */
-async function clearDevOverlay(page: import("@playwright/test").Page) {
+async function clearDevOverlay(page: import("./fixtures/coverage-test").Page) {
 	await page.evaluate(() => document.querySelector("vite-plugin-checker-error-overlay")?.remove());
 }
 

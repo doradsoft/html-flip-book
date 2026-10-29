@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "../fixtures/coverage-test";
 import { FlipBookPage } from "../fixtures/flip-book-page";
 import { generateTestCases, type TestCase } from "../fixtures/test-cases";
 

@@ -1,4 +1,3 @@
-import { expect, test } from "@playwright/test";
 import {
 	assertDenseStack,
 	currentPages,
@@ -6,6 +5,7 @@ import {
 	openDenseBookmarks,
 	resizeDenseRail,
 } from "./bookmark-helpers.mts";
+import { expect, test } from "./fixtures/coverage-test";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	for (const orientation of ["perpendicular", "parallel"] as const) {

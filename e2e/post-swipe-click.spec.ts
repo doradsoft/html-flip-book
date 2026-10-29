@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 import { FlipBookPage } from "./fixtures/flip-book-page";
 
 test.describe("Clicks after a native touch swipe", () => {

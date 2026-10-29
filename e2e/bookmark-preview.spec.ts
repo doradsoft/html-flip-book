@@ -1,5 +1,5 @@
-import { expect, type Page, type TestInfo, test } from "@playwright/test";
 import type { BookmarkPreview } from "../base/src/bookmark-preview";
+import { expect, type Page, type TestInfo, test } from "./fixtures/coverage-test";
 
 declare global {
 	interface Window {

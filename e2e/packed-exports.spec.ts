@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 // Packs both packages and installs the tarballs into a clean fixture
 // (e2e/fixtures/packed-consumer, package.json committed, node_modules
@@ -35,7 +35,7 @@ function installPackedPackages() {
 }
 
 /** Serve the fixture's node_modules over a fake host; missing files 404. */
-async function mountNodeModules(page: import("@playwright/test").Page) {
+async function mountNodeModules(page: import("./fixtures/coverage-test").Page) {
 	await page.route("**/*", async (route) => {
 		const pathname = new URL(route.request().url()).pathname;
 		const filePath = path.resolve(
