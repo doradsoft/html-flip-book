@@ -47,8 +47,8 @@ export async function launchPerfBrowser(): Promise<Browser> {
 	return chromium.launch({
 		headless: true,
 		...(executablePath ? { executablePath } : {}),
-		// --expose-gc lets the audit pass request collection so heap numbers
-		// are comparable; --js-flags scoped to this browser only.
+		// Expose JavaScript GC for diagnostics; retained-resource audits use
+		// synchronous CDP collection for V8 and Blink. Flags affect only this browser.
 		args: ["--js-flags=--expose-gc", "--disable-dev-shm-usage"],
 	});
 }
@@ -60,18 +60,73 @@ export interface ResourceMetrics {
 	jsHeapBytes: number;
 }
 
+/** Complete both V8 and Blink collection before reading retained DOM counters.
+ * window.gc() alone can return while detached Blink trees are still awaiting
+ * collection, turning collectible fixture DOM into a false leak regression. */
+export async function collectResourceGarbage(page: Page): Promise<void> {
+	const client = await page.context().newCDPSession(page);
+	try {
+		await client.send("HeapProfiler.collectGarbage");
+	} finally {
+		await client.detach();
+	}
+}
+
+/** Positive control outside all measured windows: full collection must keep a
+ * genuinely referenced detached tree and release it after its owner lets go. */
+export async function verifyResourceCollection(browser: Browser): Promise<{
+	baseline: number;
+	retained: number;
+	released: number;
+	expectedRetained: number;
+}> {
+	const page = await browser.newPage();
+	try {
+		await collectResourceGarbage(page);
+		const baseline = (await resourceMetrics(page)).nodes;
+		const expectedRetained = await page.evaluate(() => {
+			const root = document.createElement("div");
+			for (let i = 0; i < 1000; i++) {
+				const child = document.createElement("p");
+				child.textContent = String(i);
+				root.appendChild(child);
+			}
+			(window as unknown as { retainedAuditTree?: HTMLElement }).retainedAuditTree = root;
+			return 1 + root.childNodes.length * 2;
+		});
+		await collectResourceGarbage(page);
+		const retained = (await resourceMetrics(page)).nodes;
+		if (retained - baseline < expectedRetained)
+			throw new Error("Resource audit failed to detect a referenced detached DOM tree");
+		await page.evaluate(() => {
+			delete (window as unknown as { retainedAuditTree?: HTMLElement }).retainedAuditTree;
+		});
+		await collectResourceGarbage(page);
+		const released = (await resourceMetrics(page)).nodes;
+		if (released > baseline + 10)
+			throw new Error("Resource audit counted collectible detached DOM as retained");
+		return { baseline, retained, released, expectedRetained };
+	} finally {
+		await page.close();
+	}
+}
+
 /** Chrome DevTools protocol resource counters (retained-node/listener signals). */
 export async function resourceMetrics(page: Page): Promise<ResourceMetrics> {
 	const client = await page.context().newCDPSession(page);
-	await client.send("Performance.enable");
-	const { metrics } = await client.send("Performance.getMetrics");
-	const get = (name: string) => metrics.find((m) => m.name === name)?.value ?? -1;
-	return {
-		nodes: get("Nodes"),
-		listeners: get("JSEventListeners"),
-		documents: get("Documents"),
-		jsHeapBytes: get("JSHeapUsedSize"),
-	};
+	try {
+		await client.send("Performance.enable");
+		const { metrics } = await client.send("Performance.getMetrics");
+		const get = (name: string) => metrics.find((m) => m.name === name)?.value ?? -1;
+		return {
+			nodes: get("Nodes"),
+			listeners: get("JSEventListeners"),
+			documents: get("Documents"),
+			jsHeapBytes: get("JSHeapUsedSize"),
+		};
+	} finally {
+		await client.detach();
+	}
 }
 
 export async function collectEnv(

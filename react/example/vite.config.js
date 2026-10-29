@@ -18,31 +18,31 @@ export default defineConfig(({ mode }) => {
 			alias: [
 				{
 					find: "html-flip-book-vanilla/commands",
-					replacement: path.resolve(__dirname, "../../base/src/commands/index.ts"),
+					replacement: path.resolve(import.meta.dirname, "../../base/src/commands/index.ts"),
 				},
 				{
 					find: "html-flip-book-vanilla/download",
-					replacement: path.resolve(__dirname, "../../base/src/download/index.ts"),
+					replacement: path.resolve(import.meta.dirname, "../../base/src/download/index.ts"),
 				},
 				{
 					find: "html-flip-book-vanilla/intl",
-					replacement: path.resolve(__dirname, "../../base/src/intl/index.ts"),
+					replacement: path.resolve(import.meta.dirname, "../../base/src/intl/index.ts"),
 				},
 				{
 					find: "html-flip-book-vanilla/store",
-					replacement: path.resolve(__dirname, "../../base/src/store/index.ts"),
+					replacement: path.resolve(import.meta.dirname, "../../base/src/store/index.ts"),
 				},
 				{
 					find: "html-flip-book-react/toolbar",
-					replacement: path.resolve(__dirname, "../src/toolbar/index.ts"),
+					replacement: path.resolve(import.meta.dirname, "../src/toolbar/index.ts"),
 				},
 				{
 					find: "html-flip-book-react",
-					replacement: path.resolve(__dirname, "../src/FlipBook.tsx"),
+					replacement: path.resolve(import.meta.dirname, "../src/FlipBook.tsx"),
 				},
 				{
 					find: "html-flip-book-vanilla",
-					replacement: path.resolve(__dirname, "../../base/src/flipbook.ts"),
+					replacement: path.resolve(import.meta.dirname, "../../base/src/flipbook.ts"),
 				},
 			],
 		},
@@ -65,7 +65,10 @@ export default defineConfig(({ mode }) => {
 			strictPort: true,
 			open: false,
 			fs: {
-				allow: [path.resolve(__dirname, ".."), path.resolve(__dirname, "../..")],
+				allow: [
+					path.resolve(import.meta.dirname, ".."),
+					path.resolve(import.meta.dirname, "../.."),
+				],
 			},
 		},
 		plugins: [
@@ -107,7 +110,7 @@ export default defineConfig(({ mode }) => {
 						for (const fileName in bundle) {
 							if (fileName.startsWith("index-")) {
 								fs.writeFile(
-									path.resolve(__dirname, "./package.json"),
+									path.resolve(import.meta.dirname, "./package.json"),
 									JSON.stringify({ ...packageJson, main: `dist/${fileName}` }, null, 2),
 									(err) => {
 										if (err) throw err;

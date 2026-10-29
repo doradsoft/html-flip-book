@@ -1,0 +1,14 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"types": ["node", "vitest/globals"]
+	},
+	"include": [
+		"../scripts/perf/**/*.mts",
+		"fixture/**/*.ts",
+		"fixture/**/*.mts",
+		"scenarios/**/*.ts"
+	]
+}

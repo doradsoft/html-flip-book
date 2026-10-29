@@ -1,4 +1,6 @@
-import { type BookmarkProvider, FlipBook } from "html-flip-book-vanilla";
+import type { FlipBookHandle } from "html-flip-book-react";
+import { type Bookmark, type BookmarkProvider, FlipBook } from "html-flip-book-vanilla";
+import { measureReadyMount } from "../fixture/mount-readiness";
 import "flipbook-styles";
 
 /**
@@ -79,7 +81,7 @@ function makePage(i: number): HTMLElement {
 }
 
 function bookmarkProvider(size: number, every: number): BookmarkProvider {
-	const bookmarks = [];
+	const bookmarks: Bookmark[] = [];
 	for (let i = 0; i < size; i += every) {
 		bookmarks.push({ id: `mark-${i}`, pageIndex: i, label: `mark ${i}` });
 	}
@@ -109,43 +111,42 @@ function buildHost(size: number): HTMLElement {
 }
 
 /** Window: React createRoot -> ref-ready mount of a same-size book. */
-async function measureReactMount(app: HTMLElement, size: number): Promise<number | "skipped"> {
-	try {
-		const [{ createElement }, { createRoot }] = await Promise.all([
-			import("react"),
-			import("react-dom/client"),
-		]);
-		const { FlipBook: ReactFlipBook } = await import("html-flip-book-react");
-		const reactHost = document.createElement("div");
-		reactHost.style.width = "320px";
-		reactHost.style.height = "210px";
-		app.appendChild(reactHost);
-		const tReact = now();
-		const root = createRoot(reactHost);
-		await new Promise<void>((resolve) => {
+async function measureReactMount(app: HTMLElement, size: number): Promise<number> {
+	const [{ createElement }, { createRoot }] = await Promise.all([
+		import("react"),
+		import("react-dom/client"),
+	]);
+	const { FlipBook: ReactFlipBook } = await import("html-flip-book-react");
+	const reactHost = document.createElement("div");
+	reactHost.style.width = "320px";
+	reactHost.style.height = "210px";
+	app.appendChild(reactHost);
+	let root: ReturnType<typeof createRoot> | undefined;
+	return measureReadyMount(
+		(ready) => {
+			root = createRoot(reactHost);
 			const pages = Array.from({ length: size }, (_, i) =>
 				createElement("div", { key: i }, `p${i}`),
 			);
 			root.render(
 				createElement(ReactFlipBook, {
 					pages,
+					className: "perf-scaling-react",
 					enableHistory: false,
-					ref: (h: { currentPageIndex: number } | null) => {
-						if (h) resolve();
+					ref: (h: FlipBookHandle | null) => {
+						if (h) ready();
 					},
 				}),
 			);
-			// Fallback so a missing ref callback cannot hang the run.
-			setTimeout(resolve, 10_000);
-		});
-		const ms = now() - tReact;
-		root.unmount();
-		reactHost.remove();
-		return ms;
-	} catch (err) {
-		void err;
-		return "skipped";
-	}
+		},
+		() => {
+			try {
+				root?.unmount();
+			} finally {
+				reactHost.remove();
+			}
+		},
+	);
 }
 
 /** Window: repeated destroy + rebuild cycles inside the same document. */

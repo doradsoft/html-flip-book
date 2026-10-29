@@ -9,23 +9,23 @@ export default defineConfig({
 		alias: [
 			{
 				find: "html-flip-book-vanilla/commands",
-				replacement: path.resolve(__dirname, "base/src/commands/index.ts"),
+				replacement: path.resolve(import.meta.dirname, "base/src/commands/index.ts"),
 			},
 			{
 				find: "html-flip-book-vanilla/download",
-				replacement: path.resolve(__dirname, "base/src/download/index.ts"),
+				replacement: path.resolve(import.meta.dirname, "base/src/download/index.ts"),
 			},
 			{
 				find: "html-flip-book-vanilla/intl",
-				replacement: path.resolve(__dirname, "base/src/intl/index.ts"),
+				replacement: path.resolve(import.meta.dirname, "base/src/intl/index.ts"),
 			},
 			{
 				find: "html-flip-book-vanilla/store",
-				replacement: path.resolve(__dirname, "base/src/store/index.ts"),
+				replacement: path.resolve(import.meta.dirname, "base/src/store/index.ts"),
 			},
 			{
 				find: "html-flip-book-vanilla",
-				replacement: path.resolve(__dirname, "base/src/flipbook.ts"),
+				replacement: path.resolve(import.meta.dirname, "base/src/flipbook.ts"),
 			},
 		],
 	},
@@ -51,6 +51,7 @@ export default defineConfig({
 				"scripts/coverage-paths.mts",
 				"scripts/merge-coverage.mts",
 				"e2e/fixtures/coverage-collector.ts",
+				"perf/fixture/mount-readiness.ts",
 			],
 			exclude: ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**"],
 		},

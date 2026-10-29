@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Check performance harness
+        run: bun run perf:check
+
       # Resolved version, not the package.json range (same as ci.yml).
       - name: Get Playwright version
         id: playwright-version

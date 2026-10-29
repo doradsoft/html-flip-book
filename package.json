@@ -1,7 +1,6 @@
 {
 	"name": "html-flip-book",
 	"version": "0.0.0-alpha.95",
-
 	"description": "Flipbook component for HTML",
 	"homepage": "https://doradsoft.github.io/html-flip-book/",
 	"repository": {
@@ -49,7 +48,8 @@
 		"release": "node scripts/release.mts",
 		"release:patch": "node scripts/release.mts patch",
 		"release:minor": "node scripts/release.mts minor",
-		"release:major": "node scripts/release.mts major"
+		"release:major": "node scripts/release.mts major",
+		"perf:check": "tsc --noEmit -p perf/tsconfig.json"
 	},
 	"author": "DoradSoft",
 	"license": "MIT",
