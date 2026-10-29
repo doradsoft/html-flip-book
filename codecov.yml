@@ -1,6 +1,10 @@
 codecov:
   require_ci_to_pass: true
 
+ignore:
+  - "perf/"          # browser-driven benchmark fixtures, not unit-testable
+  - "scripts/perf/"  # benchmark drivers/harness, exercised by the perf job itself
+
 coverage:
   status:
     project:

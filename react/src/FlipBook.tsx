@@ -17,7 +17,15 @@ import "../../base/src/bookmarks.scss";
 import "../../base/src/mouse-mode.scss";
 import type { DownloadConfig } from "html-flip-book-vanilla/download";
 import type React from "react";
-import { Children, forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+	Children,
+	forwardRef,
+	startTransition,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 /** Bookmark content is rendered with React and keeps access to the consumer's contexts. */
@@ -323,18 +331,24 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			setPageIndexRef.current?.(index);
 		});
 		onPageChangedRef.current = (index: number) => {
+			if (leavesBuffer == null) {
+				// No buffer — currentPageIndex only feeds the buffer window, which
+				// mounts every page anyway. Re-rendering here would reconcile the
+				// whole page tree on every turn for no benefit (issue #343).
+				return;
+			}
 			if (pageChangedTimerRef.current != null) {
 				clearTimeout(pageChangedTimerRef.current);
-			}
-			if (leavesBuffer == null) {
-				// No buffer — update immediately; no expensive mount/unmount cycle.
-				setPageIndexRef.current?.(index);
-				return;
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
 				inflightLeavesRef.current.clear();
-				setPageIndexRef.current?.(index);
+				// The buffer-window remount can be a large reconcile under heavy
+				// page content. It is not input-latency critical — the +2 leaf
+				// margin already keeps freshly revealed pages mounted — so let
+				// React chunk and yield it instead of blocking the frame that
+				// completes a turn (issue #343).
+				startTransition(() => setPageIndexRef.current?.(index));
 			}, BUFFER_DEBOUNCE_MS);
 		};
 		const onPageFlippingRef = useRef((params: PageFlipParams) => {
@@ -350,7 +364,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				const flippingLeaf = Math.floor(edgePage / 2);
 				if (!inflightLeavesRef.current.has(flippingLeaf)) {
 					inflightLeavesRef.current.add(flippingLeaf);
-					setInflightVersion((v) => v + 1);
+					// Same transition rationale as the debounced buffer update:
+					// this only exists to remount an out-of-margin flipping leaf,
+					// which must not mid-drag a full-tree reconcile (issue #343).
+					startTransition(() => setInflightVersion((v) => v + 1));
 				}
 			}
 			handlers?.onPageFlipping?.(params);

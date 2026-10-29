@@ -1,3 +1,4 @@
+import { registerReactTurnScenario } from "../scenarios/react-turn.page";
 import { registerScalingScenario } from "../scenarios/scaling.page";
 import { registerTurnScenario } from "../scenarios/turn.page";
 import { installInstrumentation } from "./instrumentation";
@@ -12,4 +13,5 @@ import { installInstrumentation } from "./instrumentation";
 
 installInstrumentation();
 registerTurnScenario();
+registerReactTurnScenario();
 registerScalingScenario();

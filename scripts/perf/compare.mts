@@ -35,6 +35,7 @@ import { summarize, type PairedStats } from "./stats.mts";
 
 interface Cli {
 	base: string;
+	candidateRef: string;
 	samples: number;
 	auditPairs: number;
 	scenario: string[];
@@ -48,6 +49,7 @@ function parseArgs(): Cli {
 	const args = process.argv.slice(2);
 	const cli: Cli = {
 		base: "",
+		candidateRef: "",
 		samples: 8,
 		auditPairs: 4,
 		scenario: ["all"],
@@ -60,6 +62,7 @@ function parseArgs(): Cli {
 		const a = args[i];
 		const next = () => args[++i];
 		if (a === "--base") cli.base = next();
+		else if (a === "--candidate-ref") cli.candidateRef = next();
 		else if (a === "--samples") cli.samples = Number(next());
 		else if (a === "--audit-pairs") cli.auditPairs = Number(next());
 		else if (a === "--scenario") cli.scenario = next().split(",");
@@ -144,7 +147,12 @@ async function main(): Promise<void> {
 	// --- Build both variants -------------------------------------------------
 	const buildDir = path.join(outDir, "build");
 	await ensureDir(buildDir);
-	const candidate = await buildCandidate(repoRoot, path.join(buildDir, "candidate"));
+	const candidate = cli.candidateRef
+		? ({
+				...(await buildBase(repoRoot, cli.candidateRef, path.join(buildDir, "candidate"))),
+				name: "candidate",
+			} as Variant)
+		: await buildCandidate(repoRoot, path.join(buildDir, "candidate"));
 	const base = cli.selfcheck
 		? ({ ...candidate, name: "base" } as Variant)
 		: await buildBase(repoRoot, cli.base, path.join(buildDir, "base"));

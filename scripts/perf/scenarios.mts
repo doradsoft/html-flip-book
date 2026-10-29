@@ -62,10 +62,7 @@ interface TurnSample {
 
 const INPUT_PROBES = 3;
 
-export const turnSmoothness: ScenarioDriver = {
-	name: "turn-smoothness",
-	sizes: [0],
-	metricsFor: () => [
+const turnMetrics = (): MetricSpec[] => [
 		{ key: "raf_gap_median_ms", label: "rAF gap median", thresholdAbs: 4, thresholdRatio: 1.5 },
 		{ key: "raf_gap_p95_ms", label: "rAF gap p95", thresholdAbs: 16.7, thresholdRatio: 1.5 },
 		{ key: "raf_gap_p99_ms", label: "rAF gap p99", thresholdAbs: 33.3, thresholdRatio: 1.5 },
@@ -81,13 +78,21 @@ export const turnSmoothness: ScenarioDriver = {
 		{ key: "longtask_total_ms", label: "long task time", thresholdAbs: 80, thresholdRatio: 2 },
 		{ key: "loaf_count", label: "long animation frames", thresholdAbs: 2, thresholdRatio: 3 },
 		{ key: "raf_cb_fps", label: "rAF callback fps (supplemental)", thresholdAbs: 10, thresholdRatio: 0.8 },
-	],
+];
 
-	async runSample(page, dist, _size, delayMs) {
-		const t0 = Date.now();
-		const mark = (label: string) =>
-			console.log(`    [sample t+${((Date.now() - t0) / 1000).toFixed(1)}s] ${label}`);
-		await openFixture(page, dist, delayMs ? { delay: String(delayMs) } : {});
+async function runTurnSample(
+	page: Page,
+	dist: string,
+	delayMs: number,
+	extraParams: Record<string, string>,
+): Promise<SampleResult> {
+	const t0 = Date.now();
+	const mark = (label: string) =>
+		console.log(`    [sample t+${((Date.now() - t0) / 1000).toFixed(1)}s] ${label}`);
+	await openFixture(page, dist, {
+		...(delayMs ? { delay: String(delayMs) } : {}),
+		...extraParams,
+	});
 		mark("fixture open");
 		const unsupported: string[] = [];
 		await page.evaluate(() => window.__turn.prepare());
@@ -179,7 +184,45 @@ export const turnSmoothness: ScenarioDriver = {
 				: `turns=${sample.completedTurns}/${sample.expectedTurns} final=${sample.finalPageIndex} want=${expectedFinal} gaps=${gaps.length} input=${inputLatencies.length}`,
 			unsupported,
 		};
-	},
+}
+
+export const turnSmoothness: ScenarioDriver = {
+	name: "turn-smoothness",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) => runTurnSample(page, dist, delayMs, {}),
+};
+
+// Same measurement under a bible-on-site-scale workload (?heavy=1): a
+// scrollable pane of per-word/verse markup per page plus book-wide
+// bookmarks. The light fixture cannot validate website-scale frame cost.
+export const turnHeavy: ScenarioDriver = {
+	name: "turn-heavy",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) =>
+		runTurnSample(page, dist, delayMs, { heavy: "1" }),
+};
+
+// Heavy workload plus .flipbook-page-bounded content roots — the exact DOM
+// contract bible-on-site ships since its #2742 (#279 adoption).
+export const turnBounded: ScenarioDriver = {
+	name: "turn-bounded",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) =>
+		runTurnSample(page, dist, delayMs, { heavy: "1", bounded: "1" }),
+};
+
+// Bounded-heavy workload mounted through the React adapter (?adapter=react):
+// RTL, leavesBuffer=7, bookmarks, hard covers — the bible-on-site mount
+// contract, so each turn also pays the adapter's buffer remount.
+export const turnReact: ScenarioDriver = {
+	name: "turn-react",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) =>
+		runTurnSample(page, dist, delayMs, { adapter: "react", heavy: "1", bounded: "1" }),
 };
 
 // ---------------------------------------------------------------------------
@@ -294,5 +337,8 @@ export const scaling: ScenarioDriver = {
 
 export const ALL_SCENARIOS: Record<string, ScenarioDriver> = {
 	turn: turnSmoothness,
+	turnHeavy,
+	turnBounded,
+	turnReact,
 	scaling,
 };
