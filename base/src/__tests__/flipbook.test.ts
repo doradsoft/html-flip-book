@@ -591,7 +591,7 @@ describe("FlipBook", () => {
 				flipBook.render(".flipbook-container", true);
 				vi.advanceTimersByTime(200);
 				const debugBar = container.querySelector(".flipbook-debug-bar");
-				expect(debugBar?.innerHTML).toContain("LTR");
+				expect(debugBar?.textContent).toContain("LTR");
 
 				flipBook.destroy();
 				if (debugBar) debugBar.textContent = "stopped";
@@ -613,7 +613,7 @@ describe("FlipBook", () => {
 				for (let cycle = 0; cycle < 3; cycle++) {
 					flipBook.render(".flipbook-container", true);
 					vi.advanceTimersByTime(200);
-					expect(container.querySelectorAll(".flipbook-debug-bar")).toHaveLength(1);
+					expect(container.querySelectorAll(".flipbook-debug-bar").length).toBe(1);
 					expect(vi.getTimerCount()).toBe(1);
 					flipBook.destroy();
 					expect(vi.getTimerCount()).toBe(0);
