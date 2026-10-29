@@ -1,3 +1,4 @@
+import { writeAttribute, writeHidden, writeStyle } from "./bookmark-dom";
 import {
 	type BookmarkFoldSurface,
 	type BookmarkLeafFrame,
@@ -266,21 +267,22 @@ export class BookmarkMotion {
 		const faces = item.faces;
 		if (!faces) return;
 		const source = face === 0 ? faces.data.front : faces.data.back;
-		item.button.dataset.face = String(face);
-		item.button.dataset.pageIndex = String(source.pageIndex);
-		item.button.dataset.bookmarkId = source.id;
-		item.button.setAttribute("aria-label", source.label);
+		writeAttribute(item.button, "data-face", String(face));
+		writeAttribute(item.button, "data-page-index", String(source.pageIndex));
+		writeAttribute(item.button, "data-bookmark-id", source.id);
+		writeAttribute(item.button, "aria-label", source.label);
 		const reverse = faces.data.reverse;
 		const active = !reverse || face === faces.data.activeFace;
-		faces.brief.hidden = !active || faces.briefHidden;
+		if (faces.brief.hidden !== (!active || faces.briefHidden))
+			faces.brief.hidden = !active || faces.briefHidden;
 		if (!reverse) return;
 		if (active) {
 			this.returnReverse(faces);
-			reverse.hidden = faces.reverseHidden;
+			if (reverse.hidden !== faces.reverseHidden) reverse.hidden = faces.reverseHidden;
 			return;
 		}
 		if (reverse.parentNode !== item.button) item.button.append(reverse);
-		reverse.hidden = false;
+		writeHidden(reverse, false);
 	}
 
 	private showVisualFace(item: MovingBookmark, face: 0 | 1): void {
@@ -377,8 +379,10 @@ export class BookmarkMotion {
 	): void {
 		const left = this.baseLeft(page0, frame.width);
 		const top = Number.parseFloat(page0.style.top) || 0;
-		if (surfaces.length === 0) item.storage.append(item.button);
-		if (surfaces.length < 2) item.storage.append(item.visual);
+		if (surfaces.length === 0 && item.button.parentElement !== item.storage)
+			item.storage.append(item.button);
+		if (surfaces.length < 2 && item.visual.parentElement !== item.storage)
+			item.storage.append(item.visual);
 		for (let index = 0; index < surfaces.length; index++) {
 			const surface = surfaces[index];
 			let wrapper = item.surfaces[index];
@@ -389,24 +393,38 @@ export class BookmarkMotion {
 				else this.host.append(wrapper);
 				item.surfaces.push(wrapper);
 			}
-			wrapper.hidden = false;
-			wrapper.className = `flipbook-bookmark-surface ${className}`.trim();
-			wrapper.dataset.bookmarkSurface = bookmark.id;
-			wrapper.dataset.leafIndex = String(Math.floor(bookmark.pageIndex / 2));
-			wrapper.dataset.bookmarkFace = String(surface.face);
-			wrapper.style.cssText = `position:absolute;left:${left}px;top:${top}px;width:${item.exposed.width}px;height:${item.exposed.height}px;pointer-events:none;transform-origin:0px 0px;overflow:visible;`;
-			for (const [name, value] of item.appearance) wrapper.style.setProperty(name, value);
-			wrapper.style.transform = surface.transform;
-			wrapper.style.zIndex = String(surface.zIndex);
-			wrapper.style.clipPath = `polygon(${surface.polygon.map((point) => `${point.x}px ${point.y}px`).join(", ")})`;
+			writeHidden(wrapper, false);
+			writeAttribute(wrapper, "class", `flipbook-bookmark-surface ${className}`.trim());
+			writeAttribute(wrapper, "data-bookmark-surface", bookmark.id);
+			writeAttribute(wrapper, "data-leaf-index", String(Math.floor(bookmark.pageIndex / 2)));
+			writeAttribute(wrapper, "data-bookmark-face", String(surface.face));
+			for (const [name, value] of Object.entries({
+				position: "absolute",
+				left: `${left}px`,
+				top: `${top}px`,
+				width: `${item.exposed.width}px`,
+				height: `${item.exposed.height}px`,
+				"pointer-events": "none",
+				"transform-origin": "0px 0px",
+				overflow: "visible",
+			}))
+				writeStyle(wrapper, name, value);
+			for (const [name, value] of item.appearance) writeStyle(wrapper, name, value);
+			writeStyle(wrapper, "transform", surface.transform);
+			writeStyle(wrapper, "z-index", String(surface.zIndex));
+			writeStyle(
+				wrapper,
+				"clip-path",
+				`polygon(${surface.polygon.map((point) => `${point.x}px ${point.y}px`).join(", ")})`,
+			);
 			const content = index === 0 ? item.button : item.visual;
 			if (index === 0) this.showFace(item, surface.face);
 			else this.showVisualFace(item, surface.face);
 			this.placeContent(item, content, frame, surface.face);
 			if (content.parentElement !== wrapper) wrapper.append(content);
 		}
-		for (let index = surfaces.length; index < item.surfaces.length; index++) {
-			item.surfaces[index].hidden = true;
+		for (const surface of item.surfaces.slice(surfaces.length)) {
+			writeHidden(surface, true);
 		}
 	}
 
@@ -416,19 +434,23 @@ export class BookmarkMotion {
 		frame: BookmarkLeafFrame,
 		face: 0 | 1,
 	): void {
-		button.hidden = false;
-		button.dataset.bookmarkMotion = "true";
-		button.style.position = "absolute";
-		button.style.inset = "auto";
-		button.style.left = `${item.rectangle.left - item.exposed.left}px`;
-		button.style.top = `${item.rectangle.top - item.exposed.top}px`;
-		button.style.width = `${item.rectangle.width}px`;
-		button.style.height = `${item.rectangle.height}px`;
-		button.style.maxWidth = "none";
-		button.style.maxHeight = "none";
-		button.style.margin = "0";
-		button.style.flex = "none";
-		button.style.transform = "none";
+		writeHidden(button, false);
+		writeAttribute(button, "data-bookmark-motion", "true");
+		for (const [name, value] of Object.entries({
+			position: "absolute",
+			right: "auto",
+			bottom: "auto",
+			left: `${item.rectangle.left - item.exposed.left}px`,
+			top: `${item.rectangle.top - item.exposed.top}px`,
+			width: `${item.rectangle.width}px`,
+			height: `${item.rectangle.height}px`,
+			"max-width": "none",
+			"max-height": "none",
+			margin: "0px",
+			flex: "0 0 auto",
+			transform: "none",
+		}))
+			writeStyle(button, name, value);
 		if (item.caption) {
 			const scale = (frame.isLTR ? 1 : -1) * (face === 0 ? 1 : -1);
 			for (const caption of button.querySelectorAll<HTMLElement>(
@@ -436,23 +458,29 @@ export class BookmarkMotion {
 			))
 				this.placeCaption(caption, item.caption.bounds, scale);
 		}
-		button.style.pointerEvents = button.classList.contains("flipbook-bookmark--mirror")
-			? "none"
-			: "auto";
+		writeStyle(
+			button,
+			"pointer-events",
+			button.classList.contains("flipbook-bookmark--mirror") ? "none" : "auto",
+		);
 	}
 
 	private placeCaption(caption: HTMLElement, bounds: BookmarkSheetRectangle, scale: number): void {
-		caption.style.position = "absolute";
-		caption.style.inset = "auto";
-		caption.style.left = `${bounds.left}px`;
-		caption.style.top = `${bounds.top}px`;
-		caption.style.width = `${bounds.width}px`;
-		caption.style.height = `${bounds.height}px`;
-		caption.style.maxWidth = "none";
-		caption.style.maxHeight = "none";
-		caption.style.margin = "0";
-		caption.style.boxSizing = "border-box";
-		caption.style.transformOrigin = "center center";
-		caption.style.transform = `scaleX(${scale})`;
+		for (const [name, value] of Object.entries({
+			position: "absolute",
+			right: "auto",
+			bottom: "auto",
+			left: `${bounds.left}px`,
+			top: `${bounds.top}px`,
+			width: `${bounds.width}px`,
+			height: `${bounds.height}px`,
+			"max-width": "none",
+			"max-height": "none",
+			margin: "0px",
+			"box-sizing": "border-box",
+			"transform-origin": "center center",
+			transform: `scaleX(${scale})`,
+		}))
+			writeStyle(caption, name, value);
 	}
 }

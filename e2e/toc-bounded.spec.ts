@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 import { readScrollOwnership } from "./toc-bounded-helpers.mts";
 
 for (const direction of ["ltr", "rtl"] as const) {

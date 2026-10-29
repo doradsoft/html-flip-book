@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 test.describe("FlipBook Mouse Interactions", () => {
 	test.beforeEach(async ({ page }) => {

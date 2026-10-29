@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 test.describe("FlipBook Navigation", () => {
 	test.beforeEach(async ({ page }) => {

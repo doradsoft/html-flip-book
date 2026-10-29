@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator, test } from "../fixtures/coverage-test";
 import { FlipBookPage } from "../fixtures/flip-book-page";
 
 async function expectBeforeSpine(surface: Locator) {
@@ -30,7 +30,7 @@ test.describe("Velocity Threshold - FAST_DELTA", () => {
 	 * This makes HammerJS velocity computation fully deterministic
 	 * regardless of CPU speed or test parallelism.
 	 */
-	async function pauseClock(page: import("@playwright/test").Page) {
+	async function pauseClock(page: import("../fixtures/coverage-test").Page) {
 		// Get the browser's current faked time and add a small buffer to account
 		// for real-time advancement between the evaluate call and pauseAt call
 		const now = await page.evaluate(() => Date.now());

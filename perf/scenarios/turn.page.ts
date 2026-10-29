@@ -46,6 +46,7 @@ interface TurnSample {
 declare global {
 	interface Window {
 		__turn: {
+			currentPageIndex(): number;
 			prepare(): Promise<void>;
 			runTurns(): Promise<TurnSample>;
 			armInput(): void;
@@ -148,6 +149,10 @@ export function registerTurnScenario(): void {
 
 	window.__turn = {
 		book: () => book,
+		currentPageIndex: () => {
+			if (!book) throw new Error("prepare() first");
+			return book.currentPageIndex;
+		},
 
 		async prepare(): Promise<void> {
 			const app = document.getElementById("app");

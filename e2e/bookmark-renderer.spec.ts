@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator, test } from "./fixtures/coverage-test";
 
 // Scan the tab's slot for a point that hit-tests back to the tab itself —
 // overlapping rail tabs may cover its geometric center.

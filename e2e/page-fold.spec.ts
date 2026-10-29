@@ -1,15 +1,15 @@
 import {
+	TEST_PARAM_FAST_DELTA_THRESHOLD,
+	TEST_PARAM_INITIAL_TURNED_LEAVES,
+} from "../react/example/src/test-url-params";
+import {
 	expect,
 	type JSHandle,
 	type Locator,
 	type Page,
 	type TestInfo,
 	test,
-} from "@playwright/test";
-import {
-	TEST_PARAM_FAST_DELTA_THRESHOLD,
-	TEST_PARAM_INITIAL_TURNED_LEAVES,
-} from "../react/example/src/test-url-params";
+} from "./fixtures/coverage-test";
 
 type ReadingDirection = "ltr" | "rtl";
 type TurnDirection = "forward" | "backward";

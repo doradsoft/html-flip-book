@@ -1,4 +1,4 @@
-import { type CDPSession, expect, type Locator, type Page, test } from "@playwright/test";
+import { type CDPSession, expect, type Locator, type Page, test } from "./fixtures/coverage-test";
 
 type ContentKind = "image" | "link" | "linked-image";
 type Pull = { x: number; y: number; client?: CDPSession };

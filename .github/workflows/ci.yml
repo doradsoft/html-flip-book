@@ -115,6 +115,7 @@ jobs:
           name: unit-coverage
           path: .coverage/unit
           retention-days: 7
+          if-no-files-found: error
 
   # ============================================================================
   # Build Job - Depends on Lint passing
@@ -213,9 +214,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: e2e-coverage-${{ matrix.shard }}
-          path: .coverage/e2e
+          path: .coverage/e2e/lcov.info
           retention-days: 7
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: Upload E2E Report
         if: failure()
@@ -258,13 +259,12 @@ jobs:
 
       - name: Download E2E Coverage
         uses: actions/download-artifact@v8
-        continue-on-error: true
         with:
           pattern: e2e-coverage-*
           path: .coverage/e2e
 
       - name: Merge Coverage
-        run: bun run coverage:merge
+        run: bun run coverage:merge -- --e2e-shards 3
 
       - name: Generate Coverage Badge
         run: bun run coverage:badge

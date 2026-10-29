@@ -1,4 +1,4 @@
-import { expect, type Locator, test } from "@playwright/test";
+import { expect, type Locator, test } from "./fixtures/coverage-test";
 
 const bookClass = (direction: string) => `.${direction === "ltr" ? "en" : "he"}-book.flipbook`;
 

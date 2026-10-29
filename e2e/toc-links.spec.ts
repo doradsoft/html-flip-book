@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	for (const example of ["comprehensive", "buffer"] as const) {

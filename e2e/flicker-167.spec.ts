@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 /**
  * Regression for issue #167: flickering after several consecutive page flips.
@@ -24,7 +24,7 @@ interface PageSample {
 }
 
 async function sampleRapidBackFlips(
-	page: import("@playwright/test").Page,
+	page: import("./fixtures/coverage-test").Page,
 	disableShadow: boolean,
 ): Promise<PageSample[][]> {
 	await page.goto(

@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/coverage-test";
 
 // The e2e suite exercises the vite dev server, which pre-bundles dependencies
 // differently than `vite build` does — a dependency artifact that crashes only

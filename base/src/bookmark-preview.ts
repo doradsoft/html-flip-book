@@ -1,3 +1,5 @@
+import { writeAttribute, writeHidden } from "./bookmark-dom";
+
 type Edge = "top" | "right" | "bottom" | "left";
 type Bounds = { left: number; top: number; width: number; height: number };
 
@@ -83,7 +85,7 @@ export class BookmarkPreview {
 		this.element.className = `flipbook-bookmark-preview ${className}`.trim();
 		this.element.dataset.bookmarkId = source.dataset.bookmarkId;
 		this.element.dataset.edge = edge;
-		this.element.dataset.open = "false";
+		writeAttribute(this.element, "data-open", "false");
 		this.setBounds(this.compact);
 		this.element.style.clipPath = this.compactClip;
 		this.protectPage(edge, exposed, this.revealed);
@@ -145,7 +147,7 @@ export class BookmarkPreview {
 		this.animationFrame = 0;
 		if (this.closeTimer !== undefined) this.view?.clearTimeout(this.closeTimer);
 		this.closeTimer = undefined;
-		this.element.dataset.open = "false";
+		writeAttribute(this.element, "data-open", "false");
 		if (
 			!immediate &&
 			this.source &&
@@ -199,8 +201,8 @@ export class BookmarkPreview {
 			this.placeholder?.replaceWith(this.source);
 			if (focused) this.source.focus({ preventScroll: true });
 		}
-		this.element.hidden = true;
-		this.clipBoundary.hidden = true;
+		writeHidden(this.element, true);
+		writeHidden(this.clipBoundary, true);
 		this.content = undefined;
 		this.source = undefined;
 		this.placeholder = undefined;

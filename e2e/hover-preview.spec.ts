@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "./fixtures/coverage-test";
 
 type Bounds = { x: number; y: number; width: number; height: number };
 type Side = "left" | "right";
