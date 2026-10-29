@@ -11,11 +11,11 @@ export default defineConfig(() => {
 			build: {
 				lib: {
 					entry: {
-						flipbook: resolve(__dirname, "base/src/flipbook.ts"),
-						intl: resolve(__dirname, "base/src/intl/index.ts"),
-						"commands/index": resolve(__dirname, "base/src/commands/index.ts"),
-						"download/index": resolve(__dirname, "base/src/download/index.ts"),
-						"store/index": resolve(__dirname, "base/src/store/index.ts"),
+						flipbook: resolve(import.meta.dirname, "base/src/flipbook.ts"),
+						intl: resolve(import.meta.dirname, "base/src/intl/index.ts"),
+						"commands/index": resolve(import.meta.dirname, "base/src/commands/index.ts"),
+						"download/index": resolve(import.meta.dirname, "base/src/download/index.ts"),
+						"store/index": resolve(import.meta.dirname, "base/src/store/index.ts"),
 					},
 					formats: ["es"] as LibraryFormats[],
 				},
@@ -32,8 +32,8 @@ export default defineConfig(() => {
 			build: {
 				lib: {
 					entry: {
-						"flip-book": resolve(__dirname, "react/src/FlipBook.tsx"),
-						"toolbar/index": resolve(__dirname, "react/src/toolbar/index.ts"),
+						"flip-book": resolve(import.meta.dirname, "react/src/FlipBook.tsx"),
+						"toolbar/index": resolve(import.meta.dirname, "react/src/toolbar/index.ts"),
 					},
 					formats: ["es"] as LibraryFormats[],
 				},
