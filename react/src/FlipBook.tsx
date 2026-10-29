@@ -356,6 +356,14 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		});
 		onPageFlippingRef.current = (params) => {
 			if (leavesBuffer != null) {
+				// A new flip is starting: hold any pending buffer-window remount so
+				// a heavy mount cannot land mid-animation. The window re-arms at
+				// this flip's commit; dropping it is safe — the +2 leaf margin and
+				// inflightLeaves keep freshly revealed pages mounted (issue #343).
+				if (pageChangedTimerRef.current != null) {
+					clearTimeout(pageChangedTimerRef.current);
+					pageChangedTimerRef.current = null;
+				}
 				// The flipping leaf holds the page on the trailing edge of the target
 				// spread: backward flips carry pageIndices[1] on their back, forward
 				// flips carry pageIndices[0] on their front.
