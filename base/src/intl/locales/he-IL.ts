@@ -1,9 +1,9 @@
 /**
  * he-IL locale: RTL, Hebrew translations.
  */
-import type { LocaleConfig } from "../types";
+import type { LocaleConfig, TranslationKey } from "../types";
 
-const heIL: LocaleConfig = {
+const heIL = {
 	align: "right",
 	direction: "rtl",
 	translations: {
@@ -29,7 +29,7 @@ const heIL: LocaleConfig = {
 		"toolbarItem.enterFullscreen": "כניסה למסך מלא",
 		"toolbarItem.exitFullscreen": "יציאה ממסך מלא",
 		"toolbarItem.fullscreenUnsupported": "מסך מלא אינו נתמך בדפדפן זה",
-	},
-};
+	} satisfies Partial<Record<TranslationKey, string>>,
+} satisfies LocaleConfig;
 
 export default heIL;

@@ -6,7 +6,7 @@ import enUS from "./locales/en-US";
 import heIL from "./locales/he-IL";
 import type { Locale, LocaleConfig } from "./types";
 
-export type { Locale, LocaleConfig } from "./types";
+export type { Locale, LocaleConfig, TranslationKey } from "./types";
 
 const configs: Record<Locale, LocaleConfig> = {
 	"en-US": enUS,
@@ -16,28 +16,12 @@ const configs: Record<Locale, LocaleConfig> = {
 /** Default locale. Used to derive default direction (LTR). */
 export const defaultLocale: Locale = "en-US";
 
-/** Fallback when a key is missing (use en-US or key). */
-const enFallbacks: Record<string, string> = {
-	"toolbarItem.download": "Download",
-	"toolbarItem.downloadPageRange": "Download page range…",
-	"toolbarItem.download.from": "From",
-	"toolbarItem.download.to": "To",
-	"toolbarItem.download.download": "Download",
-	"command.downloadEntireBook": "Download entire book",
-	"command.jumpToToc": "Table of contents",
-	"command.jumpToFirstPage": "First page",
-	"command.jumpToLastPage": "Last page",
-	"command.jumpToPrevPage": "Previous page",
-	"command.jumpToNextPage": "Next page",
-	"command.toggleFullscreen": "Toggle fullscreen",
-	"command.toggleFullscreenDesc": "Enter or exit fullscreen mode",
-	"command.toggleDebug": "Toggle debug toolbar",
-	"command.toggleDebugDesc": "Show or hide the debug toolbar (Ctrl+Alt+D)",
-	"toolbarItem.goToPage": "Go to page",
-	"toolbarItem.enterFullscreen": "Enter fullscreen",
-	"toolbarItem.exitFullscreen": "Exit fullscreen",
-	"toolbarItem.fullscreenUnsupported": "Fullscreen is not supported by this browser",
-};
+// Snapshot of the en-US catalog taken at module init. `getConfig()` returns
+// the live mutable config, so a caller can empty or delete an English entry —
+// this copy still supplies the original string, matching the old literal table.
+const enFallbacks: Record<string, string> = Object.fromEntries(
+	Object.entries(enUS.translations).filter(([, v]) => v !== ""),
+);
 
 export function getConfig(locale: Locale): LocaleConfig {
 	return configs[locale] ?? configs[defaultLocale];

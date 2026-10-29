@@ -3,7 +3,7 @@
  */
 import type { LocaleConfig } from "../types";
 
-const enUS: LocaleConfig = {
+const enUS = {
 	align: "left",
 	direction: "ltr",
 	translations: {
@@ -30,6 +30,6 @@ const enUS: LocaleConfig = {
 		"toolbarItem.exitFullscreen": "Exit fullscreen",
 		"toolbarItem.fullscreenUnsupported": "Fullscreen is not supported by this browser",
 	},
-};
+} satisfies LocaleConfig;
 
 export default enUS;
