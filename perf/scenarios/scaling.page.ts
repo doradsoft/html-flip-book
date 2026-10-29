@@ -195,12 +195,20 @@ async function measureNav(book: FlipBook, size: number): Promise<number> {
 	return now() - t;
 }
 
-/** Window: container resize -> relayout (measured to the 3rd rAF). */
+/** Window: container resize -> relayout (median of 3 toggles, each measured to the 3rd rAF).
+ *  One stalled frame on a shared runner can dominate a single 3-rAF window, so
+ *  the median keeps the metric sensitive to real relayout work but immune to
+ *  one-off scheduler stalls. */
 async function measureResize(app: HTMLElement): Promise<number> {
-	const t = now();
-	app.style.width = app.style.width === "700px" ? "640px" : "700px";
-	await nextFrames(3);
-	return now() - t;
+	const runs: number[] = [];
+	for (let i = 0; i < 3; i++) {
+		const t = now();
+		app.style.width = app.style.width === "700px" ? "640px" : "700px";
+		await nextFrames(3);
+		runs.push(now() - t);
+	}
+	runs.sort((a, b) => a - b);
+	return runs[1];
 }
 
 function collectAudit(audit: boolean): ScalingSample["audit"] {

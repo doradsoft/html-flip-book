@@ -331,4 +331,26 @@ describe("FlipBook React Component", () => {
 		});
 		expect(screen.getByText("Far Page 20")).toBeTruthy();
 	});
+
+	it("coalesces rapid page changes into a single debounced recenter", async () => {
+		const pages = Array.from({ length: 26 }, (_, i) => `Rapid ${i}`).map((label) => (
+			<div key={label}>{label}</div>
+		));
+		render(<FlipBook pages={pages} className="rapid-book" leavesBuffer={1} />);
+		const options = mocked.instances[0].options;
+		const onPageChanged = options.onPageChanged as (index: number) => void;
+
+		// Two changes inside the 80ms debounce window: the pending timer must be
+		// cleared. If it survived, the window would recenter onto page 4 after
+		// 80ms and mount it — instead only the latest position must win.
+		act(() => {
+			onPageChanged(4);
+			onPageChanged(22);
+		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		});
+		expect(screen.getByText("Rapid 22")).toBeTruthy();
+		expect(screen.queryByText("Rapid 4")).toBeNull();
+	});
 });
