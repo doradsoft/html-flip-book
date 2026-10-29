@@ -17,22 +17,22 @@ describe("intl", () => {
 	it("supplies the original English string when a caller empties the en-US entry", () => {
 		const enTranslations = getConfig("en-US").translations;
 		try {
-			enTranslations["toolbarItem.download"] = "";
+			Reflect.set(enTranslations, KEY, "");
 			expect(t(KEY, "en-US")).toBe("Download");
 			// he-IL still hits its own catalog first
 			expect(t(KEY, "he-IL")).toBe("הורדה");
 		} finally {
-			enTranslations["toolbarItem.download"] = "Download";
+			Reflect.set(enTranslations, KEY, "Download");
 		}
 	});
 
 	it("supplies the original English string when a caller deletes the en-US entry", () => {
 		const enTranslations = getConfig("en-US").translations;
 		try {
-			delete enTranslations["toolbarItem.download"];
+			Reflect.deleteProperty(enTranslations, KEY);
 			expect(t(KEY, "en-US")).toBe("Download");
 		} finally {
-			enTranslations["toolbarItem.download"] = "Download";
+			Reflect.set(enTranslations, KEY, "Download");
 		}
 	});
 
