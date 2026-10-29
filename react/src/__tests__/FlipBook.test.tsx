@@ -353,4 +353,50 @@ describe("FlipBook React Component", () => {
 		expect(screen.getByText("Rapid 22")).toBeTruthy();
 		expect(screen.queryByText("Rapid 4")).toBeNull();
 	});
+
+	it("holds the debounced recenter while a flip is in flight (issue #343)", async () => {
+		const pages = Array.from({ length: 26 }, (_, i) => `Hold ${i}`).map((label) => (
+			<div key={label}>{label}</div>
+		));
+		render(<FlipBook pages={pages} className="hold-book" leavesBuffer={1} />);
+		const options = mocked.instances[0].options;
+		const onPageChanged = options.onPageChanged as (index: number) => void;
+		const onPageFlipping = options.onPageFlipping as (params: {
+			leafIndex: number;
+			pageIndices: [number, number];
+			semantics: [undefined, undefined];
+			direction: "forward" | "backward";
+		}) => void;
+
+		// A committed flip arms the 80ms recenter; a new flip starting inside the
+		// window must hold it so the heavy remount cannot land mid-animation.
+		act(() => {
+			onPageChanged(20);
+			onPageFlipping({
+				leafIndex: 9,
+				pageIndices: [18, 19],
+				semantics: [undefined, undefined],
+				direction: "backward",
+			});
+		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		});
+		// The recenter to 20 must not have committed — had the timer survived, the
+		// window would have mounted its content during the in-flight flip.
+		expect(screen.queryByText("Hold 20")).toBeNull();
+		// The in-flight leaf still mounts via inflightLeaves, not the recenter.
+		expect(screen.getByText("Hold 18")).toBeTruthy();
+		expect(screen.getByText("Hold 19")).toBeTruthy();
+
+		// The next committed flip re-arms the recenter and the window catches up.
+		act(() => {
+			onPageChanged(18);
+		});
+		await act(async () => {
+			await new Promise((resolve) => setTimeout(resolve, 150));
+		});
+		expect(screen.getByText("Hold 18")).toBeTruthy();
+		expect(screen.getByText("Hold 20")).toBeTruthy();
+	});
 });
