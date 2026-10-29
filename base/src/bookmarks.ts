@@ -86,6 +86,20 @@ function stopBookGesture(event: Event): void {
 	event.stopPropagation();
 }
 
+// MutationObserver counts each attribute write, even a same-value one; these
+// guards keep per-frame/per-refresh sync from emitting mutation records.
+function setDataset(element: HTMLElement, key: string, value: string): void {
+	if (element.dataset[key] !== value) element.dataset[key] = value;
+}
+
+function setAttribute(element: HTMLElement, name: string, value: string): void {
+	if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+}
+
+function setStyle(element: HTMLElement, name: string, value: string): void {
+	if (element.style.getPropertyValue(name) !== value) element.style.setProperty(name, value);
+}
+
 /** Independent rails keep tabs outside page clipping; attached tabs follow their leaf geometry. */
 export class BookmarkLayer {
 	private readonly element: HTMLDivElement;
@@ -157,10 +171,11 @@ export class BookmarkLayer {
 	}
 
 	private applyMouseMode(item: BookmarkItem): void {
-		item.button.dataset.mouseMode = this.mouseMode;
-		item.content.inert = this.mouseMode === "turn";
-		item.reverse.inert = this.mouseMode === "turn";
-		item.expanded.inert = this.mouseMode === "turn";
+		setDataset(item.button, "mouseMode", this.mouseMode);
+		const inert = this.mouseMode === "turn";
+		if (item.content.inert !== inert) item.content.inert = inert;
+		if (item.reverse.inert !== inert) item.reverse.inert = inert;
+		if (item.expanded.inert !== inert) item.expanded.inert = inert;
 	}
 
 	/** Re-read provider data after navigation or a consumer configuration update. */
@@ -174,20 +189,26 @@ export class BookmarkLayer {
 		const bookmarks = this.getValidBookmarks(context);
 		this.orderedLeafIds = bookmarks.map((leaf) => leaf.id);
 		const focused = this.element.querySelector<HTMLButtonElement>(".flipbook-bookmark:focus");
-		this.element.className = `flipbook-bookmarks ${provider?.className ?? ""}`.trim();
-		this.element.dataset.orientation = provider?.orientation ?? "perpendicular";
-		this.element.dataset.attachment = provider?.attachment ?? "leaf";
-		this.element.style.setProperty("--bookmark-count", String(bookmarks.length));
-		this.element.hidden = bookmarks.length === 0;
+		const className = `flipbook-bookmarks ${provider?.className ?? ""}`.trim();
+		if (this.element.className !== className) this.element.className = className;
+		setDataset(this.element, "orientation", provider?.orientation ?? "perpendicular");
+		setDataset(this.element, "attachment", provider?.attachment ?? "leaf");
+		setStyle(this.element, "--bookmark-count", String(bookmarks.length));
+		const layerHidden = bookmarks.length === 0;
+		if (this.element.hidden !== layerHidden) this.element.hidden = layerHidden;
 		this.removeRetiredBookmarks(bookmarks);
+		// Tracks the previously placed slot per rail so an unchanged order emits no reparents.
+		const lastPlaced = new Map<HTMLElement, Element | null>();
 		bookmarks.forEach((bookmark, index) => {
-			this.placeItem(bookmark, context, index, bookmarks.length);
+			this.placeItem(bookmark, context, index, bookmarks.length, lastPlaced);
 		});
 		for (const group of this.groups.values()) {
 			if (this.provider?.attachment === "pinned" && group.childElementCount === 0) group.remove();
 		}
-		for (const rail of this.rails.values())
-			rail.hidden = rail.querySelector(".flipbook-bookmark:not([hidden])") === null;
+		for (const rail of this.rails.values()) {
+			const railEmpty = rail.querySelector(".flipbook-bookmark:not([hidden])") === null;
+			if (rail.hidden !== railEmpty) rail.hidden = railEmpty;
+		}
 		if (this.bounds) this.layout(this.bounds);
 		if (focused?.isConnected) focused.focus({ preventScroll: true });
 	}
@@ -211,36 +232,51 @@ export class BookmarkLayer {
 		context: BookmarkContext,
 		slot: number,
 		count: number,
+		lastPlaced: Map<HTMLElement, Element | null>,
 	): void {
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
 		const bookmark = item.bookmark;
-		item.button.className = `flipbook-bookmark ${bookmark.className ?? ""}`.trim();
-		item.button.dataset.pageIndex = String(bookmark.pageIndex);
-		item.button.dataset.bookmarkId = bookmark.id;
-		item.button.dataset.spreadIndex = String(Math.floor((bookmark.pageIndex + 1) / 2));
-		item.button.dataset.face = this.isTurned(bookmark, context) ? "1" : "0";
-		item.button.setAttribute("aria-label", bookmark.label);
-		item.button.dir = context.direction;
+		const button = item.button;
+		const className = `flipbook-bookmark ${bookmark.className ?? ""}`.trim();
+		if (button.className !== className) button.className = className;
+		setDataset(button, "pageIndex", String(bookmark.pageIndex));
+		setDataset(button, "bookmarkId", bookmark.id);
+		setDataset(button, "spreadIndex", String(Math.floor((bookmark.pageIndex + 1) / 2)));
+		setDataset(button, "face", this.isTurned(bookmark, context) ? "1" : "0");
+		setAttribute(button, "aria-label", bookmark.label);
+		if (button.dir !== context.direction) button.dir = context.direction;
 		item.edge = this.getEdge(bookmark, context, slot, count);
 		const fixedSide = item.edge === "left" || item.edge === "right";
-		item.button.hidden =
+		const hidden =
 			this.provider?.attachment !== "pinned" &&
 			fixedSide &&
 			item.edge !== this.getLeafSide(bookmark, context);
-		item.slot.hidden = item.button.hidden;
-		item.button.dataset.edge = item.edge;
-		item.button.dataset.orientation = this.provider?.orientation ?? "perpendicular";
-		item.slot.dataset.edge = item.edge;
-		item.slot.dataset.orientation = item.button.dataset.orientation;
+		if (button.hidden !== hidden) button.hidden = hidden;
+		if (item.slot.hidden !== hidden) item.slot.hidden = hidden;
+		setDataset(button, "edge", item.edge);
+		const orientation = this.provider?.orientation ?? "perpendicular";
+		setDataset(button, "orientation", orientation);
+		setDataset(item.slot, "edge", item.edge);
+		setDataset(item.slot, "orientation", orientation);
 		if (!fixedSide) this.clearStackSlot(item.slot);
-		item.button.dataset.leafIndex = String(this.getLeafIndex(bookmark));
-		item.button.style.setProperty("--bookmark-slot", String(slot + 1));
-		item.slot.style.setProperty("--bookmark-slot", String(slot + 1));
+		setDataset(button, "leafIndex", String(this.getLeafIndex(bookmark)));
+		setStyle(button, "--bookmark-slot", String(slot + 1));
+		setStyle(item.slot, "--bookmark-slot", String(slot + 1));
 		const current =
 			Math.floor((bookmark.pageIndex + 1) / 2) === Math.floor((context.currentPageIndex + 1) / 2);
-		if (current) item.button.setAttribute("aria-current", "page");
-		else item.button.removeAttribute("aria-current");
-		this.getItemRail(item.edge, bookmark, context)?.append(item.slot);
+		const hasCurrent = button.hasAttribute("aria-current");
+		if (current !== hasCurrent) {
+			if (current) button.setAttribute("aria-current", "page");
+			else button.removeAttribute("aria-current");
+		}
+		const rail = this.getItemRail(item.edge, bookmark, context);
+		if (rail) {
+			// Skip the reparent when the slot already sits after its expected sibling.
+			const previous = lastPlaced.get(rail) ?? null;
+			if (item.slot.parentElement !== rail || item.slot.previousElementSibling !== previous)
+				rail.append(item.slot);
+			lastPlaced.set(rail, item.slot);
+		}
 	}
 
 	private getItemRail(
@@ -297,10 +333,10 @@ export class BookmarkLayer {
 				edge === "left" ? bounds.left - depth : bounds.left + (edge === "right" ? bounds.width : 0);
 			const top =
 				edge === "top" ? bounds.top - depth : bounds.top + (edge === "bottom" ? bounds.height : 0);
-			rail.style.left = `${left}px`;
-			rail.style.top = `${top}px`;
-			rail.style.width = `${Math.max(0, horizontal ? bounds.width : depth)}px`;
-			rail.style.height = `${Math.max(0, horizontal ? depth : bounds.height)}px`;
+			setStyle(rail, "left", `${left}px`);
+			setStyle(rail, "top", `${top}px`);
+			setStyle(rail, "width", `${Math.max(0, horizontal ? bounds.width : depth)}px`);
+			setStyle(rail, "height", `${Math.max(0, horizontal ? depth : bounds.height)}px`);
 		}
 		this.layoutSideStacks(bounds, depth);
 		for (const [index, pose] of this.leafFrames) this.updateLeaf(index, pose.frame, pose.page);
@@ -329,13 +365,13 @@ export class BookmarkLayer {
 				edge === "left" ? bounds.left : this.host.clientWidth - bounds.left - bounds.width,
 				this.provider?.orientation === "parallel" ? 1 : 0,
 			);
-			rail.dataset.stackCapacity = String(stack.capacity);
-			rail.dataset.stackLayers = String(stack.layers);
-			rail.dataset.stackPitch = String(stack.pitch);
-			rail.dataset.stackStagger = String(stack.stagger);
-			rail.style.width = `${stack.depth}px`;
-			rail.style.zIndex = String(this.getRestingRailZIndex(edge));
-			if (edge === "left") rail.style.left = `${bounds.left - stack.depth}px`;
+			setDataset(rail, "stackCapacity", String(stack.capacity));
+			setDataset(rail, "stackLayers", String(stack.layers));
+			setDataset(rail, "stackPitch", String(stack.pitch));
+			setDataset(rail, "stackStagger", String(stack.stagger));
+			setStyle(rail, "width", `${stack.depth}px`);
+			setStyle(rail, "z-index", String(this.getRestingRailZIndex(edge)));
+			if (edge === "left") setStyle(rail, "left", `${bounds.left - stack.depth}px`);
 			this.orderedLeafIds.forEach((id, rank) => {
 				const item = this.items.get(id);
 				if (!item || item.edge !== edge) return;
@@ -343,15 +379,15 @@ export class BookmarkLayer {
 				const row = rank % stack.capacity;
 				const width = stack.frontDepth + layer * stack.step;
 				const slot = item.slot;
-				slot.dataset.stackLayer = String(layer);
-				slot.dataset.stackRow = String(row);
-				slot.dataset.stackPeek = String(layer === 0 ? width : stack.step);
-				slot.style.setProperty("--bookmark-exposed-depth", `${width}px`);
-				slot.style.setProperty("--bookmark-exposed-length", `${stack.length}px`);
-				slot.style.top = `${row * stack.pitch + (layer % 2) * stack.stagger}px`;
-				slot.style.width = `${width}px`;
-				slot.style.height = `${stack.length}px`;
-				slot.style.zIndex = String(stack.layers - layer);
+				setDataset(slot, "stackLayer", String(layer));
+				setDataset(slot, "stackRow", String(row));
+				setDataset(slot, "stackPeek", String(layer === 0 ? width : stack.step));
+				setStyle(slot, "--bookmark-exposed-depth", `${width}px`);
+				setStyle(slot, "--bookmark-exposed-length", `${stack.length}px`);
+				setStyle(slot, "top", `${row * stack.pitch + (layer % 2) * stack.stagger}px`);
+				setStyle(slot, "width", `${width}px`);
+				setStyle(slot, "height", `${stack.length}px`);
+				setStyle(slot, "z-index", String(stack.layers - layer));
 			});
 		}
 	}
@@ -389,8 +425,10 @@ export class BookmarkLayer {
 		this.leafFrames.set(index, { frame, page });
 		for (const item of this.items.values()) {
 			if (this.getLeafIndex(item.bookmark) !== index) continue;
-			item.button.style.zIndex = String(
-				frame.zIndices[this.isTurned(item.bookmark, this.getContext()) ? 1 : 0],
+			setStyle(
+				item.button,
+				"z-index",
+				String(frame.zIndices[this.isTurned(item.bookmark, this.getContext()) ? 1 : 0]),
 			);
 			if (this.provider?.attachment === "pinned") continue;
 			if (item.button.hidden) continue;

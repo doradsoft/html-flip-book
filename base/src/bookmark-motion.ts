@@ -41,6 +41,12 @@ interface MovingBookmark {
 	hidden: HTMLElement["hidden"];
 	inert: boolean;
 	surfaces: HTMLDivElement[];
+	/** Last cssText written per surface; skips same-value inline rewrites per frame. */
+	surfaceCss: string[];
+	/** Buttons whose fixed per-capture placement styles were already written. */
+	placed: Set<HTMLElement>;
+	/** Last scaleX written per caption element; cloned captions re-render fresh. */
+	captionScales: Map<HTMLElement, number>;
 	visual: HTMLButtonElement;
 	storage: HTMLDivElement;
 	appearance: [string, string][];
@@ -142,6 +148,9 @@ export class BookmarkMotion {
 			hidden: button.hidden,
 			inert: button.inert,
 			surfaces: [],
+			surfaceCss: [],
+			placed: new Set(),
+			captionScales: new Map(),
 			visual,
 			storage,
 			appearance: this.captureAppearance(button),
@@ -266,21 +275,25 @@ export class BookmarkMotion {
 		const faces = item.faces;
 		if (!faces) return;
 		const source = face === 0 ? faces.data.front : faces.data.back;
-		item.button.dataset.face = String(face);
-		item.button.dataset.pageIndex = String(source.pageIndex);
-		item.button.dataset.bookmarkId = source.id;
-		item.button.setAttribute("aria-label", source.label);
+		const faceValue = String(face);
+		if (item.button.dataset.face !== faceValue) item.button.dataset.face = faceValue;
+		const pageIndex = String(source.pageIndex);
+		if (item.button.dataset.pageIndex !== pageIndex) item.button.dataset.pageIndex = pageIndex;
+		if (item.button.dataset.bookmarkId !== source.id) item.button.dataset.bookmarkId = source.id;
+		if (item.button.getAttribute("aria-label") !== source.label)
+			item.button.setAttribute("aria-label", source.label);
 		const reverse = faces.data.reverse;
 		const active = !reverse || face === faces.data.activeFace;
-		faces.brief.hidden = !active || faces.briefHidden;
+		const briefHidden = !active || faces.briefHidden;
+		if (faces.brief.hidden !== briefHidden) faces.brief.hidden = briefHidden;
 		if (!reverse) return;
 		if (active) {
 			this.returnReverse(faces);
-			reverse.hidden = faces.reverseHidden;
+			if (reverse.hidden !== faces.reverseHidden) reverse.hidden = faces.reverseHidden;
 			return;
 		}
 		if (reverse.parentNode !== item.button) item.button.append(reverse);
-		reverse.hidden = false;
+		if (reverse.hidden) reverse.hidden = false;
 	}
 
 	private showVisualFace(item: MovingBookmark, face: 0 | 1): void {
@@ -377,8 +390,10 @@ export class BookmarkMotion {
 	): void {
 		const left = this.baseLeft(page0, frame.width);
 		const top = Number.parseFloat(page0.style.top) || 0;
-		if (surfaces.length === 0) item.storage.append(item.button);
-		if (surfaces.length < 2) item.storage.append(item.visual);
+		if (surfaces.length === 0 && item.button.parentElement !== item.storage)
+			item.storage.append(item.button);
+		if (surfaces.length < 2 && item.visual.parentElement !== item.storage)
+			item.storage.append(item.visual);
 		for (let index = 0; index < surfaces.length; index++) {
 			const surface = surfaces[index];
 			let wrapper = item.surfaces[index];
@@ -388,17 +403,31 @@ export class BookmarkMotion {
 				if (page0.parentElement === this.host) this.host.insertBefore(wrapper, page0);
 				else this.host.append(wrapper);
 				item.surfaces.push(wrapper);
+				item.surfaceCss.push("");
 			}
-			wrapper.hidden = false;
-			wrapper.className = `flipbook-bookmark-surface ${className}`.trim();
-			wrapper.dataset.bookmarkSurface = bookmark.id;
-			wrapper.dataset.leafIndex = String(Math.floor(bookmark.pageIndex / 2));
-			wrapper.dataset.bookmarkFace = String(surface.face);
-			wrapper.style.cssText = `position:absolute;left:${left}px;top:${top}px;width:${item.exposed.width}px;height:${item.exposed.height}px;pointer-events:none;transform-origin:0px 0px;overflow:visible;`;
-			for (const [name, value] of item.appearance) wrapper.style.setProperty(name, value);
-			wrapper.style.transform = surface.transform;
-			wrapper.style.zIndex = String(surface.zIndex);
-			wrapper.style.clipPath = `polygon(${surface.polygon.map((point) => `${point.x}px ${point.y}px`).join(", ")})`;
+			if (wrapper.hidden) wrapper.hidden = false;
+			const surfaceClass = `flipbook-bookmark-surface ${className}`.trim();
+			if (wrapper.className !== surfaceClass) wrapper.className = surfaceClass;
+			if (wrapper.dataset.bookmarkSurface !== bookmark.id)
+				wrapper.dataset.bookmarkSurface = bookmark.id;
+			const leafIndex = String(Math.floor(bookmark.pageIndex / 2));
+			if (wrapper.dataset.leafIndex !== leafIndex) wrapper.dataset.leafIndex = leafIndex;
+			const bookmarkFace = String(surface.face);
+			if (wrapper.dataset.bookmarkFace !== bookmarkFace)
+				wrapper.dataset.bookmarkFace = bookmarkFace;
+			const cssText = `position:absolute;left:${left}px;top:${top}px;width:${item.exposed.width}px;height:${item.exposed.height}px;pointer-events:none;transform-origin:0px 0px;overflow:visible;`;
+			if (item.surfaceCss[index] !== cssText) {
+				item.surfaceCss[index] = cssText;
+				wrapper.style.cssText = cssText;
+				// cssText clears the captured custom properties; re-apply on rewrite only.
+				for (const [name, value] of item.appearance) wrapper.style.setProperty(name, value);
+			}
+			if (wrapper.style.transform !== surface.transform)
+				wrapper.style.transform = surface.transform;
+			const zIndex = String(surface.zIndex);
+			if (wrapper.style.zIndex !== zIndex) wrapper.style.zIndex = zIndex;
+			const clipPath = `polygon(${surface.polygon.map((point) => `${point.x}px ${point.y}px`).join(", ")})`;
+			if (wrapper.style.clipPath !== clipPath) wrapper.style.clipPath = clipPath;
 			const content = index === 0 ? item.button : item.visual;
 			if (index === 0) this.showFace(item, surface.face);
 			else this.showVisualFace(item, surface.face);
@@ -406,7 +435,7 @@ export class BookmarkMotion {
 			if (content.parentElement !== wrapper) wrapper.append(content);
 		}
 		for (let index = surfaces.length; index < item.surfaces.length; index++) {
-			item.surfaces[index].hidden = true;
+			if (!item.surfaces[index].hidden) item.surfaces[index].hidden = true;
 		}
 	}
 
@@ -416,32 +445,45 @@ export class BookmarkMotion {
 		frame: BookmarkLeafFrame,
 		face: 0 | 1,
 	): void {
-		button.hidden = false;
-		button.dataset.bookmarkMotion = "true";
-		button.style.position = "absolute";
-		button.style.inset = "auto";
-		button.style.left = `${item.rectangle.left - item.exposed.left}px`;
-		button.style.top = `${item.rectangle.top - item.exposed.top}px`;
-		button.style.width = `${item.rectangle.width}px`;
-		button.style.height = `${item.rectangle.height}px`;
-		button.style.maxWidth = "none";
-		button.style.maxHeight = "none";
-		button.style.margin = "0";
-		button.style.flex = "none";
-		button.style.transform = "none";
+		if (button.hidden) button.hidden = false;
+		if (button.dataset.bookmarkMotion !== "true") button.dataset.bookmarkMotion = "true";
+		// Every property below is fixed for this capture — write once per button
+		// instead of per frame (shorthand normalization makes getter comparisons
+		// unreliable, and same-value writes still emit mutation records).
+		if (!item.placed.has(button)) {
+			item.placed.add(button);
+			button.style.position = "absolute";
+			button.style.inset = "auto";
+			button.style.left = `${item.rectangle.left - item.exposed.left}px`;
+			button.style.top = `${item.rectangle.top - item.exposed.top}px`;
+			button.style.width = `${item.rectangle.width}px`;
+			button.style.height = `${item.rectangle.height}px`;
+			button.style.maxWidth = "none";
+			button.style.maxHeight = "none";
+			button.style.margin = "0";
+			button.style.flex = "none";
+			button.style.transform = "none";
+			button.style.pointerEvents = button.classList.contains("flipbook-bookmark--mirror")
+				? "none"
+				: "auto";
+		}
 		if (item.caption) {
 			const scale = (frame.isLTR ? 1 : -1) * (face === 0 ? 1 : -1);
 			for (const caption of button.querySelectorAll<HTMLElement>(
 				":scope > .flipbook-bookmark__content",
 			))
-				this.placeCaption(caption, item.caption.bounds, scale);
+				this.placeCaption(item, caption, item.caption.bounds, scale);
 		}
-		button.style.pointerEvents = button.classList.contains("flipbook-bookmark--mirror")
-			? "none"
-			: "auto";
 	}
 
-	private placeCaption(caption: HTMLElement, bounds: BookmarkSheetRectangle, scale: number): void {
+	private placeCaption(
+		item: MovingBookmark,
+		caption: HTMLElement,
+		bounds: BookmarkSheetRectangle,
+		scale: number,
+	): void {
+		if (item.captionScales.get(caption) === scale) return;
+		item.captionScales.set(caption, scale);
 		caption.style.position = "absolute";
 		caption.style.inset = "auto";
 		caption.style.left = `${bounds.left}px`;

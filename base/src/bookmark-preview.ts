@@ -145,7 +145,7 @@ export class BookmarkPreview {
 		this.animationFrame = 0;
 		if (this.closeTimer !== undefined) this.view?.clearTimeout(this.closeTimer);
 		this.closeTimer = undefined;
-		this.element.dataset.open = "false";
+		if (this.element.dataset.open !== "false") this.element.dataset.open = "false";
 		if (
 			!immediate &&
 			this.source &&
@@ -199,8 +199,8 @@ export class BookmarkPreview {
 			this.placeholder?.replaceWith(this.source);
 			if (focused) this.source.focus({ preventScroll: true });
 		}
-		this.element.hidden = true;
-		this.clipBoundary.hidden = true;
+		if (!this.element.hidden) this.element.hidden = true;
+		if (!this.clipBoundary.hidden) this.clipBoundary.hidden = true;
 		this.content = undefined;
 		this.source = undefined;
 		this.placeholder = undefined;
