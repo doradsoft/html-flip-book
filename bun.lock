@@ -34,7 +34,7 @@
     },
     "base": {
       "name": "html-flip-book-vanilla",
-      "version": "0.0.0-alpha.96",
+      "version": "0.0.0-alpha.97",
       "dependencies": {
         "hammerjs": "^2.0.8",
         "throttle-debounce": "^5.0.2",
@@ -47,7 +47,7 @@
     },
     "react": {
       "name": "html-flip-book-react",
-      "version": "0.0.0-alpha.96",
+      "version": "0.0.0-alpha.97",
       "dependencies": {
         "html-flip-book-vanilla": "*",
       },
@@ -62,7 +62,7 @@
     },
     "react/example": {
       "name": "html-flip-book-react-example",
-      "version": "0.0.0-alpha.96",
+      "version": "0.0.0-alpha.97",
       "dependencies": {
         "html-flip-book-react": "*",
         "jspdf": "^4.2.1",
