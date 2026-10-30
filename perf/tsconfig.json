@@ -1,0 +1,19 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"types": ["node", "vitest/globals"],
+		"paths": {
+			"html-flip-book-vanilla/*": ["../base/src/*/index.ts"],
+			"html-flip-book-vanilla": ["../base/src/flipbook.ts"],
+			"html-flip-book-react": ["../react/src/FlipBook.tsx"]
+		}
+	},
+	"include": [
+		"../scripts/perf/**/*.mts",
+		"fixture/**/*.ts",
+		"fixture/**/*.mts",
+		"scenarios/**/*.ts"
+	]
+}

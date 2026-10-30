@@ -51,6 +51,7 @@ export default defineConfig({
 				"scripts/coverage-paths.mts",
 				"scripts/merge-coverage.mts",
 				"e2e/fixtures/coverage-collector.ts",
+				"perf/fixture/mount-readiness.ts",
 			],
 			exclude: ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**"],
 		},

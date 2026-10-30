@@ -111,7 +111,7 @@ function instrumentObservers(): { active(): number } {
 		const origDisconnect = proto.disconnect;
 		proto.observe = function (this: object, ...args: never[]) {
 			liveObservers.add(this);
-			return origObserve.apply(this, args);
+			return Reflect.apply(origObserve, this, args);
 		} as never;
 		proto.disconnect = function (this: object) {
 			liveObservers.delete(this);

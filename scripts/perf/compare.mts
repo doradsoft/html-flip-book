@@ -5,6 +5,7 @@ import {
 	buildCandidate,
 	buildFixture,
 	collectEnv,
+	verifyResourceCollection,
 	ensureDir,
 	launchPerfBrowser,
 	writeJson,
@@ -138,7 +139,7 @@ function decide(
 	};
 }
 
-async function main(): Promise<void> {
+async function main(): Promise<number> {
 	const cli = parseArgs();
 	const repoRoot = process.cwd();
 	const outDir = path.resolve(cli.out);
@@ -164,207 +165,212 @@ async function main(): Promise<void> {
 	const distCand = await buildFixture(repoRoot, candidate, buildDir);
 
 	const browser = await launchPerfBrowser();
-	const env = await collectEnv(browser, base.sha, candidate.sha);
+	try {
+		const env = await collectEnv(browser, base.sha, candidate.sha);
+		const resourceCollection = await verifyResourceCollection(browser);
 
-	const scenarioNames = cli.scenario.includes("all") ? Object.keys(ALL_SCENARIOS) : cli.scenario;
-	const results: Record<string, unknown> = {
-		env,
-		policy: {
-			samples: cli.samples,
-			aaSamples: cli.samples,
-			auditPairs: cli.auditPairs,
-			paired: true,
-			verdictRule:
-				"regression when median paired diff > max(thresholdAbs, noiseFloor) AND medianRatio > thresholdRatio AND ci90Low > 0",
-			exitCodes: { 0: "all no-regression", 1: "regression or error", 2: "inconclusive only" },
-		},
-		injectedDelayMs: cli.delayCandidateMs,
-		scenarios: [] as unknown[],
-	};
+		const scenarioNames = cli.scenario.includes("all") ? Object.keys(ALL_SCENARIOS) : cli.scenario;
+		const results: Record<string, unknown> = {
+			env,
+			resourceCollection,
+			policy: {
+				samples: cli.samples,
+				aaSamples: cli.samples,
+				auditPairs: cli.auditPairs,
+				paired: true,
+				verdictRule:
+					"regression when median paired diff > max(thresholdAbs, noiseFloor) AND medianRatio > thresholdRatio AND ci90Low > 0",
+				exitCodes: { 0: "all no-regression", 1: "regression or error", 2: "inconclusive only" },
+			},
+			injectedDelayMs: cli.delayCandidateMs,
+			scenarios: [] as unknown[],
+		};
 
-	const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
-	let sawRegression = false;
-	let sawInconclusive = false;
+		const page = await browser.newPage({ viewport: { width: 800, height: 600 } });
+		let sawRegression = false;
+		let sawInconclusive = false;
 
-	for (const name of scenarioNames) {
-		const scenario: ScenarioDriver | undefined = ALL_SCENARIOS[name];
-		if (!scenario) throw new Error(`unknown scenario ${name}`);
-		const sizes = scenario.sizes[0] === 0 ? [0] : cli.sizes;
+		for (const name of scenarioNames) {
+			const scenario: ScenarioDriver | undefined = ALL_SCENARIOS[name];
+			if (!scenario) throw new Error(`unknown scenario ${name}`);
+			const sizes = scenario.sizes[0] === 0 ? [0] : cli.sizes;
 
-		for (const size of sizes) {
-			const specs = scenario.metricsFor(size);
-			const unsupportedKeys = new Set<string>();
-			const baseSamples: Record<string, number>[] = [];
-			const candSamples: Record<string, number>[] = [];
-			const aaA: Record<string, number>[] = [];
-			const aaB: Record<string, number>[] = [];
-			let invalidBase = 0;
-			let invalidCand = 0;
-			const reasons: string[] = [];
+			for (const size of sizes) {
+				const specs = scenario.metricsFor(size);
+				const unsupportedKeys = new Set<string>();
+				const baseSamples: Record<string, number>[] = [];
+				const candSamples: Record<string, number>[] = [];
+				const aaA: Record<string, number>[] = [];
+				const aaB: Record<string, number>[] = [];
+				let invalidBase = 0;
+				let invalidCand = 0;
+				const reasons: string[] = [];
 
-			// A sample that throws is invalid, not a harness crash.
-			const safeSample = async (dist: string, delay: number) => {
-				try {
-					return await scenario.runSample(page, dist, size, delay);
-				} catch (err) {
-					return {
-						metrics: {},
-						valid: false,
-						invalidReason: `threw: ${String(err).slice(0, 160)}`,
-					};
-				}
-			};
-
-			// Paired samples, interleaved base/candidate.
-			for (let i = 0; i < cli.samples; i++) {
-				const rb = await safeSample(distBase, 0);
-				const rc = await safeSample(distCand, cli.delayCandidateMs);
-				console.log(`  ${name}${size ? `/${size}` : ""} pair ${i + 1}/${cli.samples} done`);
-				if (rb.valid) baseSamples.push(rb.metrics);
-				else invalidBase++;
-				if (rc.valid) candSamples.push(rc.metrics);
-				else invalidCand++;
-				if (rb.invalidReason) reasons.push(`base#${i}: ${rb.invalidReason}`);
-				if (rc.invalidReason) reasons.push(`cand#${i}: ${rc.invalidReason}`);
-				for (const k of rb.unsupported ?? []) unsupportedKeys.add(k);
-				for (const k of rc.unsupported ?? []) unsupportedKeys.add(k);
-			}
-
-			// A/A calibration: base-vs-base pairs establish the noise floor.
-			// Invalid A/A samples count toward the error budget: calibration
-			// failure is an environment problem, not a free pass.
-			for (let i = 0; i < cli.samples; i++) {
-				const a = await safeSample(distBase, 0);
-				const b = await safeSample(distBase, 0);
-				if (a.valid) aaA.push(a.metrics);
-				else {
-					invalidBase++;
-					if (a.invalidReason) reasons.push(`aa#${i}a: ${a.invalidReason}`);
-				}
-				if (b.valid) aaB.push(b.metrics);
-				else {
-					invalidBase++;
-					if (b.invalidReason) reasons.push(`aa#${i}b: ${b.invalidReason}`);
-				}
-			}
-
-			// Instrumented audit passes (leak signals): real base/candidate
-			// and A/A pairs so the paired statistics get an honest noise
-			// floor. Each audit runs on a fresh page — Performance.getMetrics
-			// counters include retained objects from earlier documents in the
-			// same renderer, so reusing the sampling page leaks the previous
-			// fixture's nodes and listeners into the baseline.
-			const auditBase: Record<string, number>[] = [];
-			const auditCand: Record<string, number>[] = [];
-			const auditAaA: Record<string, number>[] = [];
-			const auditAaB: Record<string, number>[] = [];
-			const auditKeySet = new Set<string>();
-			const audit = scenario.audit;
-			if (audit) {
-				const auditOnFreshPage = async (dist: string) => {
-					const auditPage = await browser.newPage({
-						viewport: { width: 800, height: 600 },
-					});
+				// A sample that throws is invalid, not a harness crash.
+				const safeSample = async (dist: string, delay: number) => {
 					try {
-						return await audit(auditPage, dist, size);
-					} finally {
-						await auditPage.close();
+						return await scenario.runSample(page, dist, size, delay);
+					} catch (err) {
+						return {
+							metrics: {},
+							valid: false,
+							invalidReason: `threw: ${String(err).slice(0, 160)}`,
+						};
 					}
 				};
-				for (let i = 0; i < cli.auditPairs; i++) {
-					auditBase.push(await auditOnFreshPage(distBase));
-					auditCand.push(await auditOnFreshPage(distCand));
-					auditAaA.push(await auditOnFreshPage(distBase));
-					auditAaB.push(await auditOnFreshPage(distBase));
-				}
-				for (const m of [...auditBase, ...auditCand]) {
-					for (const k of Object.keys(m)) auditKeySet.add(k);
-				}
-			}
 
-			// Outcomes per metric.
-			const outcomes: MetricOutcome[] = [];
-			const pick = (spec: MetricSpec, samples: Record<string, number>[]) =>
-				samples
-					.map((m) => m[spec.key])
-					.filter(
-						(v): v is number =>
-							typeof v === "number" && Number.isFinite(v) && (spec.signed || v >= 0),
+				// Paired samples, interleaved base/candidate.
+				for (let i = 0; i < cli.samples; i++) {
+					const rb = await safeSample(distBase, 0);
+					const rc = await safeSample(distCand, cli.delayCandidateMs);
+					console.log(`  ${name}${size ? `/${size}` : ""} pair ${i + 1}/${cli.samples} done`);
+					if (rb.valid) baseSamples.push(rb.metrics);
+					else invalidBase++;
+					if (rc.valid) candSamples.push(rc.metrics);
+					else invalidCand++;
+					if (rb.invalidReason) reasons.push(`base#${i}: ${rb.invalidReason}`);
+					if (rc.invalidReason) reasons.push(`cand#${i}: ${rc.invalidReason}`);
+					for (const k of rb.unsupported ?? []) unsupportedKeys.add(k);
+					for (const k of rc.unsupported ?? []) unsupportedKeys.add(k);
+				}
+
+				// A/A calibration: base-vs-base pairs establish the noise floor.
+				// Invalid A/A samples count toward the error budget: calibration
+				// failure is an environment problem, not a free pass.
+				for (let i = 0; i < cli.samples; i++) {
+					const a = await safeSample(distBase, 0);
+					const b = await safeSample(distBase, 0);
+					if (a.valid) aaA.push(a.metrics);
+					else {
+						invalidBase++;
+						if (a.invalidReason) reasons.push(`aa#${i}a: ${a.invalidReason}`);
+					}
+					if (b.valid) aaB.push(b.metrics);
+					else {
+						invalidBase++;
+						if (b.invalidReason) reasons.push(`aa#${i}b: ${b.invalidReason}`);
+					}
+				}
+
+				// Instrumented audit passes (leak signals): real base/candidate
+				// and A/A pairs so the paired statistics get an honest noise
+				// floor. Each audit runs on a fresh page — Performance.getMetrics
+				// counters include retained objects from earlier documents in the
+				// same renderer, so reusing the sampling page leaks the previous
+				// fixture's nodes and listeners into the baseline.
+				const auditBase: Record<string, number>[] = [];
+				const auditCand: Record<string, number>[] = [];
+				const auditAaA: Record<string, number>[] = [];
+				const auditAaB: Record<string, number>[] = [];
+				const auditKeySet = new Set<string>();
+				const audit = scenario.audit;
+				if (audit) {
+					const auditOnFreshPage = async (dist: string) => {
+						const auditPage = await browser.newPage({
+							viewport: { width: 800, height: 600 },
+						});
+						try {
+							return await audit(auditPage, dist, size);
+						} finally {
+							await auditPage.close();
+						}
+					};
+					for (let i = 0; i < cli.auditPairs; i++) {
+						auditBase.push(await auditOnFreshPage(distBase));
+						auditCand.push(await auditOnFreshPage(distCand));
+						auditAaA.push(await auditOnFreshPage(distBase));
+						auditAaB.push(await auditOnFreshPage(distBase));
+					}
+					for (const m of [...auditBase, ...auditCand]) {
+						for (const k of Object.keys(m)) auditKeySet.add(k);
+					}
+				}
+
+				// Outcomes per metric.
+				const outcomes: MetricOutcome[] = [];
+				const pick = (spec: MetricSpec, samples: Record<string, number>[]) =>
+					samples
+						.map((m) => m[spec.key])
+						.filter(
+							(v): v is number =>
+								typeof v === "number" && Number.isFinite(v) && (spec.signed || v >= 0),
+						);
+
+				for (const spec of specs) {
+					// Audit metrics draw from their own paired arrays; sampled
+					// metrics from the paired sample sets.
+					const auditMetric = auditKeySet.has(spec.key);
+					const bs = pick(spec, auditMetric ? auditBase : baseSamples);
+					const cs = pick(spec, auditMetric ? auditCand : candSamples);
+					const aas = pick(spec, auditMetric ? auditAaA : aaA);
+					const aas2 = pick(spec, auditMetric ? auditAaB : aaB);
+					const unsupported = unsupportedKeys.has(spec.key) || bs.length === 0 || cs.length === 0;
+					const stats = summarize(bs, cs);
+					const aaStats = summarize(aas, aas2);
+					const noiseFloor = Math.abs(aaStats.medianDiff) + 2 * aaStats.madDiff;
+					outcomes.push(decide(spec, stats, noiseFloor, unsupported));
+				}
+
+				// Scenario outcome: error > regression > inconclusive > no-regression.
+				// Invalid budget counts paired + A/A samples against 4*samples runs.
+				const errorPct = (invalidBase + invalidCand) / (cli.samples * 4);
+				const verdicts = outcomes.map((o) => o.verdict);
+				let outcome: Verdict;
+				if (invalidBase + invalidCand > 0 && errorPct >= 0.25) outcome = "error";
+				else if (verdicts.includes("regression")) outcome = "regression";
+				else if (verdicts.includes("inconclusive")) outcome = "inconclusive";
+				else outcome = "no-regression";
+				if (invalidBase + invalidCand > 0) {
+					reasons.unshift(`invalid samples: base=${invalidBase} cand=${invalidCand}`);
+					if (outcome === "no-regression") outcome = "inconclusive";
+				}
+				if (outcome === "regression" || outcome === "error") sawRegression = true;
+				if (outcome === "inconclusive") sawInconclusive = true;
+
+				console.log(`\n== ${name}${size ? ` size=${size}` : ""}: ${outcome.toUpperCase()}`);
+				for (const o of outcomes) {
+					const mark =
+						o.verdict === "regression" ? "REGRESS" : o.verdict === "inconclusive" ? "  noisy" : o.verdict === "unsupported" ? " unsupp" : "     ok";
+					console.log(
+						`  ${mark} ${o.spec.label}: base ${o.stats.baseMedian.toFixed(2)} -> cand ${o.stats.candidateMedian.toFixed(2)} (x${o.stats.medianRatio.toFixed(2)}) ${o.reason}`,
 					);
+				}
+				if (reasons.length) console.log(`  notes: ${reasons.join("; ")}`);
 
-			for (const spec of specs) {
-				// Audit metrics draw from their own paired arrays; sampled
-				// metrics from the paired sample sets.
-				const auditMetric = auditKeySet.has(spec.key);
-				const bs = pick(spec, auditMetric ? auditBase : baseSamples);
-				const cs = pick(spec, auditMetric ? auditCand : candSamples);
-				const aas = pick(spec, auditMetric ? auditAaA : aaA);
-				const aas2 = pick(spec, auditMetric ? auditAaB : aaB);
-				const unsupported = unsupportedKeys.has(spec.key) || bs.length === 0 || cs.length === 0;
-				const stats = summarize(bs, cs);
-				const aaStats = summarize(aas, aas2);
-				const noiseFloor = Math.abs(aaStats.medianDiff) + 2 * aaStats.madDiff;
-				outcomes.push(decide(spec, stats, noiseFloor, unsupported));
+				(results.scenarios as unknown[]).push({
+					name,
+					size,
+					outcome,
+					invalidSamples: { base: invalidBase, candidate: invalidCand },
+					invalidReasons: reasons,
+					rawPaired: { base: baseSamples, candidate: candSamples },
+					aaCalibration: { a: aaA, b: aaB },
+					audit: {
+						pairs: { base: auditBase, candidate: auditCand },
+						aa: { a: auditAaA, b: auditAaB },
+					},
+					metrics: outcomes.map((o) => ({ key: o.spec.key, label: o.spec.label, ...o.stats, noiseFloor: o.noiseFloor, verdict: o.verdict, reason: o.reason })),
+				});
 			}
-
-			// Scenario outcome: error > regression > inconclusive > no-regression.
-			// Invalid budget counts paired + A/A samples against 4*samples runs.
-			const errorPct = (invalidBase + invalidCand) / (cli.samples * 4);
-			const verdicts = outcomes.map((o) => o.verdict);
-			let outcome: Verdict;
-			if (invalidBase + invalidCand > 0 && errorPct >= 0.25) outcome = "error";
-			else if (verdicts.includes("regression")) outcome = "regression";
-			else if (verdicts.includes("inconclusive")) outcome = "inconclusive";
-			else outcome = "no-regression";
-			if (invalidBase + invalidCand > 0) {
-				reasons.unshift(`invalid samples: base=${invalidBase} cand=${invalidCand}`);
-				if (outcome === "no-regression") outcome = "inconclusive";
-			}
-			if (outcome === "regression" || outcome === "error") sawRegression = true;
-			if (outcome === "inconclusive") sawInconclusive = true;
-
-			console.log(`\n== ${name}${size ? ` size=${size}` : ""}: ${outcome.toUpperCase()}`);
-			for (const o of outcomes) {
-				const mark =
-					o.verdict === "regression" ? "REGRESS" : o.verdict === "inconclusive" ? "  noisy" : o.verdict === "unsupported" ? " unsupp" : "     ok";
-				console.log(
-					`  ${mark} ${o.spec.label}: base ${o.stats.baseMedian.toFixed(2)} -> cand ${o.stats.candidateMedian.toFixed(2)} (x${o.stats.medianRatio.toFixed(2)}) ${o.reason}`,
-				);
-			}
-			if (reasons.length) console.log(`  notes: ${reasons.join("; ")}`);
-
-			(results.scenarios as unknown[]).push({
-				name,
-				size,
-				outcome,
-				invalidSamples: { base: invalidBase, candidate: invalidCand },
-				invalidReasons: reasons,
-				rawPaired: { base: baseSamples, candidate: candSamples },
-				aaCalibration: { a: aaA, b: aaB },
-				audit: {
-					pairs: { base: auditBase, candidate: auditCand },
-					aa: { a: auditAaA, b: auditAaB },
-				},
-				metrics: outcomes.map((o) => ({ key: o.spec.key, label: o.spec.label, ...o.stats, noiseFloor: o.noiseFloor, verdict: o.verdict, reason: o.reason })),
-			});
 		}
-	}
 
-	await browser.close();
-	await writeJson(path.join(outDir, "result.json"), results);
-	console.log(`\nartifacts: ${outDir}`);
+		await writeJson(path.join(outDir, "result.json"), results);
+		console.log(`\nartifacts: ${outDir}`);
 
-	if (cli.selfcheck) {
-		const ok = sawRegression;
-		console.log(ok ? "selfcheck: regression detected as expected" : "selfcheck: FAILED to detect injected slowdown");
-		process.exit(ok ? 0 : 1);
+		if (cli.selfcheck) {
+			const ok = sawRegression;
+			console.log(ok ? "selfcheck: regression detected as expected" : "selfcheck: FAILED to detect injected slowdown");
+			return ok ? 0 : 1;
+		}
+		if (sawRegression) return 1;
+		if (sawInconclusive) return 2;
+		return 0;
+	} finally {
+		await browser.close();
 	}
-	if (sawRegression) process.exit(1);
-	if (sawInconclusive) process.exit(2);
-	process.exit(0);
 }
 
-main().catch((err) => {
+main().then((code) => process.exit(code)).catch((err) => {
 	console.error("perf harness failed:", err);
 	process.exit(1);
 });

@@ -1,5 +1,3 @@
-import { fileURLToPath } from "node:url";
-
 // Perf fixture build. The driver builds one fixture per variant under test:
 // HFB_PERF_VANILLA and HFB_PERF_CSS point at that variant's dist artifacts so
 // base and candidate run through byte-identical fixture code.

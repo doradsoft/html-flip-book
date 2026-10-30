@@ -128,8 +128,9 @@ export function registerReactTurnScenario(): void {
 			host.style.width = "100%";
 			host.style.height = "100%";
 			app.appendChild(host);
-			root = createRoot(host);
-			flushSync(() => root.render(createElement(FlipBook, props)));
+			const mountedRoot = createRoot(host);
+			root = mountedRoot;
+			flushSync(() => mountedRoot.render(createElement(FlipBook, props)));
 			await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 			const surface = host.querySelector<HTMLElement>(".page")?.getBoundingClientRect();
 			if (!surface || surface.width <= 0 || surface.height <= 0) {

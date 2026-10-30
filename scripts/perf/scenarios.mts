@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { median, percentile } from "./stats.mts";
-import { openFixture, resourceMetrics, type Variant } from "./harness.mts";
+import { collectResourceGarbage, openFixture, resourceMetrics } from "./harness.mts";
 import { inputProbePath } from "./input-probe.mts";
 
 /**
@@ -325,8 +325,7 @@ export const scaling: ScenarioDriver = {
 	},
 
 	async audit(page, dist, size) {
-		const gc = () =>
-			page.evaluate(() => (window as unknown as { gc?: () => void }).gc?.());
+		const gc = () => collectResourceGarbage(page);
 		// Baseline on a blank page after GC: the previous document's nodes
 		// and listeners can linger past a plain goto, which makes the
 		// retained-dom delta noise-dominated. A blank baseline is
@@ -343,8 +342,8 @@ export const scaling: ScenarioDriver = {
 			size,
 		)) as ScalingSample;
 		// Strip fixture-owned DOM so deltas isolate retained/leaked nodes,
-		// then let post-teardown work flush and force GC (--expose-gc is set
-		// at launch) so heap deltas are comparable.
+		// then let post-teardown work flush and collect both V8 and Blink
+		// before reading retained resource deltas.
 		await page.evaluate(() => document.getElementById("perf-book")?.remove());
 		await page.waitForTimeout(400);
 		await gc();
