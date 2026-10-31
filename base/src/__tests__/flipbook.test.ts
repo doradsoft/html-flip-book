@@ -396,6 +396,51 @@ describe("FlipBook", () => {
 			book.destroy();
 		});
 
+		it("reads inherited page directions before mutating any page layout", () => {
+			const pages = createPages(4);
+			const original = window.getComputedStyle.bind(window);
+			const read = vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+				if (pages.includes(element as HTMLElement)) {
+					expect(pages.every((page) => page.dataset.readingDirection === undefined)).toBe(true);
+					return { direction: "rtl" } as CSSStyleDeclaration;
+				}
+				return original(element);
+			});
+			const book = new FlipBook({ pagesCount: pages.length, direction: "ltr" });
+			try {
+				book.render(".flipbook-container");
+				expect(pages.map((page) => page.dataset.readingDirection)).toEqual(pages.map(() => "rtl"));
+			} finally {
+				book.destroy();
+				read.mockRestore();
+			}
+		});
+
+		it("does not query computed page styles when every page supplies its reading direction", () => {
+			const pages = createPages(4);
+			for (const [index, page] of pages.entries()) {
+				if (index % 2) page.style.direction = "ltr";
+				else page.dir = "rtl";
+			}
+			const read = vi.spyOn(window, "getComputedStyle");
+			const book = new FlipBook({ pagesCount: pages.length });
+			try {
+				book.render(".flipbook-container");
+				expect(
+					read.mock.calls.filter(([element]) => pages.includes(element as HTMLElement)),
+				).toHaveLength(0);
+				expect(pages.map((page) => page.dataset.readingDirection)).toEqual([
+					"rtl",
+					"ltr",
+					"rtl",
+					"ltr",
+				]);
+			} finally {
+				book.destroy();
+				read.mockRestore();
+			}
+		});
+
 		it("preserves explicit page reading directions and the original consumer nodes", () => {
 			const pages = createPages(4);
 			pages[0].dir = "rtl";
@@ -456,6 +501,18 @@ describe("FlipBook", () => {
 			expect(scrollport.firstElementChild).toBe(content);
 			expect(content.dir).toBe("rtl");
 			expect(pages[0].querySelectorAll(".flipbook-page-scrollport")).toHaveLength(1);
+			book.destroy();
+		});
+
+		it("preserves nonzero page scroll positions when installing scrollports", () => {
+			const pages = createPages(4);
+			pages[0].scrollTop = 27;
+			pages[2].scrollTop = 83;
+			const book = new FlipBook({ pagesCount: pages.length });
+			book.render(".flipbook-container");
+			expect(
+				pages.map((page) => page.querySelector(".flipbook-page-scrollport")?.scrollTop),
+			).toEqual([27, 0, 83, 0]);
 			book.destroy();
 		});
 

@@ -50,3 +50,16 @@ Each entry should include:
 - E2E tests in `e2e/` directory
 - Run `bun run test:e2e` to execute E2E tests
 - Supports multiple browsers (chromium, firefox, webkit)
+
+---
+
+## Chrome DevTools tracing
+
+**Version**: Chromium bundled with Playwright 1.64.1 (browser-wide CDP Tracing)
+**Date**: 2026-11-01
+
+### Key Learnings
+
+- A page-level V8 Profiler capture can reset across document navigation. Use browser-wide `Tracing.start` with timeline and V8 sampling categories to attribute a workload spanning several page loads.
+- `transferMode: ReturnAsStream` retains the capture until `Tracing.end`; read its IO stream after the workload, and check `Tracing.tracingComplete.dataLossOccurred` before treating the trace as complete. Keep diagnostic captures separate from plain acceptance tests.
+- Primary protocol schema: https://github.com/ChromeDevTools/devtools-protocol/blob/master/json/browser_protocol.json
