@@ -60,6 +60,13 @@ export interface BookmarkBounds {
 	height: number;
 }
 
+interface BookmarkMeasurements {
+	depth: number;
+	length: number;
+	preferredStep: number;
+	gaps: ReadonlyMap<Edge, number>;
+}
+
 interface BookmarkLeaf {
 	id: string;
 	front: Bookmark;
@@ -283,10 +290,10 @@ export class BookmarkLayer {
 	}
 
 	/** Reserve both split rails so navigating never shifts the book's resting position. */
-	getInsets(): BookmarkInsets {
+	getInsets(measuredDepth?: number): BookmarkInsets {
 		const insets: BookmarkInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 		if (this.destroyed || this.items.size === 0) return insets;
-		const depth = this.getDepth();
+		const depth = measuredDepth ?? this.getDepth();
 		const placement = this.provider?.placement ?? "sides";
 		if (placement === "sides") {
 			insets.left = depth;
@@ -300,13 +307,8 @@ export class BookmarkLayer {
 		return insets;
 	}
 
-	/** Position tab rails just outside the resting page spread. */
-	layout(bounds: BookmarkBounds, hostWidth?: number): void {
-		if (this.destroyed) return;
-		this.motion.restoreAll();
-		this.preview.close();
-		this.bounds = bounds;
-		this.hostWidth = hostWidth ?? this.host.clientWidth;
+	/** Read once before the engine changes page geometry; never cache across layouts. */
+	measure(): BookmarkMeasurements {
 		const depth = this.getDepth();
 		const length = this.getSize(
 			"--flipbook-bookmark-length",
@@ -322,6 +324,17 @@ export class BookmarkLayer {
 			);
 			gaps.set(edge, Number.isFinite(rawGap) && rawGap >= 0 ? rawGap : 4);
 		}
+		return { depth, length, preferredStep, gaps };
+	}
+
+	/** Position tab rails just outside the resting page spread. */
+	layout(bounds: BookmarkBounds, hostWidth?: number, measurements?: BookmarkMeasurements): void {
+		if (this.destroyed) return;
+		const { depth, length, preferredStep, gaps } = measurements ?? this.measure();
+		this.hostWidth = hostWidth ?? this.host.clientWidth;
+		this.motion.restoreAll();
+		this.preview.close();
+		this.bounds = bounds;
 		for (const [edge, rail] of this.rails) {
 			const horizontal = edge === "top" || edge === "bottom";
 			const left =

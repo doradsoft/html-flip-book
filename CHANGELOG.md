@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Books initialize without interleaving page style reads and writes. Bookmark rails measure their dimensions together, and RTL page turns reuse the current layout's host width, avoiding repeated layout work while keeping resize geometry current.
+- Books initialize without interleaving page style reads and writes, and reuse declarative content directions without measuring every React page. Bookmark rails measure their dimensions before page resizing, and RTL page turns reuse the current layout's host width, avoiding repeated layout work while keeping CSS and resize geometry current.
 - Page turns avoid redundant bookmark attributes, styles and rail moves, and only change the page's folded class when its fold state changes, reducing animation-time DOM work while preserving live geometry and provider updates.
 - Destroying a book now stops its debug refresh timer and removes the debug bar, preventing background updates from accumulating after reader remounts.
 - Dragging from a turnable page margin keeps turning when the pointer enters an excluded content pane before the gesture is recognized; gestures that start inside excluded panes remain native.

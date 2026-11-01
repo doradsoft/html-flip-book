@@ -502,7 +502,13 @@ class FlipBook {
 	private recalculateSizes(): void {
 		if (!this.bookElement || !this.pageElements.length) return;
 
-		const insets = this.bookmarkLayer?.getInsets() ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const bookmarkMeasurements = this.bookmarkLayer?.measure();
+		const insets = this.bookmarkLayer?.getInsets(bookmarkMeasurements?.depth) ?? {
+			top: 0,
+			right: 0,
+			bottom: 0,
+			left: 0,
+		};
 		this.bookmarkClearance = Object.values(insets).join();
 		const bookWidth = this.bookElement.clientWidth;
 		const availableWidth = Math.max(0, bookWidth - insets.left - insets.right);
@@ -542,6 +548,7 @@ class FlipBook {
 				height: outerSize.height,
 			},
 			bookWidth,
+			bookmarkMeasurements,
 		);
 		for (const leaf of this.leaves) {
 			leaf.applyTransform(leaf.flipPosition);
@@ -611,7 +618,12 @@ class FlipBook {
 		// reads with each page's wrapper/attribute writes repeats style work,
 		// including for React's already-wrapped slots.
 		const pageSetup = this.pageElements.map((pageElement) => {
+			const declaredContent = pageElement.querySelector<HTMLElement>(
+				":scope > .flipbook-page-scrollport > .flipbook-page-content",
+			);
 			const originalDirection =
+				declaredContent?.style.direction ||
+				declaredContent?.dir ||
 				pageElement.style.direction ||
 				pageElement.dir ||
 				pageElement.ownerDocument.defaultView?.getComputedStyle(pageElement).direction;
