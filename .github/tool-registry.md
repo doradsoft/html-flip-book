@@ -27,13 +27,13 @@ Each entry should include:
 
 ## Vitest
 
-**Version**: 4.x
-**Date**: 2026-01-21
+**Version**: 5.0.5
+**Date**: 2026-11-01
 
 ### Key Learnings
 
 - Configuration in `vitest.config.ts`
-- Uses jsdom environment for DOM testing
+- Uses happy-dom 21.0.4 for DOM testing
 - Run `bun run test` to execute all unit tests
 - Supports watch mode with `bun run test:watch`
 
@@ -87,3 +87,15 @@ Each entry should include:
 - [Glob imports](https://vite.dev/guide/features.html#glob-import) create deferred import functions by default; `import: "default"` returns the asset value when called. Keep chapter PDF loaders aligned with page slots and invoke only the selected loaders during download. `eager: true` embeds the PDFs in the initial application graph.
 - Ordinary dynamic imports defer Markdown and PDF exporters until the corresponding reader or download needs them. Keep the existing chunk warning limit and remove startup dependencies instead of raising it.
 - `import.meta.env.BASE_URL` preserves the configured Pages prefix when requesting a PDF-only font. Exercise the production bundle under `/html-flip-book/` and verify a real PDF download plus a successful font response.
+
+## Vite React and native configuration
+
+**Version**: Vite 8.3.5 / @vitejs/plugin-react 6.1.2
+**Date**: 2026-11-01
+
+### Key Learnings
+
+- [The official React plugin](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) provides Fast Refresh and the automatic JSX runtime. Version6.1.2 supports Vite8; its React Compiler peers are optional and compiler mode stays disabled. Replace unused legacy refresh/SWC plugins in both workspace manifests and the lockfile.
+- Vite8 has built-in [`resolve.tsconfigPaths`](https://vite.dev/config/shared-options.html#resolve-tsconfigpaths); remove the redundant paths plugin rather than retaining its startup warning.
+- Native config loading requires `with { type: "json" }` for JSON imports. Preserve ordinary JSON semantics without suppressing the warning.
+- Empty V8 script arrays from intentionally skipped/blank browser pages are not valid Monocart report input. Submit nonempty coverage only; preserve collection errors and all real script data.

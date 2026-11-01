@@ -1,10 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
-import tsconfigPaths from "vite-tsconfig-paths";
-import packageJson from "./package.json";
+import packageJson from "./package.json" with { type: "json" };
 
 export default defineConfig(({ mode }) => {
 	const isProd = mode === "production";
@@ -14,6 +13,7 @@ export default defineConfig(({ mode }) => {
 		assetsInclude: ["**/*.md"],
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
+			tsconfigPaths: true,
 			dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
 			alias: [
 				{
@@ -99,7 +99,6 @@ export default defineConfig(({ mode }) => {
 					}
 				},
 			},
-			tsconfigPaths(),
 			checker({
 				typescript: true,
 			}),

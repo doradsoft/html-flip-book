@@ -67,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Engineering
 
+- Vite uses its supported React plugin, built-in TypeScript path resolution and native JSON imports. Skipped or blank browser tests no longer submit empty coverage reports; valid coverage and collection failures remain intact.
+
 - Paired benchmarks use native Windows directory junctions for shared dependencies, avoiding MSYS file symlinks that Node cannot traverse, and keep the fixture's shared runtime dependencies and single React instance resolvable when results are saved outside the repository. Temporary fixture dependency links are removed after bundling so reports do not retain or upload the dependency tree.
 
 - Retained-resource benchmarks complete browser garbage collection and verify a deliberately retained DOM tree, while React mount probes fail on timeout and always release their timer and fixture. Performance fixtures are typechecked from source in clean checkouts, and native Vite configuration uses ESM paths.

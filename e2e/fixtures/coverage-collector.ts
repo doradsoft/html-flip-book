@@ -29,7 +29,7 @@ export async function withBrowserCoverage(
 			throw new Error("The test closed its page before E2E coverage could be collected");
 		}
 		const coverage = await page.coverage.stopJSCoverage();
-		await report(coverage, testInfo);
+		if (coverage.length > 0) await report(coverage, testInfo);
 	} catch (error) {
 		failures.push(error);
 	}
