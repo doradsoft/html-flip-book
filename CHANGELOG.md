@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Page and toolbar presses hold pending page-buffer work before dragging or clicking begins, closing the gap in which a previous turn could interrupt the next one. Release, cancellation and lost focus restore the normal update schedule.
 - Turning pages keep their existing scrollbar and content appearance. Selection is blocked through input handling during a turn, avoiding a stylesheet change across every word at the start and end of the animation.
 - Bookmark preparation survives an animation's initial stationary frame, so the first moving frame can use the geometry captured before the paper changed.
 - Completing a page turn reuses the bookmark rail's measured dimensions instead of forcing reader content through a new layout before another turn. Resizing and explicit provider refreshes still update those dimensions.

@@ -3,32 +3,10 @@ import { Profiler } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FlipBook } from "../FlipBook";
 
-const mocked = vi.hoisted(() => ({
-	instances: [] as Array<{
-		render: ReturnType<typeof vi.fn>;
-		destroy: ReturnType<typeof vi.fn>;
-		setDownloadConfig: ReturnType<typeof vi.fn>;
-		bookElement: HTMLElement | null;
-		options: Record<string, unknown>;
-	}>,
-	MockFlipBook: class {
-		render = vi.fn();
-		destroy = vi.fn();
-		setDownloadConfig = vi.fn();
-		bookElement: HTMLElement | null = null;
-		currentPageIndex = 0;
-		options: Record<string, unknown>;
+import { mocked } from "./fixtures/mock-flipbook";
 
-		constructor(options: Record<string, unknown>) {
-			this.options = options;
-			mocked.instances.push(this);
-		}
-	},
-}));
-
-// Mock the base FlipBook
-vi.mock("html-flip-book-vanilla", () => ({
-	FlipBook: mocked.MockFlipBook,
+vi.mock("html-flip-book-vanilla", async () => ({
+	FlipBook: (await import("./fixtures/mock-flipbook")).mocked.MockFlipBook,
 }));
 
 function Pair({ showSecond }: { showSecond: boolean }) {
@@ -430,6 +408,7 @@ describe("FlipBook React Component", () => {
 		expect(screen.getByText("Hold 18")).toBeTruthy();
 		expect(screen.getByText("Hold 20")).toBeTruthy();
 	});
+
 	it("holds recenter work as soon as a mounted leaf is dragged, before release", async () => {
 		vi.useFakeTimers();
 		try {

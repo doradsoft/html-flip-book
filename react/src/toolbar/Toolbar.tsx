@@ -134,6 +134,10 @@ const Toolbar: React.FC<ToolbarProps> = ({
 		>
 			<div
 				className={`flipbook-toolbar ${direction === "rtl" ? "flipbook-toolbar--rtl" : ""} ${className}`.trim()}
+				onPointerDownCapture={(event) => {
+					if (event.button === 0 && event.isPrimary !== false)
+						flipBookRef.current?.beginPointerInteraction?.();
+				}}
 				role="toolbar"
 				aria-label="FlipBook navigation"
 				dir={direction}

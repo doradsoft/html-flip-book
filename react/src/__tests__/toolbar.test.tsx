@@ -258,6 +258,22 @@ describe("FullscreenButton", () => {
 });
 
 describe("Toolbar", () => {
+	it("holds its book buffer on the initial primary press before clicking", () => {
+		const beginPointerInteraction = vi.fn();
+		const ref = createMockFlipBookRef({ beginPointerInteraction });
+		render(
+			<Toolbar flipBookRef={ref}>
+				<button type="button">Pointer control</button>
+			</Toolbar>,
+		);
+		const button = screen.getByText("Pointer control");
+		fireEvent.pointerDown(button, { button: 2 });
+		expect(beginPointerInteraction).not.toHaveBeenCalled();
+		fireEvent.pointerDown(button, { button: 0, isPrimary: true });
+		expect(beginPointerInteraction).toHaveBeenCalledOnce();
+		expect(ref.current.flipNext).not.toHaveBeenCalled();
+	});
+
 	it("should render children", () => {
 		const mockRef = createMockFlipBookRef();
 		render(

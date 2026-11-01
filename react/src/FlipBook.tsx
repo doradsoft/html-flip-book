@@ -22,6 +22,7 @@ import {
 	forwardRef,
 	memo,
 	startTransition,
+	useCallback,
 	useEffect,
 	useImperativeHandle,
 	useLayoutEffect,
@@ -130,6 +131,8 @@ const BookmarkPortals = memo(function BookmarkPortals({
  * ```
  */
 export interface FlipBookHandle {
+	/** Hold background page-buffer work from pointer press through release. Custom toolbars can call this on pointerdown. */
+	beginPointerInteraction?: () => void;
 	/** Animate flip to the next page */
 	flipNext: () => Promise<void>;
 	/** Animate flip to the previous page */
@@ -405,6 +408,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// (issue #167). Cleared once flips settle and the buffer window recenters.
 		const inflightLeavesRef = useRef<Set<number>>(new Set());
 		const activeLeavesRef = useRef(new Set<number>());
+		const pointerHeldRef = useRef(false);
 		const mountedPageIndicesRef = useRef<ReadonlySet<number> | undefined>(undefined);
 		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
@@ -418,12 +422,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				// whole page tree on every turn for no benefit (issue #343).
 				return;
 			}
-			if (activeLeavesRef.current.size > 0) return;
+			if (activeLeavesRef.current.size > 0 || pointerHeldRef.current) return;
 			if (pageChangedTimerRef.current != null) {
 				clearTimeout(pageChangedTimerRef.current);
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
+				if (activeLeavesRef.current.size > 0 || pointerHeldRef.current) return;
 				const hadInflight = inflightLeavesRef.current.size > 0;
 				inflightLeavesRef.current.clear();
 				bufferTargetRef.current = index;
@@ -438,6 +443,14 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				});
 			}, BUFFER_DEBOUNCE_MS);
 		};
+		const beginPointerInteraction = useCallback(() => {
+			if (leavesBuffer == null) return;
+			pointerHeldRef.current = true;
+			if (pageChangedTimerRef.current != null) {
+				clearTimeout(pageChangedTimerRef.current);
+				pageChangedTimerRef.current = null;
+			}
+		}, [leavesBuffer]);
 		const retainFlippingLeaf = (flippingLeaf: number) => {
 			if (leavesBuffer == null) return;
 			if (pageChangedTimerRef.current != null) {
@@ -532,6 +545,25 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				}
 			}
 		};
+		useEffect(() => {
+			if (leavesBuffer == null) return;
+			const document = hostRef.current?.ownerDocument ?? window.document;
+			const view = document.defaultView;
+			const release = (event: Event) => {
+				if (!pointerHeldRef.current || (event as PointerEvent).isPrimary === false) return;
+				pointerHeldRef.current = false;
+				if (activeLeavesRef.current.size === 0) onPageChangedRef.current(flipBook.currentPageIndex);
+			};
+			document.addEventListener("pointerup", release, true);
+			document.addEventListener("pointercancel", release, true);
+			view?.addEventListener("blur", release);
+			return () => {
+				pointerHeldRef.current = false;
+				document.removeEventListener("pointerup", release, true);
+				document.removeEventListener("pointercancel", release, true);
+				view?.removeEventListener("blur", release);
+			};
+		}, [flipBook, leavesBuffer]);
 
 		// The engine captures downloadConfig at mount; bridge prop changes into it.
 		useEffect(() => {
@@ -542,6 +574,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		useImperativeHandle(
 			ref,
 			() => ({
+				beginPointerInteraction,
 				flipNext: () => flipBook.flipNext(),
 				flipPrev: () => flipBook.flipPrev(),
 				flipToPage: (pageIndex: number) => flipBook.flipToPage(pageIndex),
@@ -570,7 +603,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					}
 				},
 			}),
-			[mouseModeStorageKey, flipBook],
+			[mouseModeStorageKey, flipBook, beginPointerInteraction],
 		);
 
 		useEffect(() => {
@@ -727,7 +760,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		};
 
 		return (
-			<div ref={hostRef} className={className}>
+			<div
+				ref={hostRef}
+				className={className}
+				onPointerDownCapture={(event) => {
+					if (event.button === 0 && event.isPrimary !== false) beginPointerInteraction();
+				}}
+			>
 				{pagesWithKeys.map((_, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness
