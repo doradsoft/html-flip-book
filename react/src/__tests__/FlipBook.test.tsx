@@ -16,6 +16,7 @@ const mocked = vi.hoisted(() => ({
 		destroy = vi.fn();
 		setDownloadConfig = vi.fn();
 		bookElement: HTMLElement | null = null;
+		currentPageIndex = 0;
 		options: Record<string, unknown>;
 
 		constructor(options: Record<string, unknown>) {
@@ -330,6 +331,36 @@ describe("FlipBook React Component", () => {
 			await new Promise((resolve) => setTimeout(resolve, 150));
 		});
 		expect(screen.getByText("Far Page 20")).toBeTruthy();
+	});
+
+	it("does not reconcile already mounted page content when a nearby turn starts", () => {
+		commitCount = 0;
+		render(
+			<Profiler id="mounted-window" onRender={countCommit}>
+				<FlipBook
+					pages={Array.from({ length: 30 }, (_, index) => `Mounted ${index}`)}
+					leavesBuffer={2}
+				/>
+			</Profiler>,
+		);
+		const before = commitCount;
+		const onPageFlipping = mocked.instances[0].options.onPageFlipping as (params: {
+			leafIndex: number;
+			pageIndices: [number, number];
+			semantics: [undefined, undefined];
+			direction: "forward";
+		}) => void;
+		act(() => {
+			onPageFlipping({
+				leafIndex: 1,
+				pageIndices: [2, 3],
+				semantics: [undefined, undefined],
+				direction: "forward",
+			});
+		});
+		expect(commitCount).toBe(before);
+		expect(screen.getByText("Mounted 2")).toBeTruthy();
+		expect(screen.getByText("Mounted 3")).toBeTruthy();
 	});
 
 	it("coalesces rapid page changes into a single debounced recenter", async () => {

@@ -32,6 +32,41 @@ async function makeBoundedPanel(pageRoot: Locator) {
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: dormant buffered content preserves its scroll position when revealed again`, async ({
+		page,
+	}) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const book = page.locator(bookClass(direction));
+		const next = page.locator(".flipbook-toolbar-next");
+		const previous = page.locator(".flipbook-toolbar-prev");
+		await next.click();
+		await expect(book.locator(".page--flipping")).toHaveCount(0);
+		const surface = book.locator('.page[data-page-index="2"]');
+		const scrollport = surface.locator(":scope > .flipbook-page-scrollport");
+		await surface
+			.locator(".flipbook-page-content > *")
+			.first()
+			.evaluate((element) => {
+				(element as HTMLElement).style.height = "2000px";
+			});
+		await scrollport.evaluate((element) => {
+			element.scrollTop = 300;
+		});
+		expect(await scrollport.evaluate((element) => element.scrollTop)).toBe(300);
+		for (let index = 0; index < 3; index++) {
+			await next.click();
+			await expect(book.locator(".page--flipping")).toHaveCount(0);
+		}
+		expect(
+			await scrollport.evaluate((element) => (element as HTMLElement).style.contentVisibility),
+		).toBe("hidden");
+		for (let index = 0; index < 3; index++) {
+			await previous.click();
+			await expect(book.locator(".page--flipping")).toHaveCount(0);
+		}
+		await expect.poll(() => scrollport.evaluate((element) => element.scrollTop)).toBe(300);
+	});
+
 	test(`${direction}: bounded panel keeps the root at page height and scrolls only its inner pane`, async ({
 		page,
 	}) => {

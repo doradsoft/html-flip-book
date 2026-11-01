@@ -17,6 +17,7 @@ interface PageSample {
 	i: string | undefined;
 	disp: string;
 	cv: string;
+	contentCv: string;
 	folded: boolean;
 	flipping: boolean;
 	clip: number;
@@ -52,6 +53,7 @@ async function sampleRapidBackFlips(
 							i: e.dataset.pageIndex,
 							disp: e.style.display || cs.display,
 							cv: e.style.contentVisibility || cs.contentVisibility,
+							contentCv: (e.firstElementChild as HTMLElement | null)?.style.contentVisibility ?? "",
 							folded: e.classList.contains("page--folded"),
 							flipping: e.classList.contains("page--flipping"),
 							clip: e.style.clipPath ? 1 : 0,
@@ -80,7 +82,8 @@ async function sampleRapidBackFlips(
 	});
 }
 
-const isHidden = (p: PageSample) => p.disp === "none" || p.cv === "hidden";
+const isHidden = (p: PageSample) =>
+	p.disp === "none" || p.cv === "hidden" || p.contentCv === "hidden";
 const isMidFlip = (p: PageSample) => p.folded || p.flipping || p.clip === 1;
 
 function hiddenMidFlip(samples: PageSample[][]): string[] {

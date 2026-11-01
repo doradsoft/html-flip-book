@@ -13,12 +13,13 @@ import { createRoot, type Root } from "react-dom/client";
  */
 
 const TURNS = 4;
-// Buffer window must actually swap mounts: BoS ships 76 pages/38 leaves
-// with leavesBuffer=7; 24 pages/12 leaves exercises the same mount/unmount.
-const PAGES = 24;
+// Keep 36 distinct chapter spreads: a 24-page book silently deduplicated
+// the requested 36 bookmarks to 13, understating both animation and handoff cost.
+const PAGES = 76;
 const QUERY = new URLSearchParams(location.search);
 const HEAVY = QUERY.has("heavy");
 const BOUNDED = QUERY.has("bounded");
+const BOOKMARK_MODE = QUERY.get("bookmarks") ?? "leaf";
 const HEAVY_VERSES = 40;
 const HEAVY_WORDS = 14;
 const HEAVY_BOOKMARKS = 36;
@@ -69,12 +70,13 @@ const reactBookmarkProvider = {
 	getBookmarks: () =>
 		Array.from({ length: HEAVY_BOOKMARKS }, (_, i) => ({
 			id: `bm-${i}`,
-			pageIndex: Math.floor((i * PAGES) / HEAVY_BOOKMARKS),
+			pageIndex: 3 + i * 2,
 			label: `BM ${i + 1}`,
 		})),
 	renderBookmark: (bookmark: { label: string }) => createElement("span", null, bookmark.label),
 	renderExpandedBookmark: (bookmark: { label: string }) =>
 		createElement("span", null, bookmark.label),
+	attachment: BOOKMARK_MODE === "pinned" ? ("pinned" as const) : ("leaf" as const),
 };
 
 const bookProps: FlipBookProps & { ref: (h: FlipBookHandle | null) => void } = {
@@ -84,7 +86,7 @@ const bookProps: FlipBookProps & { ref: (h: FlipBookHandle | null) => void } = {
 	leavesBuffer: 7,
 	pageShadow: true,
 	coverConfig: { hardCovers: true, noShadow: true, coverIndices: "auto" },
-	enableBookmarks: true,
+	enableBookmarks: BOOKMARK_MODE !== "hidden",
 	bookmarkProvider: reactBookmarkProvider,
 	enableHistory: false,
 	handlers: {
@@ -135,6 +137,11 @@ export function registerReactTurnScenario(): void {
 			const surface = host.querySelector<HTMLElement>(".page")?.getBoundingClientRect();
 			if (!surface || surface.width <= 0 || surface.height <= 0) {
 				throw new Error("React turn fixture must render a nonzero page surface");
+			}
+			const bookmarkCount = host.querySelectorAll(".flipbook-bookmark").length;
+			const expected = BOOKMARK_MODE === "hidden" ? 0 : HEAVY_BOOKMARKS;
+			if (bookmarkCount !== expected) {
+				throw new Error(`React turn fixture has ${bookmarkCount}/${expected} bookmarks`);
 			}
 		},
 

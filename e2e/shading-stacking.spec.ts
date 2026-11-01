@@ -21,6 +21,60 @@ async function pseudoStyle(target: Locator, pseudo: "::before" | "::after") {
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: confines animated shading values to the paper surface`, async ({ page }) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const book = page.locator(bookClass(direction));
+		const interior = book.locator('.page[data-page-index="1"]');
+		await expect(interior).toBeVisible();
+		const values = await interior.evaluate((surface) => {
+			const content = surface.ownerDocument.createElement("div");
+			const word = surface.ownerDocument.createElement("span");
+			content.append(word);
+			surface.append(content);
+			const pageElement = surface as HTMLElement;
+			pageElement.style.setProperty("--inner-shadow-shadow", "0.7");
+			pageElement.style.setProperty("--inner-shadow-highlight", "0.4");
+			pageElement.style.setProperty("--inner-shadow-edge", "left");
+			pageElement.style.setProperty("--fold-shading", "linear-gradient(black, white)");
+			const style = getComputedStyle(word);
+			return {
+				pageShadow: getComputedStyle(surface).getPropertyValue("--inner-shadow-shadow").trim(),
+				shadow: style.getPropertyValue("--inner-shadow-shadow").trim(),
+				highlight: style.getPropertyValue("--inner-shadow-highlight").trim(),
+				edge: style.getPropertyValue("--inner-shadow-edge").trim(),
+				fold: style.getPropertyValue("--fold-shading").trim(),
+			};
+		});
+		expect(values.pageShadow).toBe("0.7");
+		expect(values).toMatchObject({ shadow: "0", highlight: "0", edge: "right", fold: "none" });
+	});
+
+	test(`${direction}: animation properties do not inherit through unrelated descendants`, async ({
+		page,
+	}) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const values = await page.evaluate(() => {
+			const parent = document.createElement("div");
+			const child = document.createElement("span");
+			parent.append(child);
+			document.body.append(parent);
+			parent.style.setProperty("--inner-shadow-shadow", "0.7");
+			parent.style.setProperty("--inner-shadow-highlight", "0.4");
+			parent.style.setProperty("--inner-shadow-edge", "left");
+			parent.style.setProperty("--fold-shading", "linear-gradient(black, white)");
+			const style = getComputedStyle(child);
+			const result = [
+				"--inner-shadow-shadow",
+				"--inner-shadow-highlight",
+				"--inner-shadow-edge",
+				"--fold-shading",
+			].map((name) => style.getPropertyValue(name).trim());
+			parent.remove();
+			return result;
+		});
+		expect(values).toEqual(["0", "0", "right", "none"]);
+	});
+
 	test(`${direction}: shading overlays paint above positioned opaque content`, async ({ page }) => {
 		await page.goto(`/?example=${direction}-comprehensive`);
 		const book = page.locator(bookClass(direction));

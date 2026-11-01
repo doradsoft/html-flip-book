@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createContext, createRef, StrictMode, useContext, useEffect } from "react";
+import { Children, createContext, createRef, StrictMode, useContext, useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type Bookmark, type BookmarkProvider, FlipBook, type FlipBookHandle } from "../FlipBook";
 
@@ -13,9 +13,68 @@ const pages = Array.from({ length: 10 }, (_, index) => `Page ${index}`).map((lab
 	<p key={label}>{label}</p>
 ));
 
-afterEach(cleanup);
+afterEach(() => {
+	cleanup();
+	vi.restoreAllMocks();
+});
 
 describe("React bookmarks", () => {
+	it("does not traverse the page tree when bookmark portals refresh after consecutive commits", async () => {
+		const ref = createRef<FlipBookHandle>();
+		const brief = vi.fn((bookmark: Bookmark) => <strong>{bookmark.label}</strong>);
+		const expanded = vi.fn((bookmark: Bookmark) => <em>{bookmark.label} details</em>);
+		const provider: BookmarkProvider = {
+			getBookmarks: () => [chapter],
+			renderBookmark: brief,
+			renderExpandedBookmark: expanded,
+		};
+		render(<FlipBook ref={ref} enableBookmarks pages={pages} bookmarkProvider={provider} />);
+		await screen.findByText(`${chapter.label} details`);
+		const visitPages = vi.spyOn(Children, "toArray");
+		await act(async () => {
+			ref.current?.jumpToPage(4);
+			await Promise.resolve();
+		});
+		await act(async () => {
+			ref.current?.jumpToPage(6);
+			await Promise.resolve();
+		});
+		expect(visitPages).not.toHaveBeenCalled();
+		visitPages.mockRestore();
+		expect(screen.getByText(`${chapter.label} details`)).toBeTruthy();
+	});
+
+	it("refreshes contextual renderers even when the bookmark object is unchanged", async () => {
+		const ref = createRef<FlipBookHandle>();
+		let currentLeaf = 0;
+		const provider: BookmarkProvider = {
+			getBookmarks: (context) => {
+				currentLeaf = context.currentLeafIndex;
+				return [chapter];
+			},
+			renderBookmark: () => <strong>Renderer context {currentLeaf}</strong>,
+		};
+		render(<FlipBook ref={ref} enableBookmarks pages={pages} bookmarkProvider={provider} />);
+		await screen.findByText("Renderer context 0");
+		act(() => ref.current?.jumpToPage(6));
+		await screen.findByText("Renderer context 2");
+	});
+
+	it("updates contextual content with the same bookmark id after a page commit", async () => {
+		const ref = createRef<FlipBookHandle>();
+		const provider: BookmarkProvider = {
+			getBookmarks: ({ currentLeafIndex }) => [
+				{ ...chapter, label: `Context ${currentLeafIndex}` },
+			],
+			renderBookmark: (bookmark) => <strong>{bookmark.label}</strong>,
+		};
+		render(<FlipBook ref={ref} enableBookmarks pages={pages} bookmarkProvider={provider} />);
+		await screen.findByText("Context 0");
+		act(() => ref.current?.jumpToPage(6));
+		await screen.findByText("Context 2");
+		expect(screen.queryByText("Context 0")).toBeNull();
+	});
+
 	it("excludes the default React cover without requiring explicit cover indices", async () => {
 		render(
 			<FlipBook

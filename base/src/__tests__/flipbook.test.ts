@@ -1540,6 +1540,58 @@ describe("FlipBook", () => {
 			flipBook.destroy();
 		});
 
+		it("reads the drag origin before changing the page snapshot styles", () => {
+			createPages(20);
+			const flipBook = new FlipBook({
+				pagesCount: 20,
+				initialTurnedLeaves: [0, 1, 2],
+				snapshotDuringFlip: true,
+			});
+			flipBook.render(".flipbook-container");
+			const snapshotCounts: number[] = [];
+			vi.spyOn(container, "getBoundingClientRect").mockImplementation(() => {
+				snapshotCounts.push(container.querySelectorAll(".page--flipping").length);
+				return {
+					top: 0,
+					left: 0,
+					width: 800,
+					height: 600,
+					right: 800,
+					bottom: 600,
+					x: 0,
+					y: 0,
+					toJSON: () => ({}),
+				};
+			});
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 700, y: 300 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 600, y: 300 }));
+			expect(snapshotCounts).toEqual([0]);
+			flipBook.destroy();
+		});
+
+		it("keeps established pointer turns free of repeated host layout reads", () => {
+			const pages = createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			for (const page of pages) {
+				page.style.width = "400px";
+				page.style.height = "400px";
+			}
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 740, y: 170 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700, y: 170 }));
+			const width = vi.fn(() => 800);
+			Object.defineProperty(container, "clientWidth", { get: width, configurable: true });
+			const bounds = vi.spyOn(container, "getBoundingClientRect");
+			internals.onDragUpdate(createDragEvent("move", { x: 620, y: 190 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 500, y: 210 }));
+			expect(internals.leaves[0].flipPosition).toBeCloseTo(0.3);
+			expect(width).not.toHaveBeenCalled();
+			expect(bounds).not.toHaveBeenCalled();
+			flipBook.destroy();
+		});
+
 		it("uses a stable lower corner when page dimensions are unavailable", () => {
 			const pages = createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -2131,6 +2183,29 @@ describe("FlipBook", () => {
 	});
 
 	describe("leavesBuffer", () => {
+		it("keeps buffered content dormant until its spread can be exposed", () => {
+			const pages = createPages(40);
+			const flipBook = new FlipBook({
+				pagesCount: 40,
+				leavesBuffer: 7,
+				coverPageIndices: "auto",
+				initialTurnedLeaves: [0, 1, 2, 3, 4],
+			});
+			flipBook.render(".flipbook-container");
+			const contentVisibility = (index: number) =>
+				(pages[index].firstElementChild as HTMLElement).style.contentVisibility;
+			// Spread 9/10 and both neighboring spreads must be ready for a curl.
+			for (let index = 7; index <= 12; index++) expect(contentVisibility(index)).not.toBe("hidden");
+			// Keep the paper and boards; skip only text that is occluded by them.
+			expect(pages[20].style.display).not.toBe("none");
+			expect(contentVisibility(20)).toBe("hidden");
+			expect(contentVisibility(0)).not.toBe("hidden");
+			expect(contentVisibility(39)).not.toBe("hidden");
+			flipBook.jumpToPage(21);
+			expect(contentVisibility(20)).not.toBe("hidden");
+			expect(contentVisibility(9)).toBe("hidden");
+			flipBook.destroy();
+		});
 		it("should accept leavesBuffer option", () => {
 			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 3 });
 			expect(flipBook).toBeDefined();
@@ -2368,6 +2443,9 @@ describe("FlipBook", () => {
 					for (const page of leaf.pages) {
 						expect(page?.style.display).not.toBe("none");
 						expect(page?.style.contentVisibility).not.toBe("hidden");
+						expect(
+							(page?.firstElementChild as HTMLElement | undefined)?.style.contentVisibility,
+						).not.toBe("hidden");
 					}
 				}
 			};

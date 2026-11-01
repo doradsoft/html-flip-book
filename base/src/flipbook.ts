@@ -857,6 +857,20 @@ class FlipBook {
 				coverLeafIndices.add(Math.floor(pageIdx / 2));
 			}
 		}
+		// Buffering keeps React content mounted, but opaque paper occludes most
+		// of it. Render only the current spread, its immediate underlays, and
+		// every in-flight leaf's neighbors. Keep the paper boxes/boards intact.
+		const exposedContent = new Set<number>();
+		const expose = (index: number) => {
+			for (let offset = -2; offset <= 2; offset++) exposedContent.add(index + offset);
+		};
+		for (const index of this.prevVisiblePageIndices ?? [0, 1]) expose(index);
+		for (const leaf of this.leaves) {
+			if (this.activeFlips.has(leaf.index) || leaf.isFlipping) {
+				expose(leaf.index * 2);
+				expose(leaf.index * 2 + 1);
+			}
+		}
 
 		// Update visibility of all leaves
 		for (let i = 0; i < leavesCount; i++) {
@@ -883,6 +897,15 @@ class FlipBook {
 					const visibility = visible ? "visible" : "hidden";
 					if (page.style.contentVisibility !== visibility)
 						page.style.contentVisibility = visibility;
+					const scrollport = page.firstElementChild as HTMLElement | null;
+					if (scrollport?.classList.contains("flipbook-page-scrollport")) {
+						const contentVisibility =
+							isCoverLeaf || exposedContent.has(Number(page.dataset.pageIndex))
+								? "visible"
+								: "hidden";
+						if (scrollport.style.contentVisibility !== contentVisibility)
+							scrollport.style.contentVisibility = contentVisibility;
+					}
 				}
 			}
 		}
@@ -1019,8 +1042,11 @@ class FlipBook {
 			return;
 
 		const currentPos = event.center.x;
-		const bookWidth = this.bookElement?.clientWidth ?? 0;
-		if (bookWidth <= 0) return;
+		if (!this.bookElement) return;
+		// The established gesture uses the paper's explicit layout dimensions.
+		// Reading host geometry after every fold write forces synchronous layout.
+		const bookWidth = flipState ? undefined : this.bookElement.clientWidth;
+		if (bookWidth === 0) return;
 
 		// Calculate delta
 		const startingPos = flipState?.startingPos ?? this.pendingFlipStartingPos;
@@ -1037,13 +1063,12 @@ class FlipBook {
 			return;
 
 		// Determine direction on first meaningful movement
-		const isRightSide = startingPos >= this.getSpineClientX();
 		const direction =
 			flipState?.direction ??
 			(this.pendingFlipDirection !== FlipDirection.None
 				? this.pendingFlipDirection
 				: delta === 0
-					? this.isLTR === isRightSide
+					? this.isLTR === startingPos >= this.getSpineClientX()
 						? FlipDirection.Forward
 						: FlipDirection.Backward
 					: delta > 0
@@ -1071,15 +1096,15 @@ class FlipBook {
 			const leaf = this.getNextAvailableLeaf(direction);
 			if (!leaf) return;
 
-			// Acquire the flip lock for the full drag cycle; the matching
-			// endFlip() is deferred until the release animation completes
-			// in onDragEnd, so the snapshot/scrollbar lockdown stays stable.
-			leaf.beginFlip();
 			const originY = this.getFoldPointerY(
 				leaf,
 				direction,
 				this.pendingFlipStartingY ?? event.center.y,
 			);
+			// Read the origin before the snapshot changes scrollbar/selection
+			// styles throughout the page; the reverse order forces their layout
+			// synchronously inside the first pointer movement.
+			leaf.beginFlip();
 			leaf.setFoldOrigin(originY);
 
 			flipState = {
@@ -1119,7 +1144,11 @@ class FlipBook {
 				y: (flipState.cornerY ?? 1) + dy / pageHeight,
 			});
 		} else {
-			const travel = Number.isFinite(pageWidth) && pageWidth > 0 ? pageWidth * 2 : bookWidth;
+			const travel =
+				Number.isFinite(pageWidth) && pageWidth > 0
+					? pageWidth * 2
+					: (bookWidth ?? this.bookElement.clientWidth);
+			if (travel <= 0) return;
 			const position =
 				flipState.direction === FlipDirection.Forward ? delta / travel : 1 + delta / travel;
 			flipState.leaf.setManualPosition(Math.max(0, Math.min(1, position)));

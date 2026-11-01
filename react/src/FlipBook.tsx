@@ -20,9 +20,11 @@ import type React from "react";
 import {
 	Children,
 	forwardRef,
+	memo,
 	startTransition,
 	useEffect,
 	useImperativeHandle,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -37,6 +39,84 @@ interface BookmarkSlot {
 	element: HTMLElement;
 	renderer: BookmarkProvider["renderBookmark"];
 }
+
+// Native pointer handlers need the committed mount window before a new frame.
+// Server rendering has no native handlers and must not run a layout effect.
+const usePageMountEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** Bookmark updates must not reconcile the surrounding scripture/page tree. */
+const BookmarkPortals = memo(function BookmarkPortals({
+	bookmarkProvider,
+	flipBook,
+}: {
+	bookmarkProvider: BookmarkProvider | undefined;
+	flipBook: FlipBookBase;
+}) {
+	const [bookmarkSlots, setBookmarkSlots] = useState<BookmarkSlot[]>([]);
+	useEffect(() => {
+		if (!bookmarkProvider) {
+			setBookmarkSlots([]);
+			return;
+		}
+		let active = true;
+		const slots = new Map<string, BookmarkSlot>();
+		const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
+			const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
+			let slot = slots.get(key);
+			if (!slot) {
+				slot = {
+					key,
+					bookmark,
+					element: Object.assign(document.createElement("span"), {
+						className: "flipbook-bookmark__renderer",
+					}),
+					renderer: expanded
+						? bookmarkProvider.renderExpandedBookmark
+						: bookmarkProvider.renderBookmark,
+				};
+				slots.set(key, slot);
+			}
+			slot.bookmark = bookmark;
+			return slot.element;
+		};
+		const provider: BaseBookmarkProvider = {
+			...bookmarkProvider,
+			getBookmarks: (context) => {
+				const bookmarks = bookmarkProvider.getBookmarks(context);
+				const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
+				for (const [key, slot] of slots) {
+					if (!ids.has(slot.bookmark.id)) slots.delete(key);
+				}
+				queueMicrotask(() => {
+					if (!active) return;
+					for (const [id, slot] of slots) {
+						if (!slot.element.isConnected) slots.delete(id);
+					}
+					// Keep contextual custom renderers fresh, including consumers
+					// returning the same bookmark object. Only this subtree updates.
+					setBookmarkSlots([...slots.values()]);
+				});
+				return bookmarks;
+			},
+			renderBookmark: (bookmark) => renderSlot(bookmark, false),
+			renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
+				? (bookmark) => renderSlot(bookmark, true)
+				: undefined,
+		};
+		flipBook.setBookmarkProvider(provider);
+		return () => {
+			active = false;
+			flipBook.setBookmarkProvider(undefined);
+		};
+	}, [bookmarkProvider, flipBook]);
+	return (
+		<>
+			{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
+				createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
+			)}
+		</>
+	);
+});
 
 /**
  * Imperative handle exposed via ref for programmatic control of the FlipBook.
@@ -307,7 +387,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			return 0;
 		});
 		const setPageIndexRef = useRef(setCurrentPageIndex);
-		const [bookmarkSlots, setBookmarkSlots] = useState<BookmarkSlot[]>([]);
 		setPageIndexRef.current = setCurrentPageIndex;
 		const ofRef = useRef(of);
 		ofRef.current = of;
@@ -326,6 +405,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// must stay mounted too — otherwise a revealed flipping page renders blank
 		// (issue #167). Cleared once flips settle and the buffer window recenters.
 		const inflightLeavesRef = useRef<Set<number>>(new Set());
+		const mountedPageIndicesRef = useRef<ReadonlySet<number> | undefined>(undefined);
+		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
 			setPageIndexRef.current?.(index);
@@ -342,13 +423,18 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
+				const hadInflight = inflightLeavesRef.current.size > 0;
 				inflightLeavesRef.current.clear();
+				bufferTargetRef.current = index;
 				// The buffer-window remount can be a large reconcile under heavy
 				// page content. It is not input-latency critical — the +2 leaf
 				// margin already keeps freshly revealed pages mounted — so let
 				// React chunk and yield it instead of blocking the frame that
 				// completes a turn (issue #343).
-				startTransition(() => setPageIndexRef.current?.(index));
+				startTransition(() => {
+					if (hadInflight) setInflightVersion((v) => v + 1);
+					setPageIndexRef.current?.(index);
+				});
 			}, BUFFER_DEBOUNCE_MS);
 		};
 		const onPageFlippingRef = useRef((params: PageFlipParams) => {
@@ -375,7 +461,19 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					// Same transition rationale as the debounced buffer update:
 					// this only exists to remount an out-of-margin flipping leaf,
 					// which must not mid-drag a full-tree reconcile (issue #343).
-					startTransition(() => setInflightVersion((v) => v + 1));
+					const mounted = mountedPageIndicesRef.current;
+					const first = flippingLeaf * 2;
+					const targetLeaf = Math.floor(bufferTargetRef.current / 2);
+					// A concurrent recenter may not have committed yet. Skip only
+					// if both the current DOM and that target window retain the leaf.
+					const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + 2;
+					if (
+						!inTargetWindow ||
+						!mounted?.has(first) ||
+						(first + 1 < pages.length && !mounted.has(first + 1))
+					) {
+						startTransition(() => setInflightVersion((v) => v + 1));
+					}
 				}
 			}
 			handlers?.onPageFlipping?.(params);
@@ -494,63 +592,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			flipBook.setBookmarksEnabled(enableBookmarks);
 		}, [enableBookmarks, flipBook]);
 
-		useEffect(() => {
-			const currentFlipBook = flipBook;
-			if (!bookmarkProvider) {
-				setBookmarkSlots([]);
-				return;
-			}
-			let active = true;
-			const slots = new Map<string, BookmarkSlot>();
-			const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
-				const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
-				let slot = slots.get(key);
-				if (!slot) {
-					slot = {
-						key,
-						bookmark,
-						element: Object.assign(document.createElement("span"), {
-							className: "flipbook-bookmark__renderer",
-						}),
-						renderer: expanded
-							? bookmarkProvider.renderExpandedBookmark
-							: bookmarkProvider.renderBookmark,
-					};
-					slots.set(key, slot);
-				}
-				slot.bookmark = bookmark;
-				return slot.element;
-			};
-			const provider: BaseBookmarkProvider = {
-				...bookmarkProvider,
-				getBookmarks: (context) => {
-					const bookmarks = bookmarkProvider.getBookmarks(context);
-					const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
-					for (const [key, slot] of slots) {
-						if (!ids.has(slot.bookmark.id)) slots.delete(key);
-					}
-					// The base renderer creates the slots synchronously after this query.
-					queueMicrotask(() => {
-						if (!active) return;
-						for (const [id, slot] of slots) {
-							if (!slot.element.isConnected) slots.delete(id);
-						}
-						setBookmarkSlots([...slots.values()]);
-					});
-					return bookmarks;
-				},
-				renderBookmark: (bookmark) => renderSlot(bookmark, false),
-				renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
-					? (bookmark) => renderSlot(bookmark, true)
-					: undefined,
-			};
-			currentFlipBook.setBookmarkProvider(provider);
-			return () => {
-				active = false;
-				currentFlipBook.setBookmarkProvider(undefined);
-			};
-		}, [bookmarkProvider, flipBook]);
-
 		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
 		useEffect(() => {
 			const el = hostRef.current;
@@ -622,34 +663,37 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
 		// Cover pages are always mounted — they are cover-sized and sit behind leaf-sized pages,
 		// acting as the physical book boards. Unmounting them would remove the realistic frame effect.
-		const contentByIndex =
+		const mountedPageIndices =
 			leavesBuffer != null && totalPages > 0
 				? (() => {
 						const currentLeaf = Math.floor(currentPageIndex / 2);
 						const leavesCount = Math.ceil(totalPages / 2);
-						const margin = 2; // extra leaves each side so content exists when vanilla reveals them
-						const leafStart = Math.max(0, currentLeaf - leavesBuffer - margin);
-						const leafEnd = Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin);
-						const pageStart = leafStart * 2;
-						const pageEnd = Math.min(totalPages - 1, leafEnd * 2 + 1);
-						const inRange = new Set(
-							Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i),
+						const margin = 2;
+						const first = Math.max(0, currentLeaf - leavesBuffer - margin) * 2;
+						const last = Math.min(
+							totalPages - 1,
+							Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin) * 2 + 1,
 						);
-						// Always include cover leaf pages so the larger cover boards remain mounted.
-						for (const idx of coverIndicesSet) {
-							inRange.add(idx);
-							// Also include the other side of the cover leaf
-							const partner = idx % 2 === 0 ? idx + 1 : idx - 1;
-							if (partner >= 0 && partner < totalPages) {
-								inRange.add(partner);
-							}
+						const mounted = new Set(Array.from({ length: last - first + 1 }, (_, i) => first + i));
+						for (const index of coverIndicesSet) {
+							mounted.add(index);
+							const partner = index % 2 === 0 ? index + 1 : index - 1;
+							if (partner >= 0 && partner < totalPages) mounted.add(partner);
 						}
-						return (index: number) =>
-							inRange.has(index) || inflightLeavesRef.current.has(Math.floor(index / 2))
-								? (pagesWithKeys.at(index) ?? null)
-								: null;
+						for (const leaf of inflightLeavesRef.current) {
+							mounted.add(leaf * 2);
+							if (leaf * 2 + 1 < totalPages) mounted.add(leaf * 2 + 1);
+						}
+						return mounted;
 					})()
-				: (index: number) => pagesWithKeys.at(index) ?? null;
+				: undefined;
+		usePageMountEffect(() => {
+			mountedPageIndicesRef.current = mountedPageIndices;
+		});
+		const contentByIndex = (index: number) =>
+			!mountedPageIndices || mountedPageIndices.has(index)
+				? (pagesWithKeys.at(index) ?? null)
+				: null;
 
 		/** Wrap interior cover pages with the endpaper inset frame (3-sided: no inset on spine). */
 		const renderPageContent = (index: number) => {
@@ -687,9 +731,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						</div>
 					</div>
 				))}
-				{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
-					createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
-				)}
+				<BookmarkPortals bookmarkProvider={bookmarkProvider} flipBook={flipBook} />
 			</div>
 		);
 	},
