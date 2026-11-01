@@ -61,6 +61,88 @@ describe("FlipBook", () => {
 	}
 
 	describe("navigation layout work", () => {
+		it.each(["next", "previous"] as const)(
+			"releases %s turn state after setup fails and permits another turn",
+			async (direction) => {
+				vi.useFakeTimers();
+				createPages(10);
+				let fail = true;
+				const activity = vi.fn();
+				const book = new FlipBook({
+					pagesCount: 10,
+					initialTurnedLeaves: direction === "next" ? [0] : [0, 1],
+					onLeafFlipActivity: activity,
+					onPageFlipping: () => {
+						if (fail) throw new Error("Consumer setup failed");
+					},
+				});
+				try {
+					book.render(container);
+					const turn = () => (direction === "next" ? book.flipNext() : book.flipPrev());
+					await expect(turn()).rejects.toThrow("Consumer setup failed");
+					expect(getFlipBookInternals(book).activeFlips.size).toBe(0);
+					expect(container.querySelector(".page--flipping")).toBeNull();
+					fail = false;
+					const retry = turn();
+					await vi.runAllTimersAsync();
+					await retry;
+					expect(book.currentPageIndex).toBe(direction === "next" ? 3 : 1);
+					expect(activity.mock.calls.map(([, active]) => active)).toEqual([
+						true,
+						false,
+						true,
+						false,
+					]);
+				} finally {
+					book.destroy();
+					vi.useRealTimers();
+				}
+			},
+		);
+
+		it.each(["next", "previous"] as const)(
+			"prepares moving bookmark geometry before revealing the %s page",
+			async (direction) => {
+				vi.useFakeTimers();
+				const pages = createPages(10);
+				for (const page of pages)
+					page.innerHTML = '<div class="flipbook-page-scrollport">Reader content</div>';
+				const activity = vi.fn();
+				const book = new FlipBook({
+					pagesCount: 10,
+					initialTurnedLeaves: direction === "next" ? [0] : [0, 1],
+					leavesBuffer: 1,
+					enableBookmarks: true,
+					onLeafFlipActivity: activity,
+					bookmarkProvider: {
+						attachment: "leaf",
+						getBookmarks: () => [{ id: "chapter", pageIndex: 3, label: "Chapter" }],
+					},
+				});
+				try {
+					book.render(container);
+					const visibility = () =>
+						pages.map((page) => (page.firstElementChild as HTMLElement).style.contentVisibility);
+					const resting = visibility();
+					const reads: string[][] = [];
+					const rectangle = container.getBoundingClientRect.bind(container);
+					vi.spyOn(container, "getBoundingClientRect").mockImplementation(() => {
+						reads.push(visibility());
+						return rectangle();
+					});
+					const turn = direction === "next" ? book.flipNext() : book.flipPrev();
+					expect(reads[0]).toEqual(resting);
+					await vi.runAllTimersAsync();
+					await turn;
+					expect(activity.mock.calls.map(([, active]) => active)).toEqual([true, false]);
+					expect(container.querySelector(".page--flipping")).toBeNull();
+				} finally {
+					book.destroy();
+					vi.useRealTimers();
+				}
+			},
+		);
+
 		it.each(["leaf", "pinned"] as const)(
 			"reuses %s bookmark geometry when a turn commits",
 			async (attachment) => {

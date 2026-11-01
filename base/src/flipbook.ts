@@ -1499,7 +1499,6 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
 		if (!leaf) return;
-		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,
@@ -1509,16 +1508,20 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
-		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
-		this.updateLeavesBufferVisibility();
-		const targetPageIndex = Math.min(this.pagesCount - 1, leaf.index * 2 + 1);
-		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
-		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
 		try {
+			// Capture resting bookmark geometry before revealing page content.
+			// The animation nests its own balanced beginFlip/endFlip pair.
+			leaf.beginFlip();
+			this.clearHoverShadow();
+			this.updateLeavesBufferVisibility();
+			const targetPageIndex = Math.min(this.pagesCount - 1, leaf.index * 2 + 1);
+			this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
+			if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 			await leaf.flipToPosition(1);
 		} finally {
 			this.activeFlips.delete(leaf.index);
+			leaf.endFlip();
 		}
 	}
 
@@ -1534,7 +1537,6 @@ class FlipBook {
 
 		const leaf = this.getNextAvailableLeaf(FlipDirection.Backward);
 		if (!leaf) return;
-		this.clearHoverShadow();
 
 		const flipState: FlipState = {
 			leaf,
@@ -1544,16 +1546,18 @@ class FlipBook {
 			isDuringAutoFlip: true,
 		};
 		this.activeFlips.set(leaf.index, flipState);
-		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
-		this.updateLeavesBufferVisibility();
-		const targetPageIndex = leaf.index * 2 - 1;
-		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
-		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
 		try {
+			leaf.beginFlip();
+			this.clearHoverShadow();
+			this.updateLeavesBufferVisibility();
+			const targetPageIndex = leaf.index * 2 - 1;
+			this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
+			if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 			await leaf.flipToPosition(0);
 		} finally {
 			this.activeFlips.delete(leaf.index);
+			leaf.endFlip();
 		}
 	}
 
