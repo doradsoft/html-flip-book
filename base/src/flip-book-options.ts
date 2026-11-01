@@ -78,6 +78,8 @@ export interface FlipBookOptions {
 	enableBookmarks?: boolean;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
+	/** Leaf activity spans the entire drag and its settling animation, including cancellation. */
+	onLeafFlipActivity?: (leafIndex: number, active: boolean) => void;
 	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */
 	onPageFlipping?: (params: PageFlipParams) => void;
 	/**
@@ -143,12 +145,10 @@ export interface FlipBookOptions {
 	 */
 	pageShadow?: boolean;
 	/**
-	 * When true, uses aggressive containment (`contain: strict`) on pages
-	 * during flip animations so the browser can operate on a cached GPU
-	 * texture rather than re-rendering page content every frame. This
-	 * significantly reduces jank when flipping multiple pages rapidly.
-	 * During the snapshot, page overflow is hidden and text selection is
-	 * disabled; both are restored when the flip animation completes.
+	 * When true, holds the page--flipping marker throughout the drag and
+	 * settling animation and blocks new text selection during that interval.
+	 * Content styling, scrollbar appearance and scroll positions stay stable
+	 * while the browser composites the moving paper.
 	 * Default: true.
 	 */
 	snapshotDuringFlip?: boolean;

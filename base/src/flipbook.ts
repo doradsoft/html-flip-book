@@ -87,6 +87,7 @@ class FlipBook {
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
+	private readonly onLeafFlipActivity?: (leafIndex: number, active: boolean) => void;
 	private readonly onPageFlipping?: (params: PageFlipParams) => void;
 	private readonly onPageFlipped?: (params: PageFlipParams) => void;
 	private readonly historyMapper?: HistoryMapper;
@@ -171,8 +172,8 @@ class FlipBook {
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
 		if (!isInitial && this.bookmarksEnabled && this.bookmarkLayer) {
-			this.bookmarkLayer.refresh();
-			if (Object.values(this.bookmarkLayer.getInsets()).join() !== this.bookmarkClearance) {
+			const insets = this.bookmarkLayer.refreshForNavigation();
+			if (Object.values(insets).join() !== this.bookmarkClearance) {
 				this.recalculateSizes();
 			}
 		}
@@ -270,6 +271,7 @@ class FlipBook {
 		this.bookmarkProvider = options.bookmarkProvider;
 		this.bookmarksEnabled = options.enableBookmarks ?? false;
 		this.onPageChanged = options.onPageChanged;
+		this.onLeafFlipActivity = options.onLeafFlipActivity;
 		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
 		this.historyMapper =
@@ -328,6 +330,17 @@ class FlipBook {
 
 	private observeBookmarkLeaves(): void {
 		for (const leaf of this.leaves) {
+			leaf.onBeforeFlip =
+				this.bookmarksEnabled || this.onLeafFlipActivity
+					? () => {
+							this.onLeafFlipActivity?.(leaf.index, true);
+							const frame = this.bookmarksEnabled ? leaf.transformFrame : undefined;
+							if (frame) this.bookmarkLayer?.prepareLeaf(leaf.index, frame, leaf.pages[0]);
+						}
+					: undefined;
+			leaf.onAfterFlip = this.onLeafFlipActivity
+				? () => this.onLeafFlipActivity?.(leaf.index, false)
+				: undefined;
 			leaf.onTransform = this.bookmarksEnabled
 				? (frame) => this.bookmarkLayer?.updateLeaf(leaf.index, frame, leaf.pages[0])
 				: undefined;
@@ -369,6 +382,17 @@ class FlipBook {
 			(event.type !== "pointerdown" || (event as PointerEvent).pointerType === "mouse")
 		) {
 			event.stopPropagation();
+		}
+	};
+
+	/** Block selection during motion without changing inherited content styles. */
+	private handlePageSelectStart = (event: Event): void => {
+		if (
+			this.snapshotDuringFlip &&
+			event.currentTarget instanceof HTMLElement &&
+			event.currentTarget.classList.contains("page--flipping")
+		) {
+			event.preventDefault();
 		}
 	};
 
@@ -602,6 +626,7 @@ class FlipBook {
 			page.addEventListener("pointerdown", this.handlePageMouseDown);
 			page.addEventListener("mousedown", this.handlePageMouseDown);
 			page.addEventListener("dragstart", this.handlePageDragStart, true);
+			page.addEventListener("selectstart", this.handlePageSelectStart, true);
 		}
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
@@ -857,6 +882,20 @@ class FlipBook {
 				coverLeafIndices.add(Math.floor(pageIdx / 2));
 			}
 		}
+		// Buffering keeps React content mounted, but opaque paper occludes most
+		// of it. Render only the current spread, its immediate underlays, and
+		// every in-flight leaf's neighbors. Keep the paper boxes/boards intact.
+		const exposedContent = new Set<number>();
+		const expose = (index: number) => {
+			for (let offset = -2; offset <= 2; offset++) exposedContent.add(index + offset);
+		};
+		for (const index of this.prevVisiblePageIndices ?? [0, 1]) expose(index);
+		for (const leaf of this.leaves) {
+			if (this.activeFlips.has(leaf.index) || leaf.isFlipping) {
+				expose(leaf.index * 2);
+				expose(leaf.index * 2 + 1);
+			}
+		}
 
 		// Update visibility of all leaves
 		for (let i = 0; i < leavesCount; i++) {
@@ -877,12 +916,20 @@ class FlipBook {
 				if (page) {
 					const display = visible ? "" : "none";
 					if (page.style.display !== display) page.style.display = display;
-					// Use content-visibility to skip rendering of off-screen pages.
-					// "hidden" is more aggressive than display:none — the browser
-					// also skips layout/paint entirely, reducing memory pressure.
+					// Skip descendant work even if consumer CSS overrides display.
+					// content-visibility retains the paper box; display:none removes it.
 					const visibility = visible ? "visible" : "hidden";
 					if (page.style.contentVisibility !== visibility)
 						page.style.contentVisibility = visibility;
+					const scrollport = page.firstElementChild as HTMLElement | null;
+					if (scrollport?.classList.contains("flipbook-page-scrollport")) {
+						const contentVisibility =
+							isCoverLeaf || exposedContent.has(Number(page.dataset.pageIndex))
+								? "visible"
+								: "hidden";
+						if (scrollport.style.contentVisibility !== contentVisibility)
+							scrollport.style.contentVisibility = contentVisibility;
+					}
 				}
 			}
 		}
@@ -987,7 +1034,6 @@ class FlipBook {
 			return;
 		}
 		this.isDragging = true;
-		this.clearHoverShadow();
 		this.pendingFlipStartingPos =
 			event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0);
 		this.pendingFlipStartingY = Number.isFinite(event.center.y)
@@ -1019,8 +1065,11 @@ class FlipBook {
 			return;
 
 		const currentPos = event.center.x;
-		const bookWidth = this.bookElement?.clientWidth ?? 0;
-		if (bookWidth <= 0) return;
+		if (!this.bookElement) return;
+		// The established gesture uses the paper's explicit layout dimensions.
+		// Reading host geometry after every fold write forces synchronous layout.
+		const bookWidth = flipState ? undefined : this.bookElement.clientWidth;
+		if (bookWidth === 0) return;
 
 		// Calculate delta
 		const startingPos = flipState?.startingPos ?? this.pendingFlipStartingPos;
@@ -1037,13 +1086,12 @@ class FlipBook {
 			return;
 
 		// Determine direction on first meaningful movement
-		const isRightSide = startingPos >= this.getSpineClientX();
 		const direction =
 			flipState?.direction ??
 			(this.pendingFlipDirection !== FlipDirection.None
 				? this.pendingFlipDirection
 				: delta === 0
-					? this.isLTR === isRightSide
+					? this.isLTR === startingPos >= this.getSpineClientX()
 						? FlipDirection.Forward
 						: FlipDirection.Backward
 					: delta > 0
@@ -1071,15 +1119,18 @@ class FlipBook {
 			const leaf = this.getNextAvailableLeaf(direction);
 			if (!leaf) return;
 
-			// Acquire the flip lock for the full drag cycle; the matching
-			// endFlip() is deferred until the release animation completes
-			// in onDragEnd, so the snapshot/scrollbar lockdown stays stable.
-			leaf.beginFlip();
 			const originY = this.getFoldPointerY(
 				leaf,
 				direction,
 				this.pendingFlipStartingY ?? event.center.y,
 			);
+			// Read the origin before the snapshot changes scrollbar/selection
+			// styles throughout the page; the reverse order forces their layout
+			// synchronously inside the first pointer movement.
+			leaf.beginFlip();
+			// The first manual pose replaces this leaf's hover immediately. Do not
+			// redraw its resting pose before geometry/companion preparation reads.
+			this.clearHoverShadow(leaf);
 			leaf.setFoldOrigin(originY);
 
 			flipState = {
@@ -1119,7 +1170,11 @@ class FlipBook {
 				y: (flipState.cornerY ?? 1) + dy / pageHeight,
 			});
 		} else {
-			const travel = Number.isFinite(pageWidth) && pageWidth > 0 ? pageWidth * 2 : bookWidth;
+			const travel =
+				Number.isFinite(pageWidth) && pageWidth > 0
+					? pageWidth * 2
+					: (bookWidth ?? this.bookElement.clientWidth);
+			if (travel <= 0) return;
 			const position =
 				flipState.direction === FlipDirection.Forward ? delta / travel : 1 + delta / travel;
 			flipState.leaf.setManualPosition(Math.max(0, Math.min(1, position)));
@@ -1206,8 +1261,7 @@ class FlipBook {
 		this.pendingFlipStartingY = undefined;
 		this.isDragging = false;
 
-		const targetPageIndex =
-			flipTo === 1 ? 2 * (flipState.leaf.index + 1) : 2 * flipState.leaf.index;
+		const targetPageIndex = Math.max(0, 2 * flipState.leaf.index + (flipTo === 1 ? 1 : -1));
 		const direction: PageFlipDirection = flipTo === 1 ? "forward" : "backward";
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, direction);
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
@@ -1363,9 +1417,9 @@ class FlipBook {
 		}
 	};
 
-	private clearHoverShadow() {
+	private clearHoverShadow(replacedByManualPose?: Leaf) {
 		if (this.hoveredLeaf) {
-			this.hoveredLeaf.setHoverShadow(0);
+			this.hoveredLeaf.setHoverShadow(0, this.hoveredLeaf !== replacedByManualPose);
 			this.hoveredLeaf = undefined;
 		}
 	}
@@ -1457,7 +1511,7 @@ class FlipBook {
 		this.activeFlips.set(leaf.index, flipState);
 		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
 		this.updateLeavesBufferVisibility();
-		const targetPageIndex = this.currentPageIndex + 2;
+		const targetPageIndex = Math.min(this.pagesCount - 1, leaf.index * 2 + 1);
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
@@ -1492,7 +1546,7 @@ class FlipBook {
 		this.activeFlips.set(leaf.index, flipState);
 		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
 		this.updateLeavesBufferVisibility();
-		const targetPageIndex = this.currentPageIndex - 2;
+		const targetPageIndex = leaf.index * 2 - 1;
 		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
@@ -1658,6 +1712,11 @@ class FlipBook {
 		this.cancelBookmarkPointerDrag?.();
 		this.bookmarkLayer?.destroy();
 		this.bookmarkLayer = undefined;
+		for (const leaf of this.leaves) {
+			leaf.onBeforeFlip = undefined;
+			leaf.onAfterFlip = undefined;
+			leaf.onTransform = undefined;
+		}
 		if (typeof window !== "undefined" && this._boundPopstate) {
 			window.removeEventListener("popstate", this._boundPopstate, true);
 			this._boundPopstate = undefined;
@@ -1675,6 +1734,7 @@ class FlipBook {
 				page.removeEventListener("pointerdown", this.handlePageMouseDown);
 				page.removeEventListener("mousedown", this.handlePageMouseDown);
 				page.removeEventListener("dragstart", this.handlePageDragStart, true);
+				page.removeEventListener("selectstart", this.handlePageSelectStart, true);
 			}
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);

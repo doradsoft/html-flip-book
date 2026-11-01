@@ -1,3 +1,26 @@
+// Non-inheriting animation values let the browser update paper shading without
+// invalidating the consumer's entire text tree on every pointer/animation frame.
+@property --fold-shading {
+  syntax: "*";
+  inherits: false;
+  initial-value: none;
+}
+@property --inner-shadow-shadow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+@property --inner-shadow-highlight {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+@property --inner-shadow-edge {
+  syntax: "*";
+  inherits: false;
+  initial-value: right;
+}
+
 .page {
   position: absolute;
   backface-visibility: hidden;
@@ -16,13 +39,17 @@
 
 .page::before,
 .page::after {
+  // Only the paper overlays consume the owning page's live values.
+  --fold-shading: inherit;
+  --inner-shadow-shadow: inherit;
+  --inner-shadow-highlight: inherit;
+  --inner-shadow-edge: inherit;
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   backface-visibility: hidden;
   transition: opacity 120ms ease;
-  will-change: opacity;
   // Stacking contract: shading overlays paint above positioned/opaque page
   // content (each page's `contain: paint` scopes this to the page itself).
   // Apps with intentional overlays can tune --flipbook-shading-z-index.
@@ -88,30 +115,19 @@
   transition: none;
 }
 
-// Applied during flip animation when snapshotDuringFlip is enabled.
-// The browser freezes the page rendering as a GPU texture; scrollbar chrome
-// and text selection are hidden so the snapshot looks clean.
-// overflow is NOT changed — scroll position is fully preserved.
-.page--flipping {
-  contain: strict;
-  user-select: none;
-
-  // Make scrollbar chrome invisible but PRESERVE gutter width.
-  // Using scrollbar-color:transparent keeps the scrollbar's space allocated
-  // so content doesn't reflow wider when the snapshot is taken.
-  // scrollbar-color is standard (Firefox, Chrome 121+, Edge 121+).
-  scrollbar-color: transparent transparent;
-  // Safari/older WebKit: overlay scrollbars don't occupy space, so display:none
-  // is safe — no content width shift on those platforms.
-  &::-webkit-scrollbar { display: none; }
-
-  * {
-    scrollbar-color: transparent transparent !important;
-    &::-webkit-scrollbar { display: none !important; }
-  }
-}
+// Leaf promotes the moving paper without restyling its content. In particular,
+// changing inherited selection/scrollbar styles at either end of a turn would
+// invalidate every word and discard the rendering being reused. The input
+// handler blocks selection during the lock; scrollbar appearance stays intact.
 
 .page > * {
+  // These values animate the paper's pseudo-elements, not consumer content.
+  // Stop their inheritance here so a crease update does not invalidate every
+  // verse/word inside a page. Keep the overlays on .page itself unchanged.
+  --fold-shading: none;
+  --inner-shadow-shadow: 0;
+  --inner-shadow-highlight: 0;
+  --inner-shadow-edge: right;
   // enforcing page direct children to not cause it to be overflowed
   max-width: 100%;
   max-height: 100%;

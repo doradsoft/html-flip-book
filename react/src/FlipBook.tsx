@@ -20,9 +20,12 @@ import type React from "react";
 import {
 	Children,
 	forwardRef,
+	memo,
 	startTransition,
+	useCallback,
 	useEffect,
 	useImperativeHandle,
+	useLayoutEffect,
 	useRef,
 	useState,
 } from "react";
@@ -38,6 +41,84 @@ interface BookmarkSlot {
 	renderer: BookmarkProvider["renderBookmark"];
 }
 
+// Native pointer handlers need the committed mount window before a new frame.
+// Server rendering has no native handlers and must not run a layout effect.
+const usePageMountEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+/** Bookmark updates must not reconcile the surrounding scripture/page tree. */
+const BookmarkPortals = memo(function BookmarkPortals({
+	bookmarkProvider,
+	flipBook,
+}: {
+	bookmarkProvider: BookmarkProvider | undefined;
+	flipBook: FlipBookBase;
+}) {
+	const [bookmarkSlots, setBookmarkSlots] = useState<BookmarkSlot[]>([]);
+	useEffect(() => {
+		if (!bookmarkProvider) {
+			setBookmarkSlots([]);
+			return;
+		}
+		let active = true;
+		const slots = new Map<string, BookmarkSlot>();
+		const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
+			const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
+			let slot = slots.get(key);
+			if (!slot) {
+				slot = {
+					key,
+					bookmark,
+					element: Object.assign(document.createElement("span"), {
+						className: "flipbook-bookmark__renderer",
+					}),
+					renderer: expanded
+						? bookmarkProvider.renderExpandedBookmark
+						: bookmarkProvider.renderBookmark,
+				};
+				slots.set(key, slot);
+			}
+			slot.bookmark = bookmark;
+			return slot.element;
+		};
+		const provider: BaseBookmarkProvider = {
+			...bookmarkProvider,
+			getBookmarks: (context) => {
+				const bookmarks = bookmarkProvider.getBookmarks(context);
+				const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
+				for (const [key, slot] of slots) {
+					if (!ids.has(slot.bookmark.id)) slots.delete(key);
+				}
+				queueMicrotask(() => {
+					if (!active) return;
+					for (const [id, slot] of slots) {
+						if (!slot.element.isConnected) slots.delete(id);
+					}
+					// Keep contextual custom renderers fresh, including consumers
+					// returning the same bookmark object. Only this subtree updates.
+					setBookmarkSlots([...slots.values()]);
+				});
+				return bookmarks;
+			},
+			renderBookmark: (bookmark) => renderSlot(bookmark, false),
+			renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
+				? (bookmark) => renderSlot(bookmark, true)
+				: undefined,
+		};
+		flipBook.setBookmarkProvider(provider);
+		return () => {
+			active = false;
+			flipBook.setBookmarkProvider(undefined);
+		};
+	}, [bookmarkProvider, flipBook]);
+	return (
+		<>
+			{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
+				createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
+			)}
+		</>
+	);
+});
+
 /**
  * Imperative handle exposed via ref for programmatic control of the FlipBook.
  * Flipbook methods (flipNext, jumpToPage, etc.) are called internally by commands;
@@ -50,6 +131,8 @@ interface BookmarkSlot {
  * ```
  */
 export interface FlipBookHandle {
+	/** Hold background page-buffer work from pointer press through release. Custom toolbars can call this on pointerdown. */
+	beginPointerInteraction?: () => void;
 	/** Animate flip to the next page */
 	flipNext: () => Promise<void>;
 	/** Animate flip to the previous page */
@@ -220,9 +303,8 @@ export interface FlipBookProps {
 	 */
 	pageShadow?: boolean;
 	/**
-	 * When true, uses aggressive containment on pages during flip animations
-	 * so the browser can operate on a cached GPU texture rather than
-	 * re-rendering content every frame. Reduces jank when flipping rapidly.
+	 * When true, holds page--flipping through the drag and settling animation
+	 * and blocks new text selection without changing content or scrollbar styling.
 	 * Default: true.
 	 */
 	snapshotDuringFlip?: boolean;
@@ -307,7 +389,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			return 0;
 		});
 		const setPageIndexRef = useRef(setCurrentPageIndex);
-		const [bookmarkSlots, setBookmarkSlots] = useState<BookmarkSlot[]>([]);
 		setPageIndexRef.current = setCurrentPageIndex;
 		const ofRef = useRef(of);
 		ofRef.current = of;
@@ -326,6 +407,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// must stay mounted too — otherwise a revealed flipping page renders blank
 		// (issue #167). Cleared once flips settle and the buffer window recenters.
 		const inflightLeavesRef = useRef<Set<number>>(new Set());
+		const activeLeavesRef = useRef(new Set<number>());
+		const pointerHeldRef = useRef(false);
+		const mountedPageIndicesRef = useRef<ReadonlySet<number> | undefined>(undefined);
+		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
 			setPageIndexRef.current?.(index);
@@ -337,49 +422,67 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				// whole page tree on every turn for no benefit (issue #343).
 				return;
 			}
+			if (activeLeavesRef.current.size > 0 || pointerHeldRef.current) return;
 			if (pageChangedTimerRef.current != null) {
 				clearTimeout(pageChangedTimerRef.current);
 			}
 			pageChangedTimerRef.current = setTimeout(() => {
 				pageChangedTimerRef.current = null;
+				if (activeLeavesRef.current.size > 0 || pointerHeldRef.current) return;
+				const hadInflight = inflightLeavesRef.current.size > 0;
 				inflightLeavesRef.current.clear();
+				bufferTargetRef.current = index;
 				// The buffer-window remount can be a large reconcile under heavy
 				// page content. It is not input-latency critical — the +2 leaf
 				// margin already keeps freshly revealed pages mounted — so let
 				// React chunk and yield it instead of blocking the frame that
 				// completes a turn (issue #343).
-				startTransition(() => setPageIndexRef.current?.(index));
+				startTransition(() => {
+					if (hadInflight) setInflightVersion((v) => v + 1);
+					setPageIndexRef.current?.(index);
+				});
 			}, BUFFER_DEBOUNCE_MS);
+		};
+		const beginPointerInteraction = useCallback(() => {
+			if (leavesBuffer == null) return;
+			pointerHeldRef.current = true;
+			if (pageChangedTimerRef.current != null) {
+				clearTimeout(pageChangedTimerRef.current);
+				pageChangedTimerRef.current = null;
+			}
+		}, [leavesBuffer]);
+		const retainFlippingLeaf = (flippingLeaf: number) => {
+			if (leavesBuffer == null) return;
+			if (pageChangedTimerRef.current != null) {
+				clearTimeout(pageChangedTimerRef.current);
+				pageChangedTimerRef.current = null;
+			}
+			if (inflightLeavesRef.current.has(flippingLeaf)) return;
+			inflightLeavesRef.current.add(flippingLeaf);
+			const mounted = mountedPageIndicesRef.current;
+			const first = flippingLeaf * 2;
+			const targetLeaf = Math.floor(bufferTargetRef.current / 2);
+			// A concurrent recenter may not have committed yet. Skip only if both
+			// the current DOM and that target window retain the moving material.
+			const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + 2;
+			if (
+				!inTargetWindow ||
+				!mounted?.has(first) ||
+				(first + 1 < pages.length && !mounted.has(first + 1))
+			) {
+				startTransition(() => setInflightVersion((v) => v + 1));
+			}
 		};
 		const onPageFlippingRef = useRef((params: PageFlipParams) => {
 			handlers?.onPageFlipping?.(params);
 		});
 		onPageFlippingRef.current = (params) => {
-			if (leavesBuffer != null) {
-				// A new flip is starting: hold any pending buffer-window remount so
-				// a heavy mount cannot land mid-animation. The window re-arms at
-				// this flip's commit; dropping it is safe — the +2 leaf margin and
-				// inflightLeaves keep freshly revealed pages mounted (issue #343).
-				if (pageChangedTimerRef.current != null) {
-					clearTimeout(pageChangedTimerRef.current);
-					pageChangedTimerRef.current = null;
-				}
-				// The flipping leaf holds the page on the trailing edge of the target
-				// spread: backward flips carry pageIndices[1] on their back, forward
-				// flips carry pageIndices[0] on their front.
-				const edgePage =
-					params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
-				const flippingLeaf = Math.floor(edgePage / 2);
-				if (!inflightLeavesRef.current.has(flippingLeaf)) {
-					inflightLeavesRef.current.add(flippingLeaf);
-					// Same transition rationale as the debounced buffer update:
-					// this only exists to remount an out-of-margin flipping leaf,
-					// which must not mid-drag a full-tree reconcile (issue #343).
-					startTransition(() => setInflightVersion((v) => v + 1));
-				}
-			}
+			const edgePage =
+				params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
+			retainFlippingLeaf(Math.floor(edgePage / 2));
 			handlers?.onPageFlipping?.(params);
 		};
+		const onLeafFlipActivityRef = useRef<(index: number, active: boolean) => void>(() => {});
 		const onPageFlippedRef = useRef((params: PageFlipParams) => {
 			handlers?.onPageFlipped?.(params);
 		});
@@ -413,6 +516,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					coverAspectRatio: coverAspectRatio,
 					coverPageIndices: coverConfig?.coverIndices,
 					onPageChanged: (index: number) => onPageChangedRef.current(index),
+					onLeafFlipActivity: (index, active) => onLeafFlipActivityRef.current(index, active),
 					onPageFlipping: (params) => onPageFlippingRef.current(params),
 					onPageFlipped: (params: PageFlipParams) => onPageFlippedRef.current(params),
 					historyMapper,
@@ -425,6 +529,42 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				}),
 		);
 
+		onLeafFlipActivityRef.current = (index, active) => {
+			if (leavesBuffer == null) return;
+			if (active) {
+				activeLeavesRef.current.add(index);
+				// A drag starts before its release animation. Hold buffer work for
+				// that entire interval, without reconciling already mounted pages.
+				retainFlippingLeaf(index);
+			} else {
+				activeLeavesRef.current.delete(index);
+				if (activeLeavesRef.current.size === 0) {
+					// A cancelled drag has no page-change event, but must still retire
+					// retained material and finish any previously pending recenter.
+					onPageChangedRef.current(flipBook.currentPageIndex);
+				}
+			}
+		};
+		useEffect(() => {
+			if (leavesBuffer == null) return;
+			const document = hostRef.current?.ownerDocument ?? window.document;
+			const view = document.defaultView;
+			const release = (event: Event) => {
+				if (!pointerHeldRef.current || (event as PointerEvent).isPrimary === false) return;
+				pointerHeldRef.current = false;
+				if (activeLeavesRef.current.size === 0) onPageChangedRef.current(flipBook.currentPageIndex);
+			};
+			document.addEventListener("pointerup", release, true);
+			document.addEventListener("pointercancel", release, true);
+			view?.addEventListener("blur", release);
+			return () => {
+				pointerHeldRef.current = false;
+				document.removeEventListener("pointerup", release, true);
+				document.removeEventListener("pointercancel", release, true);
+				view?.removeEventListener("blur", release);
+			};
+		}, [flipBook, leavesBuffer]);
+
 		// The engine captures downloadConfig at mount; bridge prop changes into it.
 		useEffect(() => {
 			flipBook.setDownloadConfig(downloadConfig);
@@ -434,6 +574,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		useImperativeHandle(
 			ref,
 			() => ({
+				beginPointerInteraction,
 				flipNext: () => flipBook.flipNext(),
 				flipPrev: () => flipBook.flipPrev(),
 				flipToPage: (pageIndex: number) => flipBook.flipToPage(pageIndex),
@@ -462,7 +603,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					}
 				},
 			}),
-			[mouseModeStorageKey, flipBook],
+			[mouseModeStorageKey, flipBook, beginPointerInteraction],
 		);
 
 		useEffect(() => {
@@ -493,63 +634,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			previousBookmarksEnabled.current = enableBookmarks;
 			flipBook.setBookmarksEnabled(enableBookmarks);
 		}, [enableBookmarks, flipBook]);
-
-		useEffect(() => {
-			const currentFlipBook = flipBook;
-			if (!bookmarkProvider) {
-				setBookmarkSlots([]);
-				return;
-			}
-			let active = true;
-			const slots = new Map<string, BookmarkSlot>();
-			const renderSlot = (bookmark: Bookmark, expanded: boolean): HTMLElement => {
-				const key = `${expanded ? "expanded" : "brief"}:${bookmark.id}`;
-				let slot = slots.get(key);
-				if (!slot) {
-					slot = {
-						key,
-						bookmark,
-						element: Object.assign(document.createElement("span"), {
-							className: "flipbook-bookmark__renderer",
-						}),
-						renderer: expanded
-							? bookmarkProvider.renderExpandedBookmark
-							: bookmarkProvider.renderBookmark,
-					};
-					slots.set(key, slot);
-				}
-				slot.bookmark = bookmark;
-				return slot.element;
-			};
-			const provider: BaseBookmarkProvider = {
-				...bookmarkProvider,
-				getBookmarks: (context) => {
-					const bookmarks = bookmarkProvider.getBookmarks(context);
-					const ids = new Set(bookmarks.map((bookmark) => bookmark.id));
-					for (const [key, slot] of slots) {
-						if (!ids.has(slot.bookmark.id)) slots.delete(key);
-					}
-					// The base renderer creates the slots synchronously after this query.
-					queueMicrotask(() => {
-						if (!active) return;
-						for (const [id, slot] of slots) {
-							if (!slot.element.isConnected) slots.delete(id);
-						}
-						setBookmarkSlots([...slots.values()]);
-					});
-					return bookmarks;
-				},
-				renderBookmark: (bookmark) => renderSlot(bookmark, false),
-				renderExpandedBookmark: bookmarkProvider.renderExpandedBookmark
-					? (bookmark) => renderSlot(bookmark, true)
-					: undefined,
-			};
-			currentFlipBook.setBookmarkProvider(provider);
-			return () => {
-				active = false;
-				currentFlipBook.setBookmarkProvider(undefined);
-			};
-		}, [bookmarkProvider, flipBook]);
 
 		// Sync pageShadow to DOM when prop changes (base option is set at construct time).
 		useEffect(() => {
@@ -622,34 +706,37 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
 		// Cover pages are always mounted — they are cover-sized and sit behind leaf-sized pages,
 		// acting as the physical book boards. Unmounting them would remove the realistic frame effect.
-		const contentByIndex =
+		const mountedPageIndices =
 			leavesBuffer != null && totalPages > 0
 				? (() => {
 						const currentLeaf = Math.floor(currentPageIndex / 2);
 						const leavesCount = Math.ceil(totalPages / 2);
-						const margin = 2; // extra leaves each side so content exists when vanilla reveals them
-						const leafStart = Math.max(0, currentLeaf - leavesBuffer - margin);
-						const leafEnd = Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin);
-						const pageStart = leafStart * 2;
-						const pageEnd = Math.min(totalPages - 1, leafEnd * 2 + 1);
-						const inRange = new Set(
-							Array.from({ length: pageEnd - pageStart + 1 }, (_, i) => pageStart + i),
+						const margin = 2;
+						const first = Math.max(0, currentLeaf - leavesBuffer - margin) * 2;
+						const last = Math.min(
+							totalPages - 1,
+							Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin) * 2 + 1,
 						);
-						// Always include cover leaf pages so the larger cover boards remain mounted.
-						for (const idx of coverIndicesSet) {
-							inRange.add(idx);
-							// Also include the other side of the cover leaf
-							const partner = idx % 2 === 0 ? idx + 1 : idx - 1;
-							if (partner >= 0 && partner < totalPages) {
-								inRange.add(partner);
-							}
+						const mounted = new Set(Array.from({ length: last - first + 1 }, (_, i) => first + i));
+						for (const index of coverIndicesSet) {
+							mounted.add(index);
+							const partner = index % 2 === 0 ? index + 1 : index - 1;
+							if (partner >= 0 && partner < totalPages) mounted.add(partner);
 						}
-						return (index: number) =>
-							inRange.has(index) || inflightLeavesRef.current.has(Math.floor(index / 2))
-								? (pagesWithKeys.at(index) ?? null)
-								: null;
+						for (const leaf of inflightLeavesRef.current) {
+							mounted.add(leaf * 2);
+							if (leaf * 2 + 1 < totalPages) mounted.add(leaf * 2 + 1);
+						}
+						return mounted;
 					})()
-				: (index: number) => pagesWithKeys.at(index) ?? null;
+				: undefined;
+		usePageMountEffect(() => {
+			mountedPageIndicesRef.current = mountedPageIndices;
+		});
+		const contentByIndex = (index: number) =>
+			!mountedPageIndices || mountedPageIndices.has(index)
+				? (pagesWithKeys.at(index) ?? null)
+				: null;
 
 		/** Wrap interior cover pages with the endpaper inset frame (3-sided: no inset on spine). */
 		const renderPageContent = (index: number) => {
@@ -673,7 +760,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		};
 
 		return (
-			<div ref={hostRef} className={className}>
+			<div
+				ref={hostRef}
+				className={className}
+				onPointerDownCapture={(event) => {
+					if (event.button === 0 && event.isPrimary !== false) beginPointerInteraction();
+				}}
+			>
 				{pagesWithKeys.map((_, index) => (
 					<div
 						// biome-ignore lint/suspicious/noArrayIndexKey: stable slot identity for buffer/mount correctness
@@ -687,9 +780,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 						</div>
 					</div>
 				))}
-				{bookmarkSlots.map(({ key, bookmark, element, renderer }) =>
-					createPortal(renderer ? renderer(bookmark) : bookmark.label, element, key),
-				)}
+				<BookmarkPortals bookmarkProvider={bookmarkProvider} flipBook={flipBook} />
 			</div>
 		);
 	},

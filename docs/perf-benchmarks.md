@@ -64,6 +64,44 @@ advisory while per-run calibration matures; a calibrated regression
 
 ## Artifacts
 
+### Consecutive turns and bookmark modes
+
+`turnReact`, `turnReactPinned`, and `turnReactHidden` compare the same RTL
+76-page buffered React book with attached, pinned, and disabled bookmarks.
+The enabled cases assert that all 36 chapter bookmarks exist: the old 24-page
+fixture silently collapsed 36 requested bookmarks onto fewer spreads. Every
+pointer probe now waits for completion and starts the next input immediately;
+the former 300ms rest concealed the buffer/portal handoff.
+
+For the consumer regression, bible-on-site additionally exercises six trusted
+drag and toolbar turns on the complete reader in all three modes, including
+Kings. It keeps each input and frame sample and requires every URL commit.
+The desktop stress profile is full Chromium, 1440x900, CPU slowdown 4. Limits
+frozen from the failing release are input-to-motion render opportunity p95
+200ms, worst rAF gap 100ms, and rAF gap p95 50ms. These are stress-profile
+regression limits; native desktop measurements and GPU/software-renderer
+metadata must accompany any performance claim. rAF is not physical scanout or
+INP. A deliberately blocked second input proves the consumer probe rejects a
+250ms pause even with otherwise fast turns. Missing samples fail validation.
+The first turn from a fresh reader and the subsequent turns have separate
+results and independently enforce those same limits; attached-bookmark lag
+cannot be hidden by averaging it together with a handoff improvement.
+
+Moving tabs prepare their resting geometry before any paper snapshot/fold
+writes, without changing the resting DOM. Resize/provider changes discard
+that preparation. A per-leaf index also avoids scanning every chapter's tab on
+each frame and replaying a quadratic scan during relayout.
+
+The other fixes address independent costs: avoid layout reads after snapshot style
+writes, register non-inheriting paper-shading properties while explicitly
+feeding their pseudo-elements, keep occluded buffered text dormant while
+preserving paper/cover geometry and all moving underlays, and confine bookmark
+portal updates to their own React subtree. Custom contextual bookmark
+renderers remain live. See Chromium's
+[custom-property performance investigation](https://web.dev/blog/at-property-performance)
+for the inheritance cost; the repository's paired browser measurements remain
+the evidence for this implementation.
+
 `perf-results/<run>/result.json` records raw paired samples, A/A calibration
 pairs, per-metric stats (median diff, MAD, median ratio, CI90), the noise
 floor, thresholds, verdict reasons, environment metadata (node, chromium,

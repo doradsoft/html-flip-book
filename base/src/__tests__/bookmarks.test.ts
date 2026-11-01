@@ -58,6 +58,95 @@ describe("BookmarkLayer", () => {
 		expect(bookmarks.map((bookmark) => bookmark.id)).toEqual(["later", "first", "middle"]);
 	});
 
+	it("does not inspect unrelated chapter targets on a moving leaf's frame", () => {
+		const reads = new Map<string, number>();
+		const measured = bookmarks.map((bookmark) => ({
+			...bookmark,
+			get pageIndex() {
+				reads.set(bookmark.id, (reads.get(bookmark.id) ?? 0) + 1);
+				return bookmark.pageIndex;
+			},
+		}));
+		layer.setProvider({ getBookmarks: () => measured });
+		reads.clear();
+		const page = document.createElement("div");
+		layer.updateLeaf(
+			2,
+			{
+				width: 300,
+				height: 500,
+				isLTR: true,
+				position: 0,
+				restingPosition: 0,
+				kind: "paper",
+				backwardPreview: false,
+				zIndices: [20, 21],
+			},
+			page,
+		);
+		expect(reads.get("middle")).toBeGreaterThan(0);
+		expect(reads.has("first")).toBe(false);
+		expect(reads.has("later")).toBe(false);
+		expect(tabButton("middle").style.zIndex).toBe("20");
+	});
+
+	it("keeps a keyboard-focused preview open after a provider refresh", async () => {
+		vi.useFakeTimers();
+		layer.setProvider({
+			getBookmarks: () => bookmarks,
+			placement: "top",
+			renderExpandedBookmark: () => document.createElement("span"),
+		});
+		const button = tabButton("first");
+		const rect = vi
+			.spyOn(button, "getBoundingClientRect")
+			.mockReturnValue(new DOMRect(100, 100, 200, 24));
+		const matches = vi.spyOn(button, "matches").mockReturnValue(true);
+		try {
+			button.focus();
+			await vi.advanceTimersByTimeAsync(32);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.dataset.open).toBe(
+				"true",
+			);
+			layer.refresh();
+			await vi.advanceTimersByTimeAsync(32);
+			expect(document.activeElement).toBe(button);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.hidden).toBe(false);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.dataset.open).toBe(
+				"true",
+			);
+		} finally {
+			matches.mockRestore();
+			rect.mockRestore();
+			vi.useRealTimers();
+		}
+	});
+
+	it("keeps the committed leaf depth after restoring a prepared moving tab", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks, attachment: "leaf" });
+		const page = document.createElement("div");
+		const frame = {
+			width: 300,
+			height: 500,
+			isLTR: true,
+			position: 0,
+			restingPosition: 0,
+			kind: "rigid" as const,
+			backwardPreview: false,
+			zIndices: [10, 11] as [number, number],
+		};
+		layer.updateLeaf(2, frame, page);
+		layer.prepareLeaf(2, frame, page);
+		layer.updateLeaf(
+			2,
+			{ ...frame, position: 0.5, restingPosition: 0.5, zIndices: [90, 91] },
+			page,
+		);
+		context.currentPageIndex = 5;
+		layer.updateLeaf(2, { ...frame, position: 1, restingPosition: 1, zIndices: [20, 21] }, page);
+		expect(tabButton("middle").style.zIndex).toBe("21");
+	});
+
 	it("does not mutate an unchanged refresh or resting frame, while honoring provider updates", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
 		const bounds = { left: 100, top: 40, width: 600, height: 500 };
@@ -106,6 +195,16 @@ describe("BookmarkLayer", () => {
 		expect(tabButton("later").getAttribute("aria-current")).toBe("page");
 		expect(tabButton("first").hasAttribute("aria-current")).toBe(false);
 		observer.disconnect();
+	});
+
+	it("measures changed bookmark styling on explicit refresh after navigation", () => {
+		host.style.setProperty("--flipbook-bookmark-depth", "52px");
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.layout({ left: 100, top: 40, width: 600, height: 500 });
+		expect(layer.refreshForNavigation().left).toBe(52);
+		host.style.setProperty("--flipbook-bookmark-depth", "80px");
+		layer.refresh();
+		expect(layer.refreshForNavigation().left).toBe(80);
 	});
 
 	it("reads rail measurements before writing a new layout", () => {

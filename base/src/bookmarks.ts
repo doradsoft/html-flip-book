@@ -1,7 +1,7 @@
 import "./bookmarks.scss";
 import { writeAttribute, writeHidden, writeInert, writeStyle } from "./bookmark-dom";
 import type { BookmarkLeafFrame } from "./bookmark-fold";
-import { BookmarkMotion } from "./bookmark-motion";
+import { BookmarkMotion, type BookmarkMotionFaces } from "./bookmark-motion";
 import { BookmarkPreview } from "./bookmark-preview";
 import { calculateBookmarkStack } from "./bookmark-stack";
 import type { MouseMode } from "./flip-book-options";
@@ -102,6 +102,7 @@ export class BookmarkLayer {
 	private readonly rails = new Map<Edge, HTMLDivElement>();
 	private readonly groups = new Map<string, HTMLDivElement>();
 	private readonly items = new Map<string, BookmarkItem>();
+	private readonly itemsByLeaf = new Map<number, BookmarkItem[]>();
 	private orderedLeafIds: string[] = [];
 	private pendingTabRestore: (() => void) | undefined;
 	private tabRestoreTimer: number | undefined;
@@ -112,6 +113,7 @@ export class BookmarkLayer {
 	private provider: BookmarkProvider | undefined;
 	private bounds: BookmarkBounds | undefined;
 	private hostWidth: number | undefined;
+	private layoutMeasurements: BookmarkMeasurements | undefined;
 	private destroyed = false;
 	private mouseMode: MouseMode = "turn";
 
@@ -175,7 +177,22 @@ export class BookmarkLayer {
 
 	/** Re-read provider data after navigation or a consumer configuration update. */
 	refresh(): void {
+		this.refreshItems();
+	}
+
+	/** Page motion changes tab placement, not the measured book/rail dimensions. */
+	refreshForNavigation(): BookmarkInsets {
+		this.refreshItems(this.layoutMeasurements);
+		return this.getInsets(this.layoutMeasurements?.depth);
+	}
+
+	private refreshItems(measurements?: BookmarkMeasurements): void {
 		if (this.destroyed) return;
+		const active = this.host.ownerDocument.activeElement;
+		const preservePreview =
+			active instanceof HTMLButtonElement &&
+			active.dataset.previewOpen === "true" &&
+			active.matches(":focus-visible");
 		this.restoreTabStops();
 		this.motion.restoreAll();
 		this.preview.close();
@@ -190,6 +207,7 @@ export class BookmarkLayer {
 		writeStyle(this.element, "--bookmark-count", String(bookmarks.length));
 		writeHidden(this.element, bookmarks.length === 0);
 		this.removeRetiredBookmarks(bookmarks);
+		this.itemsByLeaf.clear();
 		const placements: RailPlacementCursors = new Map();
 		bookmarks.forEach((bookmark, index) => {
 			this.placeItem(bookmark, context, index, bookmarks.length, placements);
@@ -199,8 +217,15 @@ export class BookmarkLayer {
 		}
 		for (const rail of this.rails.values())
 			writeHidden(rail, rail.querySelector(".flipbook-bookmark:not([hidden])") === null);
-		if (this.bounds) this.layout(this.bounds);
-		if (focused?.isConnected) focused.focus({ preventScroll: true });
+		if (this.bounds)
+			this.layout(this.bounds, measurements ? this.hostWidth : undefined, measurements);
+		if (focused?.isConnected) {
+			focused.focus({ preventScroll: true });
+			if (preservePreview) {
+				const item = Array.from(this.items.values()).find((item) => item.button === focused);
+				if (item) this.openPreview(item);
+			}
+		}
 	}
 
 	private removeRetiredBookmarks(bookmarks: readonly BookmarkLeaf[]): void {
@@ -225,6 +250,10 @@ export class BookmarkLayer {
 		placements: RailPlacementCursors,
 	): void {
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
+		const leafIndex = this.getLeafIndex(item.bookmark);
+		const leafItems = this.itemsByLeaf.get(leafIndex) ?? [];
+		leafItems.push(item);
+		this.itemsByLeaf.set(leafIndex, leafItems);
 		const bookmark = item.bookmark;
 		writeAttribute(item.button, "class", `flipbook-bookmark ${bookmark.className ?? ""}`.trim());
 		writeAttribute(item.button, "data-page-index", String(bookmark.pageIndex));
@@ -330,7 +359,9 @@ export class BookmarkLayer {
 	/** Position tab rails just outside the resting page spread. */
 	layout(bounds: BookmarkBounds, hostWidth?: number, measurements?: BookmarkMeasurements): void {
 		if (this.destroyed) return;
-		const { depth, length, preferredStep, gaps } = measurements ?? this.measure();
+		const measured = measurements ?? this.measure();
+		this.layoutMeasurements = measured;
+		const { depth, length, preferredStep, gaps } = measured;
 		this.hostWidth = hostWidth ?? this.host.clientWidth;
 		this.motion.restoreAll();
 		this.preview.close();
@@ -427,23 +458,53 @@ export class BookmarkLayer {
 			writeStyle(slot, property, "");
 	}
 
+	private motionFaces(item: BookmarkItem, context: BookmarkContext): BookmarkMotionFaces {
+		return {
+			activeFace: this.isTurned(item.bookmark, context) ? 1 : 0,
+			reverse: item.leaf.front === item.leaf.back ? undefined : item.reverse,
+			front: item.leaf.front,
+			back: item.leaf.back,
+		};
+	}
+
+	/** Capture only the moving leaf's tabs while the resting layout is clean. */
+	prepareLeaf(index: number, frame: BookmarkLeafFrame, page: HTMLElement): void {
+		if (this.provider?.attachment === "pinned") return;
+		const items = this.itemsByLeaf.get(index);
+		if (!items?.length) return;
+		const context = this.getContext();
+		for (const item of items) {
+			if (!item.button.hidden)
+				this.motion.prepare(
+					{ id: item.leaf.id, pageIndex: index * 2 },
+					item.button,
+					frame,
+					page,
+					this.motionFaces(item, context),
+				);
+		}
+	}
+
 	/** Receive the same geometry used to draw the leaf, including its live crease. */
 	updateLeaf(index: number, frame: BookmarkLeafFrame, page: HTMLElement): void {
 		this.leafFrames.set(index, { frame, page });
-		for (const item of this.items.values()) {
-			if (this.getLeafIndex(item.bookmark) !== index) continue;
+		const items = this.itemsByLeaf.get(index);
+		if (!items?.length) return;
+		const context = this.getContext();
+		const resting = frame.restingPosition === 0 || frame.restingPosition === 1;
+		for (const item of items) {
+			// Restore the saved appearance before applying the committed paper depth.
+			if (resting && this.provider?.attachment !== "pinned")
+				this.motion.restore(item.leaf.id, true);
 			writeStyle(
 				item.button,
 				"z-index",
-				String(frame.zIndices[this.isTurned(item.bookmark, this.getContext()) ? 1 : 0]),
+				String(frame.zIndices[this.isTurned(item.bookmark, context) ? 1 : 0]),
 			);
 			if (this.provider?.attachment === "pinned") continue;
 			if (item.button.hidden) continue;
 			// A resting page's corner hover should not curl its bookmark material.
-			if (frame.restingPosition === 0 || frame.restingPosition === 1) {
-				this.motion.restore(item.leaf.id);
-				continue;
-			}
+			if (resting) continue;
 			this.preview.close();
 			this.motion.sync(
 				{ id: item.leaf.id, pageIndex: index * 2 },
@@ -451,12 +512,7 @@ export class BookmarkLayer {
 				frame,
 				page,
 				this.provider?.className,
-				{
-					activeFace: this.isTurned(item.bookmark, this.getContext()) ? 1 : 0,
-					reverse: item.leaf.front === item.leaf.back ? undefined : item.reverse,
-					front: item.leaf.front,
-					back: item.leaf.back,
-				},
+				this.motionFaces(item, context),
 			);
 		}
 	}
@@ -472,6 +528,7 @@ export class BookmarkLayer {
 			this.element.removeEventListener(event, stopBookGesture);
 		}
 		this.items.clear();
+		this.itemsByLeaf.clear();
 		this.orderedLeafIds = [];
 		this.leafFrames.clear();
 		this.groups.clear();
@@ -639,11 +696,12 @@ export class BookmarkLayer {
 		return item;
 	}
 
+	private openPreview(item: BookmarkItem): void {
+		if (!item.expandedRenderer || item.button.dataset.bookmarkMotion === "true") return;
+		this.preview.open(item.button, item.expanded, item.edge, this.provider?.className);
+	}
+
 	private bindPreview(item: BookmarkItem): void {
-		const open = () => {
-			if (!item.expandedRenderer || item.button.dataset.bookmarkMotion === "true") return;
-			this.preview.open(item.button, item.expanded, item.edge, this.provider?.className);
-		};
 		item.button.addEventListener("pointerenter", (event) => {
 			if (
 				event.pointerType !== "touch" &&
@@ -662,7 +720,7 @@ export class BookmarkLayer {
 			this.preview.leave(event.relatedTarget),
 		);
 		item.button.addEventListener("focus", () => {
-			if (item.button.matches(":focus-visible")) open();
+			if (item.button.matches(":focus-visible")) this.openPreview(item);
 		});
 		item.button.addEventListener("blur", (event) => this.preview.leave(event.relatedTarget));
 		item.button.addEventListener("keydown", (event) => {

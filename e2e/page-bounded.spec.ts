@@ -1,5 +1,8 @@
 import { expect, type Locator, test } from "./fixtures/coverage-test";
 
+// Exercise native gutter geometry; Playwright normally hides scrollbars.
+test.use({ launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
+
 const bookClass = (direction: string) => `.${direction === "ltr" ? "en" : "he"}-book.flipbook`;
 
 /** The dev server can show a typecheck overlay that intercepts pointer input. */
@@ -32,6 +35,95 @@ async function makeBoundedPanel(pageRoot: Locator) {
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: starting a snapshot preserves the nested scrollbar gutter and text width`, async ({
+		page,
+	}, testInfo) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const book = page.locator(bookClass(direction));
+		await page.locator(".flipbook-toolbar-next").click();
+		await expect(book.locator(".page--flipping")).toHaveCount(0);
+		const surface = book.locator('.page[data-page-index="2"]');
+		const root = surface.locator(".flipbook-page-content > *").first();
+		await makeBoundedPanel(root);
+		await page.addStyleTag({
+			content: ".pane {scrollbar-gutter:stable} .pane::-webkit-scrollbar {width:16px}",
+		});
+		const widths = await surface.evaluate((element) => {
+			const pane = element.querySelector<HTMLElement>(".pane");
+			if (!pane) throw new Error("Missing test scroll pane");
+			const before = pane.clientWidth;
+			const scrollbarBefore = getComputedStyle(pane, "::-webkit-scrollbar").visibility;
+			const gutter = pane.offsetWidth - before;
+			element.classList.add("page--flipping");
+			const during = pane.clientWidth;
+			const scrollbarDuring = getComputedStyle(pane, "::-webkit-scrollbar").visibility;
+			element.classList.remove("page--flipping");
+			return {
+				before,
+				during,
+				gutter,
+				scrollbarBefore,
+				scrollbarDuring,
+				idleShadowLayer: getComputedStyle(element, "::before").willChange,
+			};
+		});
+		expect(widths.gutter).toBeGreaterThan(0);
+		expect(widths.during).toBe(widths.before);
+		expect(widths.scrollbarDuring).toBe(widths.scrollbarBefore);
+		expect(widths.idleShadowLayer).toBe("auto");
+		const beforePath = testInfo.outputPath("content-before-lock.png");
+		const duringPath = testInfo.outputPath("content-during-lock.png");
+		const before = await surface.screenshot({ path: beforePath });
+		let during: Buffer;
+		await surface.evaluate((element) => element.classList.add("page--flipping"));
+		try {
+			during = await surface.screenshot({ path: duringPath });
+		} finally {
+			await surface.evaluate((element) => element.classList.remove("page--flipping"));
+		}
+		for (const [name, path] of [
+			["content-before-lock", beforePath],
+			["content-during-lock", duringPath],
+		])
+			await testInfo.attach(name, { path, contentType: "image/png" });
+		expect(during.equals(before), "Locking content must preserve its rendered pixels").toBe(true);
+	});
+
+	test(`${direction}: dormant buffered content preserves its scroll position when revealed again`, async ({
+		page,
+	}) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const book = page.locator(bookClass(direction));
+		const next = page.locator(".flipbook-toolbar-next");
+		const previous = page.locator(".flipbook-toolbar-prev");
+		await next.click();
+		await expect(book.locator(".page--flipping")).toHaveCount(0);
+		const surface = book.locator('.page[data-page-index="2"]');
+		const scrollport = surface.locator(":scope > .flipbook-page-scrollport");
+		await surface
+			.locator(".flipbook-page-content > *")
+			.first()
+			.evaluate((element) => {
+				(element as HTMLElement).style.height = "2000px";
+			});
+		await scrollport.evaluate((element) => {
+			element.scrollTop = 300;
+		});
+		expect(await scrollport.evaluate((element) => element.scrollTop)).toBe(300);
+		for (let index = 0; index < 3; index++) {
+			await next.click();
+			await expect(book.locator(".page--flipping")).toHaveCount(0);
+		}
+		expect(
+			await scrollport.evaluate((element) => (element as HTMLElement).style.contentVisibility),
+		).toBe("hidden");
+		for (let index = 0; index < 3; index++) {
+			await previous.click();
+			await expect(book.locator(".page--flipping")).toHaveCount(0);
+		}
+		await expect.poll(() => scrollport.evaluate((element) => element.scrollTop)).toBe(300);
+	});
+
 	test(`${direction}: bounded panel keeps the root at page height and scrolls only its inner pane`, async ({
 		page,
 	}) => {

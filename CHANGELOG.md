@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Page and toolbar presses hold pending page-buffer work before dragging or clicking begins, closing the gap in which a previous turn could interrupt the next one. Release, cancellation and lost focus restore the normal update schedule.
+- Turning pages keep their existing scrollbar and content appearance. Selection is blocked through input handling during a turn, avoiding a stylesheet change across every word at the start and end of the animation.
+- Bookmark preparation survives an animation's initial stationary frame, so the first moving frame can use the geometry captured before the paper changed.
+- Completing a page turn reuses the bookmark rail's measured dimensions instead of forcing reader content through a new layout before another turn. Resizing and explicit provider refreshes still update those dimensions.
+
 - The first page fit reserves bookmark space immediately and avoids a duplicate bookmark refresh for initial history state, reducing opening layout work while preserving navigation updates.
 - Example readers load PDF exporters, chapter PDF data and the export font on download; the Hebrew reader also avoids loading the English Markdown renderer. The bundled, licensed Hebrew font respects the deployed Pages URL prefix and keeps Hebrew exports readable.
 - Books initialize without interleaving page style reads and writes, and reuse declarative content directions without measuring every React page. Bookmark rails measure their dimensions before page resizing, and RTL page turns reuse the current layout's host width, avoiding repeated layout work while keeping CSS and resize geometry current.

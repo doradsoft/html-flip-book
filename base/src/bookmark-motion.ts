@@ -31,6 +31,7 @@ interface MovingFaces {
 	reverseHidden: HTMLElement["hidden"];
 	attributes: Map<string, string | null>;
 	visualFace: 0 | 1 | undefined;
+	currentFace: 0 | 1 | undefined;
 }
 
 interface MovingBookmark {
@@ -45,6 +46,8 @@ interface MovingBookmark {
 	visual: HTMLButtonElement;
 	storage: HTMLDivElement;
 	appearance: [string, string][];
+	surfaceLayouts: WeakMap<HTMLElement, string>;
+	placedFaces: WeakMap<HTMLButtonElement, string>;
 	faces?: MovingFaces;
 	caption?: {
 		bounds: BookmarkSheetRectangle;
@@ -61,11 +64,24 @@ function moving(frame: BookmarkLeafFrame): boolean {
 /** Companion surfaces keep protruding tab material outside the page's paint containment. */
 export class BookmarkMotion {
 	private readonly items = new Map<string, MovingBookmark>();
+	private readonly prepared = new Map<string, MovingBookmark>();
 
 	constructor(
 		private readonly host: HTMLElement,
 		private readonly getHostWidth: () => number = () => host.clientWidth,
 	) {}
+
+	/** Read resting geometry before page snapshot/fold styles invalidate layout. */
+	prepare(
+		bookmark: BookmarkTarget,
+		button: HTMLButtonElement,
+		frame: BookmarkLeafFrame,
+		page0: HTMLElement,
+		faces?: BookmarkMotionFaces,
+	): void {
+		if (this.items.has(bookmark.id)) return;
+		this.prepared.set(bookmark.id, this.capture(button, frame, page0, faces));
+	}
 
 	sync(
 		bookmark: BookmarkTarget,
@@ -76,20 +92,26 @@ export class BookmarkMotion {
 		faces?: BookmarkMotionFaces,
 	): void {
 		if (!moving(frame)) {
-			this.restore(bookmark.id);
+			this.restore(bookmark.id, true);
 			return;
 		}
 		let item = this.items.get(bookmark.id);
 		if (!item || item.button !== button) {
+			const prepared = this.prepared.get(bookmark.id);
 			this.restore(bookmark.id);
-			item = this.capture(button, frame, page0, faces);
+			item = prepared?.button === button ? prepared : this.capture(button, frame, page0, faces);
+			button.before(item.placeholder);
+			this.host.append(item.storage);
 			this.items.set(bookmark.id, item);
 		}
 		const surfaces = getBookmarkFoldSurfaces(frame, item.exposed);
 		this.renderSurfaces(bookmark, item, frame, page0, surfaces, className);
 	}
 
-	restore(id: string): void {
+	restore(id: string, preservePrepared = false): void {
+		// An animation may first report its unchanged resting pose. Its prepared
+		// geometry still belongs to the upcoming motion; consume it when the leaf moves.
+		if (!preservePrepared) this.prepared.delete(id);
 		const item = this.items.get(id);
 		if (!item) return;
 		item.placeholder.before(item.button);
@@ -106,6 +128,7 @@ export class BookmarkMotion {
 	}
 
 	restoreAll(): void {
+		this.prepared.clear();
 		for (const id of this.items.keys()) this.restore(id);
 	}
 
@@ -131,12 +154,10 @@ export class BookmarkMotion {
 		const exposed = this.sheetRectangle(visible, frame, page0, onRight);
 		const caption = this.captureCaption(button, full, onRight, faces);
 		const placeholder = this.makePlaceholder(button, rectangle);
-		button.before(placeholder);
 		const visual = this.cloneVisual(button);
 		const storage = this.host.ownerDocument.createElement("div");
 		storage.hidden = true;
 		storage.setAttribute("data-flipbook-no-flip", "");
-		this.host.append(storage);
 		return {
 			button,
 			placeholder,
@@ -149,6 +170,8 @@ export class BookmarkMotion {
 			visual,
 			storage,
 			appearance: this.captureAppearance(button),
+			surfaceLayouts: new WeakMap(),
+			placedFaces: new WeakMap(),
 			faces: this.captureFaces(button, faces),
 			caption,
 		};
@@ -242,6 +265,7 @@ export class BookmarkMotion {
 			reverseHidden: data.reverse?.hidden ?? false,
 			attributes: new Map(FACE_ATTRIBUTES.map((name) => [name, button.getAttribute(name)])),
 			visualFace: undefined,
+			currentFace: undefined,
 		};
 	}
 
@@ -268,7 +292,8 @@ export class BookmarkMotion {
 
 	private showFace(item: MovingBookmark, face: 0 | 1): void {
 		const faces = item.faces;
-		if (!faces) return;
+		if (!faces || faces.currentFace === face) return;
+		faces.currentFace = face;
 		const source = face === 0 ? faces.data.front : faces.data.back;
 		writeAttribute(item.button, "data-face", String(face));
 		writeAttribute(item.button, "data-page-index", String(source.pageIndex));
@@ -397,22 +422,28 @@ export class BookmarkMotion {
 				item.surfaces.push(wrapper);
 			}
 			writeHidden(wrapper, false);
-			writeAttribute(wrapper, "class", `flipbook-bookmark-surface ${className}`.trim());
-			writeAttribute(wrapper, "data-bookmark-surface", bookmark.id);
-			writeAttribute(wrapper, "data-leaf-index", String(Math.floor(bookmark.pageIndex / 2)));
 			writeAttribute(wrapper, "data-bookmark-face", String(surface.face));
-			for (const [name, value] of Object.entries({
-				position: "absolute",
-				left: `${left}px`,
-				top: `${top}px`,
-				width: `${item.exposed.width}px`,
-				height: `${item.exposed.height}px`,
-				"pointer-events": "none",
-				"transform-origin": "0px 0px",
-				overflow: "visible",
-			}))
-				writeStyle(wrapper, name, value);
-			for (const [name, value] of item.appearance) writeStyle(wrapper, name, value);
+			// Appearance and material dimensions are captured once for this turn.
+			// Only the crease pose changes on ordinary animation frames.
+			const layout = JSON.stringify([left, top, bookmark.id, bookmark.pageIndex, className]);
+			if (item.surfaceLayouts.get(wrapper) !== layout) {
+				item.surfaceLayouts.set(wrapper, layout);
+				writeAttribute(wrapper, "class", `flipbook-bookmark-surface ${className}`.trim());
+				writeAttribute(wrapper, "data-bookmark-surface", bookmark.id);
+				writeAttribute(wrapper, "data-leaf-index", String(Math.floor(bookmark.pageIndex / 2)));
+				for (const [name, value] of Object.entries({
+					position: "absolute",
+					left: `${left}px`,
+					top: `${top}px`,
+					width: `${item.exposed.width}px`,
+					height: `${item.exposed.height}px`,
+					"pointer-events": "none",
+					"transform-origin": "0px 0px",
+					overflow: "visible",
+				}))
+					writeStyle(wrapper, name, value);
+				for (const [name, value] of item.appearance) writeStyle(wrapper, name, value);
+			}
 			writeStyle(wrapper, "transform", surface.transform);
 			writeStyle(wrapper, "z-index", String(surface.zIndex));
 			writeStyle(
@@ -437,6 +468,9 @@ export class BookmarkMotion {
 		frame: BookmarkLeafFrame,
 		face: 0 | 1,
 	): void {
+		const placement = `${frame.isLTR}:${face}`;
+		if (item.placedFaces.get(button) === placement) return;
+		item.placedFaces.set(button, placement);
 		writeHidden(button, false);
 		writeAttribute(button, "data-bookmark-motion", "true");
 		for (const [name, value] of Object.entries({

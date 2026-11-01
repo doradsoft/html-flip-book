@@ -73,8 +73,8 @@ const turnMetrics = (): MetricSpec[] => [
 		{ key: "raf_gap_pct_50", label: "% gaps >50ms", thresholdAbs: 0.02, thresholdRatio: 5 },
 		{ key: "turn_median_ms", label: "turn time median", thresholdAbs: 80, thresholdRatio: 1.3 },
 		{ key: "turn_p95_ms", label: "turn time p95", thresholdAbs: 120, thresholdRatio: 1.4 },
-		{ key: "input_median_ms", label: "input->paint median", thresholdAbs: 30, thresholdRatio: 2 },
-		{ key: "input_p95_ms", label: "input->paint p95", thresholdAbs: 50, thresholdRatio: 2 },
+		{ key: "input_median_ms", label: "input->mutation median", thresholdAbs: 30, thresholdRatio: 2 },
+		{ key: "input_p95_ms", label: "input->mutation p95", thresholdAbs: 50, thresholdRatio: 2 },
 		{ key: "longtask_count", label: "long tasks", thresholdAbs: 2, thresholdRatio: 3 },
 		{ key: "longtask_total_ms", label: "long task time", thresholdAbs: 80, thresholdRatio: 2 },
 		{ key: "loaf_count", label: "long animation frames", thresholdAbs: 2, thresholdRatio: 3 },
@@ -155,8 +155,9 @@ async function runTurnSample(
 				}
 				const expected = before === 0 ? 1 : before + 2;
 				await page.waitForFunction((index) => window.__turn.currentPageIndex() === index, expected, { timeout: 1500, polling: 100 });
-				// Let the completed turn settle before the next probe.
-				await page.waitForTimeout(300);
+				// Exercise the next input at completion, including the adapter's
+				// deferred buffer update, instead of hiding handoff work behind a sleep.
+				await page.waitForFunction(() => !document.querySelector(".page--flipping"), null, { timeout: 1500 });
 			}
 		}
 
@@ -250,6 +251,24 @@ export const turnReact: ScenarioDriver = {
 	metricsFor: turnMetrics,
 	runSample: (page, dist, _size, delayMs) =>
 		runTurnSample(page, dist, delayMs, { adapter: "react", heavy: "1", bounded: "1" }),
+};
+
+export const turnReactPinned: ScenarioDriver = {
+	name: "turn-react-pinned",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) => runTurnSample(page, dist, delayMs, {
+		adapter: "react", heavy: "1", bounded: "1", bookmarks: "pinned",
+	}),
+};
+
+export const turnReactHidden: ScenarioDriver = {
+	name: "turn-react-hidden",
+	sizes: [0],
+	metricsFor: turnMetrics,
+	runSample: (page, dist, _size, delayMs) => runTurnSample(page, dist, delayMs, {
+		adapter: "react", heavy: "1", bounded: "1", bookmarks: "hidden",
+	}),
 };
 
 // ---------------------------------------------------------------------------
@@ -366,5 +385,7 @@ export const ALL_SCENARIOS: Record<string, ScenarioDriver> = {
 	turnHeavy,
 	turnBounded,
 	turnReact,
+	turnReactPinned,
+	turnReactHidden,
 	scaling,
 };
