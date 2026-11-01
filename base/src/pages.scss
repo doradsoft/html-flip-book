@@ -50,7 +50,6 @@
   pointer-events: none;
   backface-visibility: hidden;
   transition: opacity 120ms ease;
-  will-change: opacity;
   // Stacking contract: shading overlays paint above positioned/opaque page
   // content (each page's `contain: paint` scopes this to the page itself).
   // Apps with intentional overlays can tune --flipbook-shading-z-index.
@@ -124,18 +123,17 @@
   contain: strict;
   user-select: none;
 
-  // Make scrollbar chrome invisible but PRESERVE gutter width.
-  // Using scrollbar-color:transparent keeps the scrollbar's space allocated
-  // so content doesn't reflow wider when the snapshot is taken.
-  // scrollbar-color is standard (Firefox, Chrome 121+, Edge 121+).
-  scrollbar-color: transparent transparent;
-  // Safari/older WebKit: overlay scrollbars don't occupy space, so display:none
-  // is safe — no content width shift on those platforms.
-  &::-webkit-scrollbar { display: none; }
-
-  * {
-    scrollbar-color: transparent transparent !important;
-    &::-webkit-scrollbar { display: none !important; }
+  // Hide legacy scrollbar paint without removing its gutter or changing its
+  // styling API. Switching a custom WebKit scrollbar to scrollbar-color can
+  // change its width too. Consumers using native scrollbar-color can hide
+  // their own scroll panes with that same property (without an API switch).
+  @supports selector(::-webkit-scrollbar) {
+    &::-webkit-scrollbar { visibility: hidden; }
+    *::-webkit-scrollbar { visibility: hidden !important; }
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-color: transparent transparent;
+    * { scrollbar-color: transparent transparent !important; }
   }
 }
 

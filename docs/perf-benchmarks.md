@@ -83,8 +83,16 @@ regression limits; native desktop measurements and GPU/software-renderer
 metadata must accompany any performance claim. rAF is not physical scanout or
 INP. A deliberately blocked second input proves the consumer probe rejects a
 250ms pause even with otherwise fast turns. Missing samples fail validation.
+The first turn from a fresh reader and the subsequent turns have separate
+results and independently enforce those same limits; attached-bookmark lag
+cannot be hidden by averaging it together with a handoff improvement.
 
-The fixes address independent costs: avoid layout reads after snapshot style
+Moving tabs prepare their resting geometry before any paper snapshot/fold
+writes, without changing the resting DOM. Resize/provider changes discard
+that preparation. A per-leaf index also avoids scanning every chapter's tab on
+each frame and replaying a quadratic scan during relayout.
+
+The other fixes address independent costs: avoid layout reads after snapshot style
 writes, register non-inheriting paper-shading properties while explicitly
 feeding their pseudo-elements, keep occluded buffered text dormant while
 preserving paper/cover geometry and all moving underlays, and confine bookmark

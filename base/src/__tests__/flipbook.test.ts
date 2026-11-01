@@ -1570,6 +1570,31 @@ describe("FlipBook", () => {
 			flipBook.destroy();
 		});
 
+		it("measures moving bookmarks before the first page snapshot or fold writes", () => {
+			createPages(10);
+			const flipBook = new FlipBook({
+				pagesCount: 10,
+				initialTurnedLeaves: [0],
+				enableBookmarks: true,
+			});
+			flipBook.setBookmarkProvider({
+				getBookmarks: () => [{ id: "chapter", pageIndex: 3, label: "Chapter" }],
+				attachment: "leaf",
+			});
+			flipBook.render(".flipbook-container");
+			const phases: boolean[] = [];
+			vi.spyOn(container, "getBoundingClientRect").mockImplementation(() => {
+				phases.push(Boolean(container.querySelector(".page--flipping,.page--folded")));
+				return new DOMRect(0, 0, 800, 600);
+			});
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 740, y: 300 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700, y: 300 }));
+			expect(phases.length).toBeGreaterThan(1);
+			expect(phases.every((afterWrites) => !afterWrites)).toBe(true);
+			flipBook.destroy();
+		});
+
 		it("keeps established pointer turns free of repeated host layout reads", () => {
 			const pages = createPages(4);
 			const flipBook = new FlipBook({ pagesCount: 4 });
@@ -1589,6 +1614,21 @@ describe("FlipBook", () => {
 			expect(internals.leaves[0].flipPosition).toBeCloseTo(0.3);
 			expect(width).not.toHaveBeenCalled();
 			expect(bounds).not.toHaveBeenCalled();
+			flipBook.destroy();
+		});
+
+		it("keeps the last valid fold when a legacy unsized surface disappears mid-drag", () => {
+			const pages = createPages(4);
+			const flipBook = new FlipBook({ pagesCount: 4 });
+			flipBook.render(".flipbook-container");
+			const internals = getFlipBookInternals(flipBook);
+			internals.onDragStart(createDragEvent("start", { x: 740, y: 170 }));
+			internals.onDragUpdate(createDragEvent("move", { x: 700, y: 170 }));
+			const position = internals.leaves[0].flipPosition;
+			pages[0].style.width = "0px";
+			Object.defineProperty(container, "clientWidth", { value: 0, configurable: true });
+			internals.onDragUpdate(createDragEvent("move", { x: 500, y: 170 }));
+			expect(internals.leaves[0].flipPosition).toBe(position);
 			flipBook.destroy();
 		});
 

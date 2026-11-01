@@ -328,6 +328,12 @@ class FlipBook {
 
 	private observeBookmarkLeaves(): void {
 		for (const leaf of this.leaves) {
+			leaf.onBeforeFlip = this.bookmarksEnabled
+				? () => {
+						const frame = leaf.transformFrame;
+						if (frame) this.bookmarkLayer?.prepareLeaf(leaf.index, frame, leaf.pages[0]);
+					}
+				: undefined;
 			leaf.onTransform = this.bookmarksEnabled
 				? (frame) => this.bookmarkLayer?.updateLeaf(leaf.index, frame, leaf.pages[0])
 				: undefined;
@@ -891,9 +897,8 @@ class FlipBook {
 				if (page) {
 					const display = visible ? "" : "none";
 					if (page.style.display !== display) page.style.display = display;
-					// Use content-visibility to skip rendering of off-screen pages.
-					// "hidden" is more aggressive than display:none — the browser
-					// also skips layout/paint entirely, reducing memory pressure.
+					// Skip descendant work even if consumer CSS overrides display.
+					// content-visibility retains the paper box; display:none removes it.
 					const visibility = visible ? "visible" : "hidden";
 					if (page.style.contentVisibility !== visibility)
 						page.style.contentVisibility = visibility;
@@ -1687,6 +1692,10 @@ class FlipBook {
 		this.cancelBookmarkPointerDrag?.();
 		this.bookmarkLayer?.destroy();
 		this.bookmarkLayer = undefined;
+		for (const leaf of this.leaves) {
+			leaf.onBeforeFlip = undefined;
+			leaf.onTransform = undefined;
+		}
 		if (typeof window !== "undefined" && this._boundPopstate) {
 			window.removeEventListener("popstate", this._boundPopstate, true);
 			this._boundPopstate = undefined;

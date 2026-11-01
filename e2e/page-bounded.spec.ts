@@ -1,5 +1,8 @@
 import { expect, type Locator, test } from "./fixtures/coverage-test";
 
+// Exercise native gutter geometry; Playwright normally hides scrollbars.
+test.use({ launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] } });
+
 const bookClass = (direction: string) => `.${direction === "ltr" ? "en" : "he"}-book.flipbook`;
 
 /** The dev server can show a typecheck overlay that intercepts pointer input. */
@@ -32,6 +35,39 @@ async function makeBoundedPanel(pageRoot: Locator) {
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: starting a snapshot preserves the nested scrollbar gutter and text width`, async ({
+		page,
+	}) => {
+		await page.goto(`/?example=${direction}-comprehensive`);
+		const book = page.locator(bookClass(direction));
+		await page.locator(".flipbook-toolbar-next").click();
+		await expect(book.locator(".page--flipping")).toHaveCount(0);
+		const surface = book.locator('.page[data-page-index="2"]');
+		const root = surface.locator(".flipbook-page-content > *").first();
+		await makeBoundedPanel(root);
+		await page.addStyleTag({
+			content: ".pane {scrollbar-gutter:stable} .pane::-webkit-scrollbar {width:16px}",
+		});
+		const widths = await surface.evaluate((element) => {
+			const pane = element.querySelector<HTMLElement>(".pane");
+			if (!pane) throw new Error("Missing test scroll pane");
+			const before = pane.clientWidth;
+			const gutter = pane.offsetWidth - before;
+			element.classList.add("page--flipping");
+			const during = pane.clientWidth;
+			element.classList.remove("page--flipping");
+			return {
+				before,
+				during,
+				gutter,
+				idleShadowLayer: getComputedStyle(element, "::before").willChange,
+			};
+		});
+		expect(widths.gutter).toBeGreaterThan(0);
+		expect(widths.during).toBe(widths.before);
+		expect(widths.idleShadowLayer).toBe("auto");
+	});
+
 	test(`${direction}: dormant buffered content preserves its scroll position when revealed again`, async ({
 		page,
 	}) => {

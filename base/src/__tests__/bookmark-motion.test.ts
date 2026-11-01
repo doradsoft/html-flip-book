@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { BookmarkLeafFrame } from "../bookmark-fold";
 import { BookmarkMotion, type BookmarkMotionFaces } from "../bookmark-motion";
 import { computePageFoldFromPoint } from "../page-fold";
@@ -70,6 +70,35 @@ function dualFaces(host: HTMLElement, button: HTMLButtonElement): BookmarkMotion
 }
 
 describe("bookmark motion surfaces", () => {
+	it("prepares geometry without changing the resting DOM, then draws without layout reads", () => {
+		const { host, page, button, motion, frame } = setup();
+		const bookmark = { id: "chapter", pageIndex: 2 };
+		const observer = new MutationObserver(() => {});
+		observer.observe(host, { attributes: true, childList: true, subtree: true });
+		motion.prepare(bookmark, button, frame, page);
+		expect(observer.takeRecords()).toEqual([]);
+		const bounds = vi.spyOn(host, "getBoundingClientRect");
+		motion.sync(bookmark, button, frame, page);
+		motion.prepare(bookmark, button, frame, page);
+		expect(bounds).not.toHaveBeenCalled();
+		expect(host.querySelector(".flipbook-bookmark-placeholder")).not.toBeNull();
+		motion.restoreAll();
+		observer.disconnect();
+		host.remove();
+	});
+
+	it("discards prepared geometry when a resize or provider refresh resets motion", () => {
+		const { host, page, button, motion, frame } = setup();
+		const bookmark = { id: "chapter", pageIndex: 2 };
+		motion.prepare(bookmark, button, frame, page);
+		motion.restoreAll();
+		const bounds = vi.spyOn(host, "getBoundingClientRect");
+		motion.sync(bookmark, button, frame, page);
+		expect(bounds).toHaveBeenCalled();
+		motion.destroy();
+		host.remove();
+	});
+
 	it.each([true, false])(
 		"does not mutate an unchanged fold frame but still updates geometry (LTR=%s)",
 		(isLTR) => {

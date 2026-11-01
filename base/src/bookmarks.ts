@@ -1,7 +1,7 @@
 import "./bookmarks.scss";
 import { writeAttribute, writeHidden, writeInert, writeStyle } from "./bookmark-dom";
 import type { BookmarkLeafFrame } from "./bookmark-fold";
-import { BookmarkMotion } from "./bookmark-motion";
+import { BookmarkMotion, type BookmarkMotionFaces } from "./bookmark-motion";
 import { BookmarkPreview } from "./bookmark-preview";
 import { calculateBookmarkStack } from "./bookmark-stack";
 import type { MouseMode } from "./flip-book-options";
@@ -102,6 +102,7 @@ export class BookmarkLayer {
 	private readonly rails = new Map<Edge, HTMLDivElement>();
 	private readonly groups = new Map<string, HTMLDivElement>();
 	private readonly items = new Map<string, BookmarkItem>();
+	private readonly itemsByLeaf = new Map<number, BookmarkItem[]>();
 	private orderedLeafIds: string[] = [];
 	private pendingTabRestore: (() => void) | undefined;
 	private tabRestoreTimer: number | undefined;
@@ -190,6 +191,7 @@ export class BookmarkLayer {
 		writeStyle(this.element, "--bookmark-count", String(bookmarks.length));
 		writeHidden(this.element, bookmarks.length === 0);
 		this.removeRetiredBookmarks(bookmarks);
+		this.itemsByLeaf.clear();
 		const placements: RailPlacementCursors = new Map();
 		bookmarks.forEach((bookmark, index) => {
 			this.placeItem(bookmark, context, index, bookmarks.length, placements);
@@ -225,6 +227,10 @@ export class BookmarkLayer {
 		placements: RailPlacementCursors,
 	): void {
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
+		const leafIndex = this.getLeafIndex(item.bookmark);
+		const leafItems = this.itemsByLeaf.get(leafIndex) ?? [];
+		leafItems.push(item);
+		this.itemsByLeaf.set(leafIndex, leafItems);
 		const bookmark = item.bookmark;
 		writeAttribute(item.button, "class", `flipbook-bookmark ${bookmark.className ?? ""}`.trim());
 		writeAttribute(item.button, "data-page-index", String(bookmark.pageIndex));
@@ -427,15 +433,44 @@ export class BookmarkLayer {
 			writeStyle(slot, property, "");
 	}
 
+	private motionFaces(item: BookmarkItem, context: BookmarkContext): BookmarkMotionFaces {
+		return {
+			activeFace: this.isTurned(item.bookmark, context) ? 1 : 0,
+			reverse: item.leaf.front === item.leaf.back ? undefined : item.reverse,
+			front: item.leaf.front,
+			back: item.leaf.back,
+		};
+	}
+
+	/** Capture only the moving leaf's tabs while the resting layout is clean. */
+	prepareLeaf(index: number, frame: BookmarkLeafFrame, page: HTMLElement): void {
+		if (this.provider?.attachment === "pinned") return;
+		const items = this.itemsByLeaf.get(index);
+		if (!items?.length) return;
+		const context = this.getContext();
+		for (const item of items) {
+			if (!item.button.hidden)
+				this.motion.prepare(
+					{ id: item.leaf.id, pageIndex: index * 2 },
+					item.button,
+					frame,
+					page,
+					this.motionFaces(item, context),
+				);
+		}
+	}
+
 	/** Receive the same geometry used to draw the leaf, including its live crease. */
 	updateLeaf(index: number, frame: BookmarkLeafFrame, page: HTMLElement): void {
 		this.leafFrames.set(index, { frame, page });
-		for (const item of this.items.values()) {
-			if (this.getLeafIndex(item.bookmark) !== index) continue;
+		const items = this.itemsByLeaf.get(index);
+		if (!items?.length) return;
+		const context = this.getContext();
+		for (const item of items) {
 			writeStyle(
 				item.button,
 				"z-index",
-				String(frame.zIndices[this.isTurned(item.bookmark, this.getContext()) ? 1 : 0]),
+				String(frame.zIndices[this.isTurned(item.bookmark, context) ? 1 : 0]),
 			);
 			if (this.provider?.attachment === "pinned") continue;
 			if (item.button.hidden) continue;
@@ -451,12 +486,7 @@ export class BookmarkLayer {
 				frame,
 				page,
 				this.provider?.className,
-				{
-					activeFace: this.isTurned(item.bookmark, this.getContext()) ? 1 : 0,
-					reverse: item.leaf.front === item.leaf.back ? undefined : item.reverse,
-					front: item.leaf.front,
-					back: item.leaf.back,
-				},
+				this.motionFaces(item, context),
 			);
 		}
 	}
@@ -472,6 +502,7 @@ export class BookmarkLayer {
 			this.element.removeEventListener(event, stopBookGesture);
 		}
 		this.items.clear();
+		this.itemsByLeaf.clear();
 		this.orderedLeafIds = [];
 		this.leafFrames.clear();
 		this.groups.clear();

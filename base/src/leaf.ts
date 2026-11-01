@@ -28,6 +28,8 @@ export type FlipPosition = IntRange<0, 2>;
 export const FLIPPED = true;
 export const NOT_FLIPPED = false;
 export class Leaf {
+	/** Read-only companion preparation before any first-frame paper writes. */
+	onBeforeFlip: (() => void) | undefined;
 	/** Optional companion material renderer; invoked after each page transform is applied. */
 	onTransform: ((frame: BookmarkLeafFrame) => void) | undefined;
 	private wrappedTransformFrame: BookmarkLeafFrame | undefined;
@@ -187,6 +189,7 @@ export class Leaf {
 	beginFlip(): void {
 		this.flipRefCount++;
 		if (this.flipRefCount !== 1) return; // already promoted
+		this.onBeforeFlip?.();
 		for (const page of this.pages) {
 			if (!page) continue;
 			page.style.willChange = "transform";
