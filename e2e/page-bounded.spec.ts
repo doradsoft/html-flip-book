@@ -37,7 +37,7 @@ async function makeBoundedPanel(pageRoot: Locator) {
 for (const direction of ["ltr", "rtl"] as const) {
 	test(`${direction}: starting a snapshot preserves the nested scrollbar gutter and text width`, async ({
 		page,
-	}) => {
+	}, testInfo) => {
 		await page.goto(`/?example=${direction}-comprehensive`);
 		const book = page.locator(bookClass(direction));
 		await page.locator(".flipbook-toolbar-next").click();
@@ -71,6 +71,22 @@ for (const direction of ["ltr", "rtl"] as const) {
 		expect(widths.during).toBe(widths.before);
 		expect(widths.scrollbarDuring).toBe(widths.scrollbarBefore);
 		expect(widths.idleShadowLayer).toBe("auto");
+		const beforePath = testInfo.outputPath("content-before-lock.png");
+		const duringPath = testInfo.outputPath("content-during-lock.png");
+		const before = await surface.screenshot({ path: beforePath });
+		let during: Buffer;
+		await surface.evaluate((element) => element.classList.add("page--flipping"));
+		try {
+			during = await surface.screenshot({ path: duringPath });
+		} finally {
+			await surface.evaluate((element) => element.classList.remove("page--flipping"));
+		}
+		for (const [name, path] of [
+			["content-before-lock", beforePath],
+			["content-during-lock", duringPath],
+		])
+			await testInfo.attach(name, { path, contentType: "image/png" });
+		expect(during.equals(before), "Locking content must preserve its rendered pixels").toBe(true);
 	});
 
 	test(`${direction}: dormant buffered content preserves its scroll position when revealed again`, async ({
