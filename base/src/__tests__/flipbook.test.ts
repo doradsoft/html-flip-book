@@ -396,6 +396,51 @@ describe("FlipBook", () => {
 			book.destroy();
 		});
 
+		it("reads inherited page directions before mutating any page layout", () => {
+			const pages = createPages(4);
+			const original = window.getComputedStyle.bind(window);
+			const read = vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+				if (pages.includes(element as HTMLElement)) {
+					expect(pages.every((page) => page.dataset.readingDirection === undefined)).toBe(true);
+					return { direction: "rtl" } as CSSStyleDeclaration;
+				}
+				return original(element);
+			});
+			const book = new FlipBook({ pagesCount: pages.length, direction: "ltr" });
+			try {
+				book.render(".flipbook-container");
+				expect(pages.map((page) => page.dataset.readingDirection)).toEqual(pages.map(() => "rtl"));
+			} finally {
+				book.destroy();
+				read.mockRestore();
+			}
+		});
+
+		it("does not query computed page styles when every page supplies its reading direction", () => {
+			const pages = createPages(4);
+			for (const [index, page] of pages.entries()) {
+				if (index % 2) page.style.direction = "ltr";
+				else page.dir = "rtl";
+			}
+			const read = vi.spyOn(window, "getComputedStyle");
+			const book = new FlipBook({ pagesCount: pages.length });
+			try {
+				book.render(".flipbook-container");
+				expect(
+					read.mock.calls.filter(([element]) => pages.includes(element as HTMLElement)),
+				).toHaveLength(0);
+				expect(pages.map((page) => page.dataset.readingDirection)).toEqual([
+					"rtl",
+					"ltr",
+					"rtl",
+					"ltr",
+				]);
+			} finally {
+				book.destroy();
+				read.mockRestore();
+			}
+		});
+
 		it("preserves explicit page reading directions and the original consumer nodes", () => {
 			const pages = createPages(4);
 			pages[0].dir = "rtl";
@@ -456,6 +501,101 @@ describe("FlipBook", () => {
 			expect(scrollport.firstElementChild).toBe(content);
 			expect(content.dir).toBe("rtl");
 			expect(pages[0].querySelectorAll(".flipbook-page-scrollport")).toHaveLength(1);
+			book.destroy();
+		});
+
+		it("uses declarative content directions without measuring page styles", () => {
+			const pages = createPages(4);
+			const directions = ["rtl", "ltr", "rtl", "ltr"];
+			for (const [index, page] of pages.entries()) {
+				const scrollport = document.createElement("div");
+				scrollport.className = "flipbook-page-scrollport";
+				const content = document.createElement("div");
+				content.className = "flipbook-page-content";
+				content.dir = directions[index];
+				scrollport.append(content);
+				page.append(scrollport);
+			}
+			const read = vi.spyOn(window, "getComputedStyle");
+			const book = new FlipBook({ pagesCount: 4 });
+			try {
+				book.render(container);
+				expect(
+					read.mock.calls.filter(([element]) => pages.includes(element as HTMLElement)),
+				).toHaveLength(0);
+				expect(pages.map((page) => page.dataset.readingDirection)).toEqual(directions);
+			} finally {
+				book.destroy();
+				read.mockRestore();
+			}
+		});
+
+		it("fits pages once with the initial bookmark clearance already known", () => {
+			const pages = createPages(4);
+			const width = vi.fn(() => 800);
+			Object.defineProperty(container, "clientWidth", { get: width, configurable: true });
+			const book = new FlipBook({
+				pagesCount: 4,
+				enableBookmarks: true,
+				enableHistory: false,
+				bookmarkProvider: {
+					getBookmarks: () => [{ id: "chapter", pageIndex: 2, label: "Chapter" }],
+				},
+			});
+			try {
+				book.render(container);
+				expect(width).toHaveBeenCalledTimes(1);
+				expect(Number.parseFloat(pages[0].style.width)).toBeGreaterThan(0);
+			} finally {
+				book.destroy();
+			}
+		});
+
+		it("does not measure hidden bookmark styles when bookmarks are disabled", () => {
+			createPages(4);
+			const read = vi.spyOn(window, "getComputedStyle");
+			const book = new FlipBook({ pagesCount: 4, enableBookmarks: false });
+			try {
+				book.render(container);
+				expect(
+					read.mock.calls.filter(([element]) => element.closest(".flipbook-bookmarks")),
+				).toHaveLength(0);
+			} finally {
+				book.destroy();
+			}
+		});
+
+		it("does not refresh initial bookmarks again to stamp history, but refreshes actual navigation", () => {
+			createPages(6);
+			const getBookmarks = vi.fn(() => [{ id: "chapter", pageIndex: 2, label: "Chapter" }]);
+			const book = new FlipBook({
+				pagesCount: 6,
+				enableBookmarks: true,
+				bookmarkProvider: { getBookmarks },
+				historyMapper: { routeToPage: () => null, pageToRoute: () => null },
+			});
+			try {
+				book.render(container);
+				expect(getBookmarks).toHaveBeenCalledTimes(1);
+				book.jumpToPage(3);
+				expect(getBookmarks).toHaveBeenCalledTimes(2);
+				expect(getBookmarks).toHaveBeenLastCalledWith(
+					expect.objectContaining({ currentPageIndex: 3 }),
+				);
+			} finally {
+				book.destroy();
+			}
+		});
+
+		it("preserves nonzero page scroll positions when installing scrollports", () => {
+			const pages = createPages(4);
+			pages[0].scrollTop = 27;
+			pages[2].scrollTop = 83;
+			const book = new FlipBook({ pagesCount: pages.length });
+			book.render(".flipbook-container");
+			expect(
+				pages.map((page) => page.querySelector(".flipbook-page-scrollport")?.scrollTop),
+			).toEqual([27, 0, 83, 0]);
 			book.destroy();
 		});
 
@@ -3558,6 +3698,56 @@ describe("FlipBook", () => {
 			expect(page.style.width).not.toBe(initialWidth);
 
 			flipBook.destroy();
+		});
+
+		it("measures bookmark styles before resizing the page spread", () => {
+			const pages = createPages(4);
+			const book = new FlipBook({
+				pagesCount: 4,
+				enableBookmarks: true,
+				bookmarkProvider: {
+					getBookmarks: () => [{ id: "chapter", pageIndex: 2, label: "Chapter" }],
+				},
+			});
+			book.render(container);
+			const widths = pages.map((page) => page.style.width);
+			const original = window.getComputedStyle.bind(window);
+			const read = vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+				if (element.closest(".flipbook-bookmarks")) {
+					expect(pages.map((page) => page.style.width)).toEqual(widths);
+				}
+				return original(element);
+			});
+			try {
+				Object.defineProperty(container, "clientWidth", { value: 1200, configurable: true });
+				Object.defineProperty(container, "clientHeight", { value: 900, configurable: true });
+				resizeCallback?.();
+				expect(pages[0].style.width).not.toBe(widths[0]);
+			} finally {
+				read.mockRestore();
+				book.destroy();
+			}
+		});
+
+		it("fits the spread to updated bookmark CSS on the next layout", () => {
+			const pages = createPages(4);
+			container.style.setProperty("--flipbook-bookmark-depth", "40px");
+			const book = new FlipBook({
+				pagesCount: 4,
+				enableBookmarks: true,
+				bookmarkProvider: {
+					getBookmarks: () => [{ id: "chapter", pageIndex: 2, label: "Chapter" }],
+				},
+			});
+			try {
+				book.render(container);
+				const width = Number.parseFloat(pages[0].style.width);
+				container.style.setProperty("--flipbook-bookmark-depth", "60px");
+				resizeCallback?.();
+				expect(Number.parseFloat(pages[0].style.width)).toBeLessThan(width);
+			} finally {
+				book.destroy();
+			}
 		});
 
 		it("keeps a held fold at the same position while fitting the new page dimensions", () => {

@@ -60,6 +60,13 @@ export interface BookmarkBounds {
 	height: number;
 }
 
+interface BookmarkMeasurements {
+	depth: number;
+	length: number;
+	preferredStep: number;
+	gaps: ReadonlyMap<Edge, number>;
+}
+
 interface BookmarkLeaf {
 	id: string;
 	front: Bookmark;
@@ -104,6 +111,7 @@ export class BookmarkLayer {
 	private readonly leafFrames = new Map<number, { frame: BookmarkLeafFrame; page: HTMLElement }>();
 	private provider: BookmarkProvider | undefined;
 	private bounds: BookmarkBounds | undefined;
+	private hostWidth: number | undefined;
 	private destroyed = false;
 	private mouseMode: MouseMode = "turn";
 
@@ -126,7 +134,7 @@ export class BookmarkLayer {
 		this.storage.hidden = true;
 		this.element.append(this.storage);
 		this.preview = new BookmarkPreview(this.element, this.storage);
-		this.motion = new BookmarkMotion(host);
+		this.motion = new BookmarkMotion(host, () => this.hostWidth ?? host.clientWidth);
 		for (const event of ["pointerdown", "mousedown", "touchstart", "click", "dragstart"]) {
 			this.element.addEventListener(event, stopBookGesture);
 		}
@@ -282,10 +290,10 @@ export class BookmarkLayer {
 	}
 
 	/** Reserve both split rails so navigating never shifts the book's resting position. */
-	getInsets(): BookmarkInsets {
+	getInsets(measuredDepth?: number): BookmarkInsets {
 		const insets: BookmarkInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 		if (this.destroyed || this.items.size === 0) return insets;
-		const depth = this.getDepth();
+		const depth = measuredDepth ?? this.getDepth();
 		const placement = this.provider?.placement ?? "sides";
 		if (placement === "sides") {
 			insets.left = depth;
@@ -299,13 +307,34 @@ export class BookmarkLayer {
 		return insets;
 	}
 
+	/** Read once before the engine changes page geometry; never cache across layouts. */
+	measure(): BookmarkMeasurements {
+		const depth = this.getDepth();
+		const length = this.getSize(
+			"--flipbook-bookmark-length",
+			"height",
+			this.provider?.orientation === "parallel" ? 72 : 24,
+		);
+		const preferredStep = this.getSize("--flipbook-bookmark-stack-step", "marginTop", depth * 0.3);
+		const gaps = new Map<Edge, number>();
+		for (const edge of ["left", "right"] as const) {
+			const rail = this.rails.get(edge);
+			const rawGap = Number.parseFloat(
+				rail ? (this.host.ownerDocument.defaultView?.getComputedStyle(rail).rowGap ?? "") : "",
+			);
+			gaps.set(edge, Number.isFinite(rawGap) && rawGap >= 0 ? rawGap : 4);
+		}
+		return { depth, length, preferredStep, gaps };
+	}
+
 	/** Position tab rails just outside the resting page spread. */
-	layout(bounds: BookmarkBounds): void {
+	layout(bounds: BookmarkBounds, hostWidth?: number, measurements?: BookmarkMeasurements): void {
 		if (this.destroyed) return;
+		const { depth, length, preferredStep, gaps } = measurements ?? this.measure();
+		this.hostWidth = hostWidth ?? this.host.clientWidth;
 		this.motion.restoreAll();
 		this.preview.close();
 		this.bounds = bounds;
-		const depth = this.getDepth();
 		for (const [edge, rail] of this.rails) {
 			const horizontal = edge === "top" || edge === "bottom";
 			const left =
@@ -317,23 +346,21 @@ export class BookmarkLayer {
 			if (horizontal) writeStyle(rail, "width", `${Math.max(0, bounds.width)}px`);
 			writeStyle(rail, "height", `${Math.max(0, horizontal ? depth : bounds.height)}px`);
 		}
-		this.layoutSideStacks(bounds, depth);
+		this.layoutSideStacks(bounds, depth, length, preferredStep, gaps);
 		for (const [index, pose] of this.leafFrames) this.updateLeaf(index, pose.frame, pose.page);
 	}
 
-	private layoutSideStacks(bounds: BookmarkBounds, depth: number): void {
-		const length = this.getSize(
-			"--flipbook-bookmark-length",
-			"height",
-			this.provider?.orientation === "parallel" ? 72 : 24,
-		);
-		const preferredStep = this.getSize("--flipbook-bookmark-stack-step", "marginTop", depth * 0.3);
-		const view = this.host.ownerDocument.defaultView;
+	private layoutSideStacks(
+		bounds: BookmarkBounds,
+		depth: number,
+		length: number,
+		preferredStep: number,
+		gaps: ReadonlyMap<Edge, number>,
+	): void {
 		for (const edge of ["left", "right"] as const) {
 			const rail = this.rails.get(edge);
 			if (!rail) continue;
-			const rawGap = Number.parseFloat(view?.getComputedStyle(rail).rowGap ?? "");
-			const gap = Number.isFinite(rawGap) && rawGap >= 0 ? rawGap : 4;
+			const gap = gaps.get(edge) ?? 4;
 			const stack = calculateBookmarkStack(
 				this.orderedLeafIds.length,
 				bounds.height,
@@ -341,7 +368,7 @@ export class BookmarkLayer {
 				depth,
 				gap,
 				preferredStep,
-				edge === "left" ? bounds.left : this.host.clientWidth - bounds.left - bounds.width,
+				edge === "left" ? bounds.left : (this.hostWidth ?? 0) - bounds.left - bounds.width,
 				this.provider?.orientation === "parallel" ? 1 : 0,
 			);
 			writeAttribute(rail, "data-stack-capacity", String(stack.capacity));

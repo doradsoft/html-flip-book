@@ -24,8 +24,6 @@ import {
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import { toLetters, toNumber } from "./gematry";
-import { exportEntireBookPdf, exportPageRangePdf } from "./pdfExport";
-import { getHebrewPdfFontName, loadHebrewFont } from "./pdfHebrewFont";
 import {
 	TEST_PARAM_COVER_NO_SHADOW,
 	TEST_PARAM_FAST_DELTA_THRESHOLD,
@@ -188,10 +186,6 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 	);
 
 	useEffect(() => {
-		loadHebrewFont();
-	}, []);
-
-	useEffect(() => {
 		const loadTextFiles = async () => {
 			// Load and sort text files
 			const files = await Promise.all(
@@ -293,6 +287,8 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 	const heDownloadConfig = useMemo(
 		() => ({
 			onDownloadSefer: async () => {
+				const [{ exportEntireBookPdf }, { getHebrewPdfFontName, loadHebrewFont }] =
+					await Promise.all([import("./pdfExport"), import("./pdfHebrewFont")]);
 				await loadHebrewFont();
 				const total = hePages.length;
 				const opts = {
@@ -314,6 +310,8 @@ export const HeBook = ({ config }: { config?: HeBookConfig } = {}) => {
 			},
 			onDownloadPageRange: async (pages: number[], semanticPages: SemanticPageInfo[]) => {
 				if (!semanticPages.length) return null;
+				const [{ exportPageRangePdf }, { getHebrewPdfFontName, loadHebrewFont }] =
+					await Promise.all([import("./pdfExport"), import("./pdfHebrewFont")]);
 				await loadHebrewFont();
 				const opts = {
 					pageContents: hePageContents,

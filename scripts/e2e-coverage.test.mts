@@ -20,6 +20,13 @@ function fixture() {
 }
 
 describe("automatic browser coverage", () => {
+	it("does not submit an empty script list from a skipped or blank page", async () => {
+		const f = fixture();
+		f.coverage.length = 0;
+		await f.collect();
+		expect(f.report).not.toHaveBeenCalled();
+		expect(f.events).toEqual(["start", "test", "stop"]);
+	});
 	it("preserves navigations and reports before page teardown", async () => {
 		const f = fixture();
 		await f.collect();

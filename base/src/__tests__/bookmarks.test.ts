@@ -108,6 +108,62 @@ describe("BookmarkLayer", () => {
 		observer.disconnect();
 	});
 
+	it("reads rail measurements before writing a new layout", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.layout({ left: 100, top: 40, width: 600, height: 500 });
+		const rails = Array.from(host.querySelectorAll<HTMLElement>(".flipbook-bookmarks__rail"));
+		const before = rails.map((rail) => rail.style.top);
+		const original = window.getComputedStyle.bind(window);
+		const read = vi.spyOn(window, "getComputedStyle").mockImplementation((element) => {
+			expect(rails.map((rail) => rail.style.top)).toEqual(before);
+			return original(element);
+		});
+		try {
+			layer.layout({ left: 120, top: 60, width: 500, height: 400 });
+			expect(rails.some((rail, index) => rail.style.top !== before[index])).toBe(true);
+		} finally {
+			read.mockRestore();
+		}
+	});
+
+	it("reuses the measured RTL host width during turns and refreshes it on resize", () => {
+		context.direction = "rtl";
+		let width = 800;
+		const readWidth = vi.fn(() => width);
+		Object.defineProperty(host, "clientWidth", { get: readWidth, configurable: true });
+		host.getBoundingClientRect = () => new DOMRect(0, 0, width, 600);
+		layer.setProvider({ getBookmarks: () => bookmarks, placement: "top" });
+		layer.layout({ left: 100, top: 40, width: 600, height: 500 });
+		const button = tabButton("first");
+		button.getBoundingClientRect = () => new DOMRect(200, 50, 30, 24);
+		for (const element of host.querySelectorAll<HTMLElement>(
+			".flipbook-bookmark-slot, .flipbook-bookmarks__leaf-rail, .flipbook-bookmarks__rail",
+		))
+			element.getBoundingClientRect = () => new DOMRect(0, 0, width, 600);
+		const page = document.createElement("div");
+		page.style.right = "100px";
+		host.append(page);
+		const frame = {
+			width: 300,
+			height: 500,
+			isLTR: false,
+			position: 0.4,
+			restingPosition: 0.4,
+			kind: "rigid" as const,
+			backwardPreview: false,
+			zIndices: [20, 21] as [number, number],
+		};
+		layer.updateLeaf(0, frame, page);
+		const surface = () => host.querySelector<HTMLElement>(".flipbook-bookmark-surface");
+		expect(surface()?.style.left).toBe("400px");
+		readWidth.mockClear();
+		layer.updateLeaf(0, { ...frame, position: 0.45 }, page);
+		expect(readWidth).not.toHaveBeenCalled();
+		width = 1000;
+		layer.layout({ left: 200, top: 40, width: 600, height: 500 });
+		expect(surface()?.style.left).toBe("600px");
+	});
+
 	it("supports reverse page order and a custom comparator", () => {
 		layer.setProvider({
 			getBookmarks: () => bookmarks,

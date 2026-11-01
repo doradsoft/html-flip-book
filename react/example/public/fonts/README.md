@@ -1,8 +1,9 @@
-# Optional: Hebrew font for PDF export
+# Hebrew PDF font
 
-For correct Hebrew character encoding in PDF exports from the Hebrew book, place a Hebrew-capable TTF here:
+The example includes `Heebo-Regular.ttf` for Hebrew PDF exports. It loads on the first download, using the configured application base URL; opening or reading a book does not request it.
 
-- **Filename:** `Heebo-Regular.ttf`
-- **Download:** [Google Fonts – Heebo](https://fonts.google.com/specimen/Heebo) (download and extract the TTF)
+The unmodified font comes from [the Heebo project](https://github.com/OdedEzer/heebo/blob/76c7d538568d3e6d7f052a12c5675c84430df25f/fonts/ttf/Heebo-Regular.ttf), under the included [SIL Open Font License](OFL.txt).
 
-If this file is present, the app will load it and use it for Hebrew PDF export. Otherwise, export still runs with RTL layout but characters may not render correctly.
+- Upstream commit: `76c7d538568d3e6d7f052a12c5675c84430df25f`
+- Git blob: `625bc4e91b7a48136b3522e8a60775c46a20ebea`
+- SHA256: `e9dc1958e6a5aec129ee79f01e9cfb442680b73bf6c72964137daa581a3afd62`

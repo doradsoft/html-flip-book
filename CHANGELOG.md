@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The first page fit reserves bookmark space immediately and avoids a duplicate bookmark refresh for initial history state, reducing opening layout work while preserving navigation updates.
+- Example readers load PDF exporters, chapter PDF data and the export font on download; the Hebrew reader also avoids loading the English Markdown renderer. The bundled, licensed Hebrew font respects the deployed Pages URL prefix and keeps Hebrew exports readable.
+- Books initialize without interleaving page style reads and writes, and reuse declarative content directions without measuring every React page. Bookmark rails measure their dimensions before page resizing, and RTL page turns reuse the current layout's host width, avoiding repeated layout work while keeping CSS and resize geometry current.
 - Page turns avoid redundant bookmark attributes, styles and rail moves, and only change the page's folded class when its fold state changes, reducing animation-time DOM work while preserving live geometry and provider updates.
 - Destroying a book now stops its debug refresh timer and removes the debug bar, preventing background updates from accumulating after reader remounts.
 - Dragging from a turnable page margin keeps turning when the pointer enters an excluded content pane before the gesture is recognized; gestures that start inside excluded panes remain native.
@@ -63,6 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None
 
 ### Engineering
+
+- Vite uses its supported React plugin, built-in TypeScript path resolution and native JSON imports. Skipped or blank browser tests no longer submit empty coverage reports; valid coverage and collection failures remain intact.
+
+- Paired benchmarks use native Windows directory junctions for shared dependencies, avoiding MSYS file symlinks that Node cannot traverse, and keep the fixture's shared runtime dependencies and single React instance resolvable when results are saved outside the repository. Temporary fixture dependency links are removed after bundling so reports do not retain or upload the dependency tree.
 
 - Retained-resource benchmarks complete browser garbage collection and verify a deliberately retained DOM tree, while React mount probes fail on timeout and always release their timer and fixture. Performance fixtures are typechecked from source in clean checkouts, and native Vite configuration uses ESM paths.
 - Browser tests now collect Chromium execution coverage and map it back to the original library sources. CI requires useful unit coverage and every browser shard's LCOV report instead of silently publishing unit-only coverage.

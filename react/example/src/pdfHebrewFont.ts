@@ -1,12 +1,12 @@
 /**
  * Hebrew font for jsPDF. Pre-load and register so PDF export displays Hebrew correctly.
- * Put a Hebrew-capable TTF in public/fonts/ (e.g. Heebo-Regular.ttf) and call loadHebrewFont() on app init.
+ * Put a Hebrew-capable TTF in public/fonts/ (e.g. Heebo-Regular.ttf) and call loadHebrewFont() when exporting.
  */
 import type { jsPDF } from "jspdf";
 
 const FONT_NAME = "Hebrew";
 const FONT_FILE = "Heebo-Regular.ttf";
-const FONT_URL = `/fonts/${FONT_FILE}`;
+const FONT_URL = `${import.meta.env.BASE_URL}fonts/${FONT_FILE}`;
 
 let cachedBase64: string | null = null;
 
@@ -33,7 +33,7 @@ export function addHebrewFontToDoc(doc: jsPDF): void {
 
 /**
  * Fetch a Hebrew TTF from the app's public folder and cache it.
- * Call once when the app (or HeBook) mounts. If no file is present, PDF will still export with RTL but encoding may be wrong.
+ * Load on the first PDF download. If no file is present, PDF will still export with RTL but encoding may be wrong.
  */
 export async function loadHebrewFont(): Promise<void> {
 	if (cachedBase64) return;

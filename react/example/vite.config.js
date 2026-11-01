@@ -1,10 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
-import tsconfigPaths from "vite-tsconfig-paths";
-import packageJson from "./package.json";
+import packageJson from "./package.json" with { type: "json" };
 
 export default defineConfig(({ mode }) => {
 	const isProd = mode === "production";
@@ -14,6 +13,7 @@ export default defineConfig(({ mode }) => {
 		assetsInclude: ["**/*.md"],
 		base: isGitHubPages ? "/html-flip-book/" : "",
 		resolve: {
+			tsconfigPaths: true,
 			dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
 			alias: [
 				{
@@ -77,8 +77,8 @@ export default defineConfig(({ mode }) => {
 				name: "pdf-b64-loader",
 				transform(_code, id) {
 					// Handle *.pdf?b64 imports: read the file and export as base64 string.
-					// This lets import.meta.glob("*.pdf", { query: "?b64", eager: true })
-					// give us the PDF content inline, no fetch needed at runtime.
+					// Deferred glob imports keep each chapter's data in a separate module,
+					// fetched only when that chapter is selected for download.
 					if (id.endsWith(".pdf?b64")) {
 						const filePath = id.replace("?b64", "");
 						const data = fs.readFileSync(filePath);
@@ -99,7 +99,6 @@ export default defineConfig(({ mode }) => {
 					}
 				},
 			},
-			tsconfigPaths(),
 			checker({
 				typescript: true,
 			}),

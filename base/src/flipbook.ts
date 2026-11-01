@@ -170,7 +170,7 @@ class FlipBook {
 	}
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
-		if (this.bookmarksEnabled && this.bookmarkLayer) {
+		if (!isInitial && this.bookmarksEnabled && this.bookmarkLayer) {
 			this.bookmarkLayer.refresh();
 			if (Object.values(this.bookmarkLayer.getInsets()).join() !== this.bookmarkClearance) {
 				this.recalculateSizes();
@@ -502,9 +502,16 @@ class FlipBook {
 	private recalculateSizes(): void {
 		if (!this.bookElement || !this.pageElements.length) return;
 
-		const insets = this.bookmarkLayer?.getInsets() ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const bookmarkMeasurements = this.bookmarksEnabled ? this.bookmarkLayer?.measure() : undefined;
+		const insets = this.bookmarkLayer?.getInsets(bookmarkMeasurements?.depth) ?? {
+			top: 0,
+			right: 0,
+			bottom: 0,
+			left: 0,
+		};
 		this.bookmarkClearance = Object.values(insets).join();
-		const availableWidth = Math.max(0, this.bookElement.clientWidth - insets.left - insets.right);
+		const bookWidth = this.bookElement.clientWidth;
+		const availableWidth = Math.max(0, bookWidth - insets.left - insets.right);
 		const availableHeight = Math.max(0, this.bookElement.clientHeight - insets.top - insets.bottom);
 		this.spineX = insets.left + availableWidth / 2;
 		const maxCoverSize = new Size(availableWidth / 2, availableHeight);
@@ -528,37 +535,34 @@ class FlipBook {
 				`${(this.isLTR ? insets.left : insets.right) + (containerWidth - 2 * pageSize.width) / 2}px`;
 			pageElement.style.top = `${insets.top + (containerHeight - pageSize.height) / 2}px`;
 		}
-		for (const leaf of this.leaves) {
-			leaf.applyTransform(leaf.flipPosition);
-		}
 		const outerSize =
 			this.getBookmarkProvider()?.attachment === "pinned" &&
 			this.pageElements.some((page) => page.dataset.isCoverPage === "1")
 				? coverSize
 				: leafSize;
-		this.bookmarkLayer?.layout({
-			left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
-			top: insets.top + (containerHeight - outerSize.height) / 2,
-			width: 2 * outerSize.width,
-			height: outerSize.height,
-		});
+		if (this.bookmarksEnabled)
+			this.bookmarkLayer?.layout(
+				{
+					left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
+					top: insets.top + (containerHeight - outerSize.height) / 2,
+					width: 2 * outerSize.width,
+					height: outerSize.height,
+				},
+				bookWidth,
+				bookmarkMeasurements,
+			);
+		for (const leaf of this.leaves) {
+			leaf.applyTransform(leaf.flipPosition);
+		}
 	}
 
-	private configurePageScrollport(pageElement: HTMLElement, pageIndex: number): void {
-		const spineOnLeft = (pageIndex % 2 === 0) === this.isLTR;
-		pageElement.dataset.scrollbarSide = spineOnLeft ? "left" : "right";
-		const explicitDirection = pageElement.style.direction || pageElement.dir;
-		const computedDirection =
-			pageElement.ownerDocument.defaultView?.getComputedStyle(pageElement).direction;
-		const originalDirection = explicitDirection || computedDirection;
-		const readingDirection =
-			originalDirection === "ltr" || originalDirection === "rtl"
-				? originalDirection
-				: this.direction;
+	private configurePageScrollport(
+		pageElement: HTMLElement,
+		readingDirection: "ltr" | "rtl",
+	): HTMLElement | undefined {
 		pageElement.dataset.readingDirection = readingDirection;
 		if (pageElement.querySelector(":scope > .flipbook-page-scrollport")) return;
 		const document = pageElement.ownerDocument;
-		const scrollTop = pageElement.scrollTop;
 		const content = document.createElement("div");
 		content.className = "flipbook-page-content";
 		content.dir = readingDirection;
@@ -568,7 +572,7 @@ class FlipBook {
 		scrollport.append(content);
 		pageElement.append(scrollport);
 		pageElement.style.overflow = "hidden";
-		scrollport.scrollTop = scrollTop;
+		return scrollport;
 	}
 
 	render(target: string | HTMLElement, debug = false) {
@@ -606,88 +610,47 @@ class FlipBook {
 		// Interior sides of cover leaves use leafSize — physically, the endpaper is
 		// glued to the inside of the board and matches the text-block page size.
 		const coverPageIndicesSet = this.buildCoverPageIndicesSet();
+		this.pageElements.forEach((pageElement, pageIndex) => {
+			pageElement.dataset.pageIndex = pageIndex.toString();
+			const spineOnLeft = (pageIndex % 2 === 0) === this.isLTR;
+			pageElement.dataset.scrollbarSide = spineOnLeft ? "left" : "right";
+		});
+		// Read inherited styles and scroll positions together. Interleaving these
+		// reads with each page's wrapper/attribute writes repeats style work,
+		// including for React's already-wrapped slots.
+		const pageSetup = this.pageElements.map((pageElement) => {
+			const declaredContent = pageElement.querySelector<HTMLElement>(
+				":scope > .flipbook-page-scrollport > .flipbook-page-content",
+			);
+			const originalDirection =
+				declaredContent?.style.direction ||
+				declaredContent?.dir ||
+				pageElement.style.direction ||
+				pageElement.dir ||
+				pageElement.ownerDocument.defaultView?.getComputedStyle(pageElement).direction;
+			const readingDirection =
+				originalDirection === "ltr" || originalDirection === "rtl"
+					? originalDirection
+					: this.direction;
+			const scrollTop = pageElement.querySelector(":scope > .flipbook-page-scrollport")
+				? 0
+				: pageElement.scrollTop;
+			return { readingDirection, scrollTop };
+		});
+		const scrollRestores: [HTMLElement, number][] = [];
 
 		// Set data attributes before recalculateSizes() so it can read dataset.isCoverPage
 		// to apply the correct cover vs leaf dimensions on the very first layout pass.
 		this.pageElements.forEach((pageElement, pageIndex) => {
-			pageElement.dataset.pageIndex = pageIndex.toString();
-			this.configurePageScrollport(pageElement, pageIndex);
+			const { readingDirection, scrollTop } = pageSetup[pageIndex];
+			const scrollport = this.configurePageScrollport(pageElement, readingDirection);
+			if (scrollport && scrollTop !== 0) scrollRestores.push([scrollport, scrollTop]);
 			pageElement.dataset.pageSemanticName =
 				this.pageSemantics?.indexToSemanticName(pageIndex) ?? "";
 			pageElement.dataset.pageTitle = this.pageSemantics?.indexToTitle(pageIndex) ?? "";
 			pageElement.dataset.isCoverPage = coverPageIndicesSet.has(pageIndex) ? "1" : "";
 		});
-
-		// Compute and apply sizes (also called on resize).
-		// Must run after dataset.isCoverPage is set so covers get coverSize.
-		this.recalculateSizes();
-
-		this.pageElements.forEach((pageElement, pageIndex) => {
-			const leafIndex = Math.floor(pageIndex / 2);
-
-			const isOddPage = (pageIndex + 1) % 2 === 1;
-			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
-
-			// Determine current page based on initial turned leaves
-			// Current pages are the first two visible pages after all initially turned leaves
-			const firstVisibleLeafIndex =
-				this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0;
-			const isCurrentPage =
-				leafIndex === firstVisibleLeafIndex ||
-				(leafIndex === firstVisibleLeafIndex - 1 && isInitiallyTurned);
-
-			pageElement.classList.add(
-				isOddPage ? "odd" : "even",
-				...(isCurrentPage ? ["current-page"] : []),
-			);
-			if (isOddPage) {
-				this.leaves[leafIndex] = new Leaf(
-					leafIndex,
-					[pageElement, undefined],
-					isInitiallyTurned,
-					{
-						isLTR: this.isLTR,
-						leavesCount: leavesCount,
-						pagesCount: this.pagesCount,
-						pageShadow: this.pageShadow,
-						snapshotDuringFlip: this.snapshotDuringFlip,
-					},
-					(direction: FlipDirection) => {
-						const currentVisiblePageIndices: [number] | [number, number] =
-							direction === FlipDirection.Forward
-								? pageIndex + 2 === this.pagesCount
-									? [pageIndex + 1]
-									: [pageIndex + 1, pageIndex + 2]
-								: pageIndex === 0
-									? [pageIndex]
-									: [pageIndex - 1, pageIndex];
-						if (
-							this.prevVisiblePageIndices &&
-							this.prevVisiblePageIndices.length === currentVisiblePageIndices.length &&
-							currentVisiblePageIndices.every((v, i) => v === this.prevVisiblePageIndices?.[i])
-						) {
-							return;
-						}
-						const prevVisiblePageIndices = this.prevVisiblePageIndices;
-						this.prevVisiblePageIndices = currentVisiblePageIndices;
-
-						// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally
-						this.onTurned(currentVisiblePageIndices, prevVisiblePageIndices);
-					},
-				);
-			} else {
-				// Even page (back side of leaf) — attach to the leaf created above.
-				this.leaves[leafIndex].pages[1] = pageElement;
-
-				// Both pages of the leaf are now available.
-				// Use applyTransform to set the correct initial transform — this ensures
-				// the transforms exactly match what applyTransform produces during flips.
-				// Previously, hardcoded transforms used rotateY(±180deg) for turned pages,
-				// which made them invisible due to backface-visibility: hidden.
-				const initialPosition = isInitiallyTurned ? 1 : 0;
-				this.leaves[leafIndex].applyTransform(initialPosition);
-			}
-		});
+		for (const [scrollport, scrollTop] of scrollRestores) scrollport.scrollTop = scrollTop;
 
 		// Set initial visible page indices based on initially turned leaves.
 		// Must match the post-flip model: the visible spread is the back of
@@ -739,7 +702,67 @@ class FlipBook {
 		);
 		this.bookmarkLayer.setMouseMode(this.mouseMode);
 		this.bookmarkLayer.setProvider(this.getBookmarkProvider());
-		if (this.bookmarksEnabled) this.recalculateSizes();
+
+		// Compute and apply sizes (also called on resize).
+		// Must run after dataset.isCoverPage is set so covers get coverSize.
+		this.recalculateSizes();
+
+		this.pageElements.forEach((pageElement, pageIndex) => {
+			const leafIndex = Math.floor(pageIndex / 2);
+
+			const isOddPage = (pageIndex + 1) % 2 === 1;
+			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
+
+			pageElement.classList.add(isOddPage ? "odd" : "even");
+			if (isOddPage) {
+				this.leaves[leafIndex] = new Leaf(
+					leafIndex,
+					[pageElement, undefined],
+					isInitiallyTurned,
+					{
+						isLTR: this.isLTR,
+						leavesCount: leavesCount,
+						pagesCount: this.pagesCount,
+						pageShadow: this.pageShadow,
+						snapshotDuringFlip: this.snapshotDuringFlip,
+					},
+					(direction: FlipDirection) => {
+						const currentVisiblePageIndices: [number] | [number, number] =
+							direction === FlipDirection.Forward
+								? pageIndex + 2 === this.pagesCount
+									? [pageIndex + 1]
+									: [pageIndex + 1, pageIndex + 2]
+								: pageIndex === 0
+									? [pageIndex]
+									: [pageIndex - 1, pageIndex];
+						if (
+							this.prevVisiblePageIndices &&
+							this.prevVisiblePageIndices.length === currentVisiblePageIndices.length &&
+							currentVisiblePageIndices.every((v, i) => v === this.prevVisiblePageIndices?.[i])
+						) {
+							return;
+						}
+						const prevVisiblePageIndices = this.prevVisiblePageIndices;
+						this.prevVisiblePageIndices = currentVisiblePageIndices;
+
+						// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally
+						this.onTurned(currentVisiblePageIndices, prevVisiblePageIndices);
+					},
+				);
+			} else {
+				// Even page (back side of leaf) — attach to the leaf created above.
+				this.leaves[leafIndex].pages[1] = pageElement;
+
+				// Both pages of the leaf are now available.
+				// Use applyTransform to set the correct initial transform — this ensures
+				// the transforms exactly match what applyTransform produces during flips.
+				// Previously, hardcoded transforms used rotateY(±180deg) for turned pages,
+				// which made them invisible due to backface-visibility: hidden.
+				const initialPosition = isInitiallyTurned ? 1 : 0;
+				this.leaves[leafIndex].applyTransform(initialPosition);
+			}
+		});
+
 		this.observeBookmarkLeaves();
 
 		// Observe container size changes and re-layout automatically.

@@ -62,7 +62,10 @@ function moving(frame: BookmarkLeafFrame): boolean {
 export class BookmarkMotion {
 	private readonly items = new Map<string, MovingBookmark>();
 
-	constructor(private readonly host: HTMLElement) {}
+	constructor(
+		private readonly host: HTMLElement,
+		private readonly getHostWidth: () => number = () => host.clientWidth,
+	) {}
 
 	sync(
 		bookmark: BookmarkTarget,
@@ -112,7 +115,7 @@ export class BookmarkMotion {
 
 	private baseLeft(page0: HTMLElement, width: number): number {
 		if (page0.style.left) return Number.parseFloat(page0.style.left) || 0;
-		return this.host.clientWidth - (Number.parseFloat(page0.style.right) || 0) - width;
+		return this.getHostWidth() - (Number.parseFloat(page0.style.right) || 0) - width;
 	}
 
 	private capture(
