@@ -177,6 +177,11 @@ export class BookmarkLayer {
 	/** Re-read provider data after navigation or a consumer configuration update. */
 	refresh(): void {
 		if (this.destroyed) return;
+		const active = this.host.ownerDocument.activeElement;
+		const preservePreview =
+			active instanceof HTMLButtonElement &&
+			active.dataset.previewOpen === "true" &&
+			active.matches(":focus-visible");
 		this.restoreTabStops();
 		this.motion.restoreAll();
 		this.preview.close();
@@ -202,7 +207,13 @@ export class BookmarkLayer {
 		for (const rail of this.rails.values())
 			writeHidden(rail, rail.querySelector(".flipbook-bookmark:not([hidden])") === null);
 		if (this.bounds) this.layout(this.bounds);
-		if (focused?.isConnected) focused.focus({ preventScroll: true });
+		if (focused?.isConnected) {
+			focused.focus({ preventScroll: true });
+			if (preservePreview) {
+				const item = Array.from(this.items.values()).find((item) => item.button === focused);
+				if (item) this.openPreview(item);
+			}
+		}
 	}
 
 	private removeRetiredBookmarks(bookmarks: readonly BookmarkLeaf[]): void {
@@ -466,7 +477,10 @@ export class BookmarkLayer {
 		const items = this.itemsByLeaf.get(index);
 		if (!items?.length) return;
 		const context = this.getContext();
+		const resting = frame.restingPosition === 0 || frame.restingPosition === 1;
 		for (const item of items) {
+			// Restore the saved appearance before applying the committed paper depth.
+			if (resting && this.provider?.attachment !== "pinned") this.motion.restore(item.leaf.id);
 			writeStyle(
 				item.button,
 				"z-index",
@@ -475,10 +489,7 @@ export class BookmarkLayer {
 			if (this.provider?.attachment === "pinned") continue;
 			if (item.button.hidden) continue;
 			// A resting page's corner hover should not curl its bookmark material.
-			if (frame.restingPosition === 0 || frame.restingPosition === 1) {
-				this.motion.restore(item.leaf.id);
-				continue;
-			}
+			if (resting) continue;
 			this.preview.close();
 			this.motion.sync(
 				{ id: item.leaf.id, pageIndex: index * 2 },
@@ -670,11 +681,12 @@ export class BookmarkLayer {
 		return item;
 	}
 
+	private openPreview(item: BookmarkItem): void {
+		if (!item.expandedRenderer || item.button.dataset.bookmarkMotion === "true") return;
+		this.preview.open(item.button, item.expanded, item.edge, this.provider?.className);
+	}
+
 	private bindPreview(item: BookmarkItem): void {
-		const open = () => {
-			if (!item.expandedRenderer || item.button.dataset.bookmarkMotion === "true") return;
-			this.preview.open(item.button, item.expanded, item.edge, this.provider?.className);
-		};
 		item.button.addEventListener("pointerenter", (event) => {
 			if (
 				event.pointerType !== "touch" &&
@@ -693,7 +705,7 @@ export class BookmarkLayer {
 			this.preview.leave(event.relatedTarget),
 		);
 		item.button.addEventListener("focus", () => {
-			if (item.button.matches(":focus-visible")) open();
+			if (item.button.matches(":focus-visible")) this.openPreview(item);
 		});
 		item.button.addEventListener("blur", (event) => this.preview.leave(event.relatedTarget));
 		item.button.addEventListener("keydown", (event) => {

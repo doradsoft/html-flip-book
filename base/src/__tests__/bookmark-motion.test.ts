@@ -70,6 +70,29 @@ function dualFaces(host: HTMLElement, button: HTMLButtonElement): BookmarkMotion
 }
 
 describe("bookmark motion surfaces", () => {
+	it("updates moving geometry without rechecking static tab styles on every frame", () => {
+		const { host, page, button, motion, frame } = setup();
+		const bookmark = { id: "chapter", pageIndex: 2 };
+		motion.sync(bookmark, button, frame, page);
+		const surface = host.querySelector<HTMLElement>(".flipbook-bookmark-surface");
+		const before = surface?.style.transform;
+		const reads = vi.spyOn(button.style, "getPropertyValue");
+		try {
+			motion.sync(
+				bookmark,
+				button,
+				{ ...frame, fold: computePageFoldFromPoint(400, 600, { x: 100, y: 30 }, "top") },
+				page,
+			);
+			expect(surface?.style.transform).not.toBe(before);
+			expect(reads.mock.calls.map(([name]) => name)).not.toContain("width");
+		} finally {
+			reads.mockRestore();
+			motion.destroy();
+			host.remove();
+		}
+	});
+
 	it("prepares geometry without changing the resting DOM, then draws without layout reads", () => {
 		const { host, page, button, motion, frame } = setup();
 		const bookmark = { id: "chapter", pageIndex: 2 };

@@ -90,6 +90,63 @@ describe("BookmarkLayer", () => {
 		expect(tabButton("middle").style.zIndex).toBe("20");
 	});
 
+	it("keeps a keyboard-focused preview open after a provider refresh", async () => {
+		vi.useFakeTimers();
+		layer.setProvider({
+			getBookmarks: () => bookmarks,
+			placement: "top",
+			renderExpandedBookmark: () => document.createElement("span"),
+		});
+		const button = tabButton("first");
+		const rect = vi
+			.spyOn(button, "getBoundingClientRect")
+			.mockReturnValue(new DOMRect(100, 100, 200, 24));
+		const matches = vi.spyOn(button, "matches").mockReturnValue(true);
+		try {
+			button.focus();
+			await vi.advanceTimersByTimeAsync(32);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.dataset.open).toBe(
+				"true",
+			);
+			layer.refresh();
+			await vi.advanceTimersByTimeAsync(32);
+			expect(document.activeElement).toBe(button);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.hidden).toBe(false);
+			expect(document.querySelector<HTMLElement>(".flipbook-bookmark-preview")?.dataset.open).toBe(
+				"true",
+			);
+		} finally {
+			matches.mockRestore();
+			rect.mockRestore();
+			vi.useRealTimers();
+		}
+	});
+
+	it("keeps the committed leaf depth after restoring a prepared moving tab", () => {
+		layer.setProvider({ getBookmarks: () => bookmarks, attachment: "leaf" });
+		const page = document.createElement("div");
+		const frame = {
+			width: 300,
+			height: 500,
+			isLTR: true,
+			position: 0,
+			restingPosition: 0,
+			kind: "rigid" as const,
+			backwardPreview: false,
+			zIndices: [10, 11] as [number, number],
+		};
+		layer.updateLeaf(2, frame, page);
+		layer.prepareLeaf(2, frame, page);
+		layer.updateLeaf(
+			2,
+			{ ...frame, position: 0.5, restingPosition: 0.5, zIndices: [90, 91] },
+			page,
+		);
+		context.currentPageIndex = 5;
+		layer.updateLeaf(2, { ...frame, position: 1, restingPosition: 1, zIndices: [20, 21] }, page);
+		expect(tabButton("middle").style.zIndex).toBe("21");
+	});
+
 	it("does not mutate an unchanged refresh or resting frame, while honoring provider updates", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
 		const bounds = { left: 100, top: 40, width: 600, height: 500 };
