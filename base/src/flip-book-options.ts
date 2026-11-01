@@ -78,6 +78,8 @@ export interface FlipBookOptions {
 	enableBookmarks?: boolean;
 	/** Callback fired when the current page changes */
 	onPageChanged?: (pageIndex: number) => void;
+	/** Leaf activity spans the entire drag and its settling animation, including cancellation. */
+	onLeafFlipActivity?: (leafIndex: number, active: boolean) => void;
 	/** Callback fired when a flip animation starts. Receives params (leaf, spread page indices, semantics, direction). */
 	onPageFlipping?: (params: PageFlipParams) => void;
 	/**

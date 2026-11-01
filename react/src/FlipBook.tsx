@@ -405,6 +405,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// must stay mounted too — otherwise a revealed flipping page renders blank
 		// (issue #167). Cleared once flips settle and the buffer window recenters.
 		const inflightLeavesRef = useRef<Set<number>>(new Set());
+		const activeLeavesRef = useRef(new Set<number>());
 		const mountedPageIndicesRef = useRef<ReadonlySet<number> | undefined>(undefined);
 		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
@@ -418,6 +419,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				// whole page tree on every turn for no benefit (issue #343).
 				return;
 			}
+			if (activeLeavesRef.current.size > 0) return;
 			if (pageChangedTimerRef.current != null) {
 				clearTimeout(pageChangedTimerRef.current);
 			}
@@ -437,47 +439,38 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				});
 			}, BUFFER_DEBOUNCE_MS);
 		};
+		const retainFlippingLeaf = (flippingLeaf: number) => {
+			if (leavesBuffer == null) return;
+			if (pageChangedTimerRef.current != null) {
+				clearTimeout(pageChangedTimerRef.current);
+				pageChangedTimerRef.current = null;
+			}
+			if (inflightLeavesRef.current.has(flippingLeaf)) return;
+			inflightLeavesRef.current.add(flippingLeaf);
+			const mounted = mountedPageIndicesRef.current;
+			const first = flippingLeaf * 2;
+			const targetLeaf = Math.floor(bufferTargetRef.current / 2);
+			// A concurrent recenter may not have committed yet. Skip only if both
+			// the current DOM and that target window retain the moving material.
+			const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + 2;
+			if (
+				!inTargetWindow ||
+				!mounted?.has(first) ||
+				(first + 1 < pages.length && !mounted.has(first + 1))
+			) {
+				startTransition(() => setInflightVersion((v) => v + 1));
+			}
+		};
 		const onPageFlippingRef = useRef((params: PageFlipParams) => {
 			handlers?.onPageFlipping?.(params);
 		});
 		onPageFlippingRef.current = (params) => {
-			if (leavesBuffer != null) {
-				// A new flip is starting: hold any pending buffer-window remount so
-				// a heavy mount cannot land mid-animation. The window re-arms at
-				// this flip's commit; dropping it is safe — the +2 leaf margin and
-				// inflightLeaves keep freshly revealed pages mounted (issue #343).
-				if (pageChangedTimerRef.current != null) {
-					clearTimeout(pageChangedTimerRef.current);
-					pageChangedTimerRef.current = null;
-				}
-				// The flipping leaf holds the page on the trailing edge of the target
-				// spread: backward flips carry pageIndices[1] on their back, forward
-				// flips carry pageIndices[0] on their front.
-				const edgePage =
-					params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
-				const flippingLeaf = Math.floor(edgePage / 2);
-				if (!inflightLeavesRef.current.has(flippingLeaf)) {
-					inflightLeavesRef.current.add(flippingLeaf);
-					// Same transition rationale as the debounced buffer update:
-					// this only exists to remount an out-of-margin flipping leaf,
-					// which must not mid-drag a full-tree reconcile (issue #343).
-					const mounted = mountedPageIndicesRef.current;
-					const first = flippingLeaf * 2;
-					const targetLeaf = Math.floor(bufferTargetRef.current / 2);
-					// A concurrent recenter may not have committed yet. Skip only
-					// if both the current DOM and that target window retain the leaf.
-					const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + 2;
-					if (
-						!inTargetWindow ||
-						!mounted?.has(first) ||
-						(first + 1 < pages.length && !mounted.has(first + 1))
-					) {
-						startTransition(() => setInflightVersion((v) => v + 1));
-					}
-				}
-			}
+			const edgePage =
+				params.direction === "backward" ? params.pageIndices[1] : params.pageIndices[0];
+			retainFlippingLeaf(Math.floor(edgePage / 2));
 			handlers?.onPageFlipping?.(params);
 		};
+		const onLeafFlipActivityRef = useRef<(index: number, active: boolean) => void>(() => {});
 		const onPageFlippedRef = useRef((params: PageFlipParams) => {
 			handlers?.onPageFlipped?.(params);
 		});
@@ -511,6 +504,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					coverAspectRatio: coverAspectRatio,
 					coverPageIndices: coverConfig?.coverIndices,
 					onPageChanged: (index: number) => onPageChangedRef.current(index),
+					onLeafFlipActivity: (index, active) => onLeafFlipActivityRef.current(index, active),
 					onPageFlipping: (params) => onPageFlippingRef.current(params),
 					onPageFlipped: (params: PageFlipParams) => onPageFlippedRef.current(params),
 					historyMapper,
@@ -522,6 +516,23 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					enableDownload,
 				}),
 		);
+
+		onLeafFlipActivityRef.current = (index, active) => {
+			if (leavesBuffer == null) return;
+			if (active) {
+				activeLeavesRef.current.add(index);
+				// A drag starts before its release animation. Hold buffer work for
+				// that entire interval, without reconciling already mounted pages.
+				retainFlippingLeaf(index);
+			} else {
+				activeLeavesRef.current.delete(index);
+				if (activeLeavesRef.current.size === 0) {
+					// A cancelled drag has no page-change event, but must still retire
+					// retained material and finish any previously pending recenter.
+					onPageChangedRef.current(flipBook.currentPageIndex);
+				}
+			}
+		};
 
 		// The engine captures downloadConfig at mount; bridge prop changes into it.
 		useEffect(() => {

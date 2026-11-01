@@ -1540,6 +1540,106 @@ describe("FlipBook", () => {
 			flipBook.destroy();
 		});
 
+		it("reads drag geometry before clearing an existing corner preview", () => {
+			const pages = createPages(10);
+			const book = new FlipBook({ pagesCount: 10, initialTurnedLeaves: [0] });
+			book.render(".flipbook-container");
+			container.getBoundingClientRect = () => new DOMRect(0, 0, 800, 600);
+			const edgeX = 400 + Number.parseFloat(pages[2].style.width) - 1;
+			const edgeY =
+				Number.parseFloat(pages[2].style.top) + Number.parseFloat(pages[2].style.height) * 0.85;
+			container.dispatchEvent(
+				new MouseEvent("mousemove", { bubbles: true, clientX: edgeX, clientY: edgeY }),
+			);
+			expect(pages[2].classList.contains("page--folded")).toBe(true);
+			const observer = new MutationObserver(() => {});
+			observer.observe(container, { attributes: true, subtree: true });
+			const reads: number[] = [];
+			vi.spyOn(container, "getBoundingClientRect").mockImplementation(() => {
+				reads.push(observer.takeRecords().length);
+				return new DOMRect(0, 0, 800, 600);
+			});
+			const internals = getFlipBookInternals(book);
+			internals.onDragStart(createDragEvent("start", { x: edgeX, y: edgeY }));
+			internals.onDragUpdate(createDragEvent("move", { x: edgeX - 50, y: edgeY }));
+			expect(reads).toEqual([0]);
+			observer.disconnect();
+			book.destroy();
+		});
+
+		it.each([false, true])(
+			"reports the full drag lifecycle through settlement, including cancellation=%s",
+			async (complete) => {
+				vi.useFakeTimers();
+				try {
+					createPages(10);
+					const activity = vi.fn();
+					const book = new FlipBook({
+						pagesCount: 10,
+						initialTurnedLeaves: [0],
+						onLeafFlipActivity: activity,
+					});
+					book.render(".flipbook-container");
+					book.setBookmarksEnabled(true);
+					book.setBookmarksEnabled(false);
+					const internals = getFlipBookInternals(book);
+					internals.onDragStart(createDragEvent("start", { x: 740, y: 300 }));
+					internals.onDragUpdate(createDragEvent("move", { x: 700, y: 300 }));
+					expect(activity.mock.calls).toEqual([[1, true]]);
+					internals.onDragEnd(createDragEvent("end", { velocityX: complete ? -1 : 0 }));
+					await vi.runAllTimersAsync();
+					expect(activity.mock.calls).toEqual([
+						[1, true],
+						[1, false],
+					]);
+					expect(container.querySelector(".page--flipping")).toBeNull();
+					expect(book.currentPageIndex).toBe(complete ? 3 : 1);
+					const leaf = internals.leaves[1];
+					book.destroy();
+					expect(leaf.onAfterFlip).toBeUndefined();
+				} finally {
+					vi.useRealTimers();
+				}
+			},
+		);
+
+		it.each([
+			{ initial: [], backward: false, target: 1 },
+			{ initial: [0], backward: false, target: 3 },
+			{ initial: [0, 1], backward: true, target: 1 },
+			{ initial: [0, 1, 2, 3, 4], backward: true, target: 7 },
+		])(
+			"reports the actual target spread for a drag to page $target",
+			async ({ initial, backward, target }) => {
+				vi.useFakeTimers();
+				try {
+					createPages(10);
+					const flipping = vi.fn();
+					const book = new FlipBook({
+						pagesCount: 10,
+						initialTurnedLeaves: initial,
+						onPageFlipping: flipping,
+					});
+					book.render(".flipbook-container");
+					const internals = getFlipBookInternals(book);
+					internals.onDragStart(createDragEvent("start", { x: backward ? 60 : 740, y: 300 }));
+					internals.onDragUpdate(createDragEvent("move", { x: backward ? 100 : 700, y: 300 }));
+					internals.onDragEnd(createDragEvent("end", { velocityX: backward ? 1 : -1 }));
+					expect(flipping).toHaveBeenCalledExactlyOnceWith(
+						expect.objectContaining({
+							pageIndices: [target, target + 1],
+							direction: backward ? "backward" : "forward",
+						}),
+					);
+					await vi.runAllTimersAsync();
+					expect(book.currentPageIndex).toBe(target);
+					book.destroy();
+				} finally {
+					vi.useRealTimers();
+				}
+			},
+		);
+
 		it("reads the drag origin before changing the page snapshot styles", () => {
 			createPages(20);
 			const flipBook = new FlipBook({

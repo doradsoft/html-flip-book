@@ -87,6 +87,7 @@ class FlipBook {
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
 	private readonly onPageChanged?: (pageIndex: number) => void;
+	private readonly onLeafFlipActivity?: (leafIndex: number, active: boolean) => void;
 	private readonly onPageFlipping?: (params: PageFlipParams) => void;
 	private readonly onPageFlipped?: (params: PageFlipParams) => void;
 	private readonly historyMapper?: HistoryMapper;
@@ -270,6 +271,7 @@ class FlipBook {
 		this.bookmarkProvider = options.bookmarkProvider;
 		this.bookmarksEnabled = options.enableBookmarks ?? false;
 		this.onPageChanged = options.onPageChanged;
+		this.onLeafFlipActivity = options.onLeafFlipActivity;
 		this.onPageFlipping = options.onPageFlipping;
 		this.onPageFlipped = options.onPageFlipped;
 		this.historyMapper =
@@ -328,11 +330,16 @@ class FlipBook {
 
 	private observeBookmarkLeaves(): void {
 		for (const leaf of this.leaves) {
-			leaf.onBeforeFlip = this.bookmarksEnabled
-				? () => {
-						const frame = leaf.transformFrame;
-						if (frame) this.bookmarkLayer?.prepareLeaf(leaf.index, frame, leaf.pages[0]);
-					}
+			leaf.onBeforeFlip =
+				this.bookmarksEnabled || this.onLeafFlipActivity
+					? () => {
+							this.onLeafFlipActivity?.(leaf.index, true);
+							const frame = this.bookmarksEnabled ? leaf.transformFrame : undefined;
+							if (frame) this.bookmarkLayer?.prepareLeaf(leaf.index, frame, leaf.pages[0]);
+						}
+					: undefined;
+			leaf.onAfterFlip = this.onLeafFlipActivity
+				? () => this.onLeafFlipActivity?.(leaf.index, false)
 				: undefined;
 			leaf.onTransform = this.bookmarksEnabled
 				? (frame) => this.bookmarkLayer?.updateLeaf(leaf.index, frame, leaf.pages[0])
@@ -1015,7 +1022,6 @@ class FlipBook {
 			return;
 		}
 		this.isDragging = true;
-		this.clearHoverShadow();
 		this.pendingFlipStartingPos =
 			event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0);
 		this.pendingFlipStartingY = Number.isFinite(event.center.y)
@@ -1110,6 +1116,9 @@ class FlipBook {
 			// styles throughout the page; the reverse order forces their layout
 			// synchronously inside the first pointer movement.
 			leaf.beginFlip();
+			// The first manual pose replaces this leaf's hover immediately. Do not
+			// redraw its resting pose before geometry/companion preparation reads.
+			this.clearHoverShadow(leaf);
 			leaf.setFoldOrigin(originY);
 
 			flipState = {
@@ -1240,8 +1249,7 @@ class FlipBook {
 		this.pendingFlipStartingY = undefined;
 		this.isDragging = false;
 
-		const targetPageIndex =
-			flipTo === 1 ? 2 * (flipState.leaf.index + 1) : 2 * flipState.leaf.index;
+		const targetPageIndex = Math.max(0, 2 * flipState.leaf.index + (flipTo === 1 ? 1 : -1));
 		const direction: PageFlipDirection = flipTo === 1 ? "forward" : "backward";
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, direction);
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
@@ -1397,9 +1405,9 @@ class FlipBook {
 		}
 	};
 
-	private clearHoverShadow() {
+	private clearHoverShadow(replacedByManualPose?: Leaf) {
 		if (this.hoveredLeaf) {
-			this.hoveredLeaf.setHoverShadow(0);
+			this.hoveredLeaf.setHoverShadow(0, this.hoveredLeaf !== replacedByManualPose);
 			this.hoveredLeaf = undefined;
 		}
 	}
@@ -1491,7 +1499,7 @@ class FlipBook {
 		this.activeFlips.set(leaf.index, flipState);
 		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
 		this.updateLeavesBufferVisibility();
-		const targetPageIndex = this.currentPageIndex + 2;
+		const targetPageIndex = Math.min(this.pagesCount - 1, leaf.index * 2 + 1);
 		this.lastFlipParams = this.buildPageFlipParams(targetPageIndex, "forward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
@@ -1526,7 +1534,7 @@ class FlipBook {
 		this.activeFlips.set(leaf.index, flipState);
 		// The picked leaf may be buffer-hidden — reveal it before its flip starts.
 		this.updateLeavesBufferVisibility();
-		const targetPageIndex = this.currentPageIndex - 2;
+		const targetPageIndex = leaf.index * 2 - 1;
 		this.lastFlipParams = this.buildPageFlipParams(Math.max(0, targetPageIndex), "backward");
 		if (this.onPageFlipping) this.onPageFlipping(this.lastFlipParams);
 
@@ -1694,6 +1702,7 @@ class FlipBook {
 		this.bookmarkLayer = undefined;
 		for (const leaf of this.leaves) {
 			leaf.onBeforeFlip = undefined;
+			leaf.onAfterFlip = undefined;
 			leaf.onTransform = undefined;
 		}
 		if (typeof window !== "undefined" && this._boundPopstate) {

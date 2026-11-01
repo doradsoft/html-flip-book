@@ -30,6 +30,8 @@ export const NOT_FLIPPED = false;
 export class Leaf {
 	/** Read-only companion preparation before any first-frame paper writes. */
 	onBeforeFlip: (() => void) | undefined;
+	/** Called after the last nested drag/animation lock is released. */
+	onAfterFlip: (() => void) | undefined;
 	/** Optional companion material renderer; invoked after each page transform is applied. */
 	onTransform: ((frame: BookmarkLeafFrame) => void) | undefined;
 	private wrappedTransformFrame: BookmarkLeafFrame | undefined;
@@ -172,11 +174,11 @@ export class Leaf {
 		return this.wrappedTransformFrame;
 	}
 
-	setHoverShadow(progress: number): void {
+	setHoverShadow(progress: number, render = true): void {
 		const clamped = Math.max(0, Math.min(1, progress));
 		if (this.hoverShadow === clamped) return;
 		this.hoverShadow = clamped;
-		this.applyTransform(this.flipPosition);
+		if (render) this.applyTransform(this.flipPosition);
 	}
 
 	/**
@@ -204,6 +206,7 @@ export class Leaf {
 	 * Only releases the GPU layer when every `beginFlip` is balanced.
 	 */
 	endFlip(): void {
+		const wasFlipping = this.flipRefCount > 0;
 		this.flipRefCount = Math.max(0, this.flipRefCount - 1);
 		if (this.flipRefCount !== 0) return; // still active
 		if (!this.manualFoldPoint || this.flipPosition === 0 || this.flipPosition === 1) {
@@ -218,6 +221,7 @@ export class Leaf {
 				page.classList.remove("page--flipping");
 			}
 		}
+		if (wasFlipping) this.onAfterFlip?.();
 	}
 
 	async flipToPosition(

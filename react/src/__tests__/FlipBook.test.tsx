@@ -430,4 +430,104 @@ describe("FlipBook React Component", () => {
 		expect(screen.getByText("Hold 18")).toBeTruthy();
 		expect(screen.getByText("Hold 20")).toBeTruthy();
 	});
+	it("holds recenter work as soon as a mounted leaf is dragged, before release", async () => {
+		vi.useFakeTimers();
+		try {
+			commitCount = 0;
+			render(
+				<Profiler id="drag-handoff" onRender={countCommit}>
+					<FlipBook
+						pages={Array.from({ length: 30 }, (_, i) => `Drag guard ${i}`)}
+						leavesBuffer={1}
+					/>
+				</Profiler>,
+			);
+			const engine = mocked.instances[0];
+			const changed = engine.options.onPageChanged as (index: number) => void;
+			const activity = engine.options.onLeafFlipActivity as (
+				index: number,
+				active: boolean,
+			) => void;
+			const before = commitCount;
+			act(() => {
+				changed(4);
+				activity(2, true);
+				changed(6);
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(150);
+			});
+			expect(commitCount).toBe(before);
+			expect(screen.queryByText("Drag guard 10")).toBeNull();
+			engine.currentPageIndex = 6;
+			act(() => activity(2, false));
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(80);
+			});
+			expect(screen.getByText("Drag guard 10")).toBeTruthy();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("releases far in-flight content after a cancelled drag with no page-change event", async () => {
+		vi.useFakeTimers();
+		try {
+			render(
+				<FlipBook
+					pages={Array.from({ length: 24 }, (_, i) => `Cancel guard ${i}`)}
+					leavesBuffer={1}
+				/>,
+			);
+			const activity = mocked.instances[0].options.onLeafFlipActivity as (
+				index: number,
+				active: boolean,
+			) => void;
+			act(() => activity(8, true));
+			expect(screen.getByText("Cancel guard 16")).toBeTruthy();
+			act(() => activity(8, false));
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(80);
+			});
+			expect(screen.queryByText("Cancel guard 16")).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("keeps recenter work held until the last concurrent leaf settles", async () => {
+		vi.useFakeTimers();
+		try {
+			render(
+				<FlipBook
+					pages={Array.from({ length: 30 }, (_, i) => `Overlap guard ${i}`)}
+					leavesBuffer={1}
+				/>,
+			);
+			const engine = mocked.instances[0];
+			const changed = engine.options.onPageChanged as (index: number) => void;
+			const activity = engine.options.onLeafFlipActivity as (
+				index: number,
+				active: boolean,
+			) => void;
+			act(() => {
+				activity(1, true);
+				activity(2, true);
+				changed(6);
+				activity(1, false);
+			});
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(150);
+			});
+			expect(screen.queryByText("Overlap guard 10")).toBeNull();
+			engine.currentPageIndex = 6;
+			act(() => activity(2, false));
+			await act(async () => {
+				await vi.advanceTimersByTimeAsync(80);
+			});
+			expect(screen.getByText("Overlap guard 10")).toBeTruthy();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 });

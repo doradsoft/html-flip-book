@@ -36,6 +36,28 @@ describe("Leaf", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("notifies companions only at the outer drag/animation boundaries", () => {
+		const leaf = new Leaf(
+			1,
+			[mockPage1, mockPage2],
+			NOT_FLIPPED,
+			defaultBookProperties,
+			onTurnedMock,
+		);
+		const before = vi.fn();
+		const after = vi.fn(() => expect(mockPage1.classList.contains("page--flipping")).toBe(false));
+		leaf.onBeforeFlip = before;
+		leaf.onAfterFlip = after;
+		leaf.beginFlip();
+		leaf.beginFlip();
+		expect(before).toHaveBeenCalledTimes(1);
+		leaf.endFlip();
+		expect(after).not.toHaveBeenCalled();
+		leaf.endFlip();
+		leaf.endFlip();
+		expect(after).toHaveBeenCalledTimes(1);
+	});
+
 	describe("constructor", () => {
 		it("avoids redundant folded-class mutations while preserving real fold transitions", () => {
 			for (const page of [mockPage1, mockPage2]) {
