@@ -1,5 +1,5 @@
 import { execFileSync, execSync } from "node:child_process";
-import { access } from "node:fs/promises";
+import { access, symlink } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type Browser, chromium, type Page } from "@playwright/test";
@@ -9,11 +9,13 @@ import { type Browser, chromium, type Page } from "@playwright/test";
  * variant builds and CDP resource metrics. One browser, one page, no
  * video/tracing/screenshots, no coverage instrumentation.
  *
- * File operations run through execFileSync'd shell tools rather than
+ * Most file operations run through execFileSync'd shell tools rather than
  * node:fs so the repo's static-analysis rules on non-literal fs paths are
  * not tripped by the runtime-generated paths this harness inherently
  * needs. Arguments always go through argv arrays — never a shell string —
- * so no interpolated value is reparsed as shell syntax.
+ * so no interpolated value is reparsed as shell syntax. Shared dependency
+ * directories use Node's native directory links: MSYS ln can create a
+ * Windows file symlink that Node cannot traverse as node_modules.
  */
 
 export interface Variant {
@@ -209,7 +211,11 @@ export async function buildBase(
 			// Lockfiles differ or the base predates Bun — it needs its own install.
 		}
 		if (sameLock) {
-			execFileSync("ln", ["-s", path.join(repoRoot, "node_modules"), path.join(wt, "node_modules")]);
+			await symlink(
+				path.join(repoRoot, "node_modules"),
+				path.join(wt, "node_modules"),
+				process.platform === "win32" ? "junction" : "dir",
+			);
 		} else {
 			execSync("bun install", { cwd: wt, stdio: "inherit" });
 		}

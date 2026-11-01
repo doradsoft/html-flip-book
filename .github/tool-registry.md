@@ -63,3 +63,16 @@ Each entry should include:
 - A page-level V8 Profiler capture can reset across document navigation. Use browser-wide `Tracing.start` with timeline and V8 sampling categories to attribute a workload spanning several page loads.
 - `transferMode: ReturnAsStream` retains the capture until `Tracing.end`; read its IO stream after the workload, and check `Tracing.tracingComplete.dataLossOccurred` before treating the trace as complete. Keep diagnostic captures separate from plain acceptance tests.
 - Primary protocol schema: https://github.com/ChromeDevTools/devtools-protocol/blob/master/json/browser_protocol.json
+
+---
+
+## Node filesystem directory links
+
+**Version**: Node 26.10.0
+**Date**: 2026-11-01
+
+### Key Learnings
+
+- For shared benchmark `node_modules`, use `fs.promises.symlink` with `junction` on Windows and `dir` elsewhere. Keep targets absolute.
+- A local reproduction found that MSYS `ln -s` reported success while creating an `Archive, ReparsePoint` file link to the directory; Node module traversal failed with `EACCES`. A native `Directory, ReparsePoint` junction resolved the same Vite package correctly.
+- API reference: https://nodejs.org/api/fs.html#fspromisessymlinktarget-path-type
