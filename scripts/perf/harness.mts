@@ -1,5 +1,5 @@
 import { execFileSync, execSync } from "node:child_process";
-import { access, symlink } from "node:fs/promises";
+import { access, symlink, unlink } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type Browser, chromium, type Page } from "@playwright/test";
@@ -245,38 +245,44 @@ export async function buildFixture(
 	// Emitted library bundles retain bare runtime imports. Keep their fixture
 	// dependencies reachable when --out is outside the repository tree too.
 	const dependencies = path.join(outDir, "node_modules");
-	if (!(await exists(dependencies))) {
+	const createdDependencies = !(await exists(dependencies));
+	if (createdDependencies) {
 		await symlink(
 			path.join(repoRoot, "node_modules"),
 			dependencies,
 			process.platform === "win32" ? "junction" : "dir",
 		);
 	}
-	// Vite's JS entry is invoked through node directly: execFileSync cannot
-	// spawn package-manager .cmd shims on Windows, and argv arrays must never go
-	// through a shell.
-	execFileSync(
-		process.execPath,
-		[
-			path.join(repoRoot, "node_modules", "vite", "bin", "vite.js"),
-			"build",
-			"--config",
-			path.join(fixtureDir, "vite.config.mts"),
-			"--outDir",
-			dist,
-		],
-		{
-			cwd: fixtureDir,
-			stdio: "pipe",
-			env: {
-				...process.env,
-				HFB_PERF_VANILLA: variant.vanillaJs,
-				HFB_PERF_CSS: variant.css,
-				HFB_PERF_REACT: variant.reactJs,
+	try {
+		// Vite's JS entry is invoked through node directly: execFileSync cannot
+		// spawn package-manager .cmd shims on Windows, and argv arrays must never go
+		// through a shell.
+		execFileSync(
+			process.execPath,
+			[
+				path.join(repoRoot, "node_modules", "vite", "bin", "vite.js"),
+				"build",
+				"--config",
+				path.join(fixtureDir, "vite.config.mts"),
+				"--outDir",
+				dist,
+			],
+			{
+				cwd: fixtureDir,
+				stdio: "pipe",
+				env: {
+					...process.env,
+					HFB_PERF_VANILLA: variant.vanillaJs,
+					HFB_PERF_CSS: variant.css,
+					HFB_PERF_REACT: variant.reactJs,
+				},
 			},
-		},
-	);
-	return dist;
+		);
+		return dist;
+	} finally {
+		// Reports must not retain the dependency tree through a directory link.
+		if (createdDependencies) await unlink(dependencies);
+	}
 }
 
 export async function openFixture(
