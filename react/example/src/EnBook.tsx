@@ -23,9 +23,6 @@ import {
 	Toolbar,
 } from "html-flip-book-react/toolbar";
 import { type ReactElement, useEffect, useMemo, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import { exportEntireBookPdf } from "./pdfExport";
-import { mergePdfs } from "./pdfMerge";
 import {
 	TEST_PARAM_COVER_NO_SHADOW,
 	TEST_PARAM_FAST_DELTA_THRESHOLD,
@@ -34,11 +31,12 @@ import {
 
 const markdownFiles = import.meta.glob("/assets/pages_data/en/content/*.md");
 
-/** PDF content imported as base64 strings at build time (no runtime fetch needed). */
-const pdfFiles: Record<string, { default: string }> = import.meta.glob(
-	"/assets/pages_data/en/pdf/*.pdf",
-	{ query: "?b64", eager: true },
-);
+/** Download assets are loaded only for the requested range. */
+type ChapterPdfSource = () => Promise<string>;
+const pdfFiles = import.meta.glob<string>("/assets/pages_data/en/pdf/*.pdf", {
+	query: "?b64",
+	import: "default",
+});
 
 /** Extract numeric prefix from a file path (e.g. "/assets/.../012-foo.md" → "012") */
 function getNumericPrefix(filepath: string): string {
@@ -46,11 +44,11 @@ function getNumericPrefix(filepath: string): string {
 	return filename.match(/^(\d+)/)?.[1] ?? "";
 }
 
-/** Map from numeric prefix → PDF base64 data */
-const pdfDataByPrefix = new Map<string, string>();
-for (const [path, mod] of Object.entries(pdfFiles)) {
+/** Map each chapter to its deferred PDF module. */
+const pdfSourcesByPrefix = new Map<string, ChapterPdfSource>();
+for (const [path, load] of Object.entries(pdfFiles)) {
 	const prefix = getNumericPrefix(path);
-	if (prefix) pdfDataByPrefix.set(prefix, mod.default);
+	if (prefix) pdfSourcesByPrefix.set(prefix, load);
 }
 
 /** Front cover component */
@@ -209,8 +207,8 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	const [enPages, setEnPages] = useState<ReactElement[]>([]);
 	const [enPageSemantics, setEnPageSemantics] = useState<PageSemantics | null>(null);
 	const [enPageContents, setEnPageContents] = useState<(string | null)[]>([]);
-	/** PDF base64 data per book page index (null for covers/TOC, base64 for content pages) */
-	const [pagePdfData, setPagePdfData] = useState<(string | null)[]>([]);
+	/** Deferred PDF sources aligned with book page indices. */
+	const [pagePdfSources, setPagePdfSources] = useState<(ChapterPdfSource | null)[]>([]);
 	const testParams = useTestParams();
 	const flipBookRef = useRef<FlipBookHandle>(null);
 
@@ -220,16 +218,17 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 
 	useEffect(() => {
 		const loadMarkdownFiles = async () => {
+			const { default: Markdown } = await import("react-markdown");
 			const files = await Promise.all(
 				Object.entries(markdownFiles).map(async ([path, resolver]) => {
 					const content = await resolver();
 					assertIsMarkdownModule(content);
 					const prefix = getNumericPrefix(path);
-					const pdfData = pdfDataByPrefix.get(prefix) ?? null;
+					const pdfSource = pdfSourcesByPrefix.get(prefix) ?? null;
 					return {
 						path,
 						content: content.default,
-						pdfData,
+						pdfSource,
 					};
 				}),
 			);
@@ -260,12 +259,12 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 				"Back Cover — More in This Series\nJavaScript Fundamentals, React Development, Node.js Backend",
 			];
 
-			// PDF base64 data per book page (null for cover/TOC, data for content pages)
-			const pdfData: (string | null)[] = [
+			// Keep cover/TOC slots without importing any PDF bytes.
+			const pdfSources: (ChapterPdfSource | null)[] = [
 				null, // front cover
 				null, // front cover interior
 				null, // TOC
-				...files.map((f) => f.pdfData),
+				...files.map((f) => f.pdfSource),
 				null, // back cover interior
 				null, // back cover
 			];
@@ -299,7 +298,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 			];
 
 			setEnPageContents(contents);
-			setPagePdfData(pdfData);
+			setPagePdfSources(pdfSources);
 			setEnPageSemantics(semantics);
 			setEnPages(pages);
 		};
@@ -327,15 +326,22 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 	const enDownloadConfig = useMemo(
 		() => ({
 			onDownloadSefer: async () => {
+				const { exportEntireBookPdf } = await import("./pdfExport");
 				const data = exportEntireBookPdf("SQL Tutorial", enPages.length, {
 					pageContents: enPageContents,
 				});
 				return { ext: "pdf", data };
 			},
 			onDownloadPageRange: async (pages: number[], _semanticPages: SemanticPageInfo[]) => {
-				// Collect PDF base64 data for the selected page range
-				const pdfs = pages.map((i) => pagePdfData[i]).filter((d): d is string => d != null);
+				// Fetch only the selected chapter PDFs, in the requested order.
+				const pdfs = await Promise.all(
+					pages
+						.map((i) => pagePdfSources[i])
+						.filter((load): load is ChapterPdfSource => load != null)
+						.map((load) => load()),
+				);
 				if (pdfs.length === 0) return null;
+				const { mergePdfs } = await import("./pdfMerge");
 				const data = await mergePdfs(pdfs);
 				if (!data) return null;
 				return { ext: "pdf", data };
@@ -343,7 +349,7 @@ export const EnBook = ({ config }: { config?: EnBookConfig } = {}) => {
 			entireBookFilename: "sql-tutorial",
 			rangeFilename: "sql-tutorial-pages",
 		}),
-		[enPages.length, enPageContents, pagePdfData],
+		[enPages.length, enPageContents, pagePdfSources],
 	);
 
 	const enHistoryMapper: HistoryMapper | undefined = useMemo(

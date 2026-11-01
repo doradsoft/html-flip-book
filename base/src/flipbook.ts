@@ -170,7 +170,7 @@ class FlipBook {
 	}
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
-		if (this.bookmarksEnabled && this.bookmarkLayer) {
+		if (!isInitial && this.bookmarksEnabled && this.bookmarkLayer) {
 			this.bookmarkLayer.refresh();
 			if (Object.values(this.bookmarkLayer.getInsets()).join() !== this.bookmarkClearance) {
 				this.recalculateSizes();
@@ -502,7 +502,7 @@ class FlipBook {
 	private recalculateSizes(): void {
 		if (!this.bookElement || !this.pageElements.length) return;
 
-		const bookmarkMeasurements = this.bookmarkLayer?.measure();
+		const bookmarkMeasurements = this.bookmarksEnabled ? this.bookmarkLayer?.measure() : undefined;
 		const insets = this.bookmarkLayer?.getInsets(bookmarkMeasurements?.depth) ?? {
 			top: 0,
 			right: 0,
@@ -540,16 +540,17 @@ class FlipBook {
 			this.pageElements.some((page) => page.dataset.isCoverPage === "1")
 				? coverSize
 				: leafSize;
-		this.bookmarkLayer?.layout(
-			{
-				left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
-				top: insets.top + (containerHeight - outerSize.height) / 2,
-				width: 2 * outerSize.width,
-				height: outerSize.height,
-			},
-			bookWidth,
-			bookmarkMeasurements,
-		);
+		if (this.bookmarksEnabled)
+			this.bookmarkLayer?.layout(
+				{
+					left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
+					top: insets.top + (containerHeight - outerSize.height) / 2,
+					width: 2 * outerSize.width,
+					height: outerSize.height,
+				},
+				bookWidth,
+				bookmarkMeasurements,
+			);
 		for (const leaf of this.leaves) {
 			leaf.applyTransform(leaf.flipPosition);
 		}
@@ -651,77 +652,6 @@ class FlipBook {
 		});
 		for (const [scrollport, scrollTop] of scrollRestores) scrollport.scrollTop = scrollTop;
 
-		// Compute and apply sizes (also called on resize).
-		// Must run after dataset.isCoverPage is set so covers get coverSize.
-		this.recalculateSizes();
-
-		this.pageElements.forEach((pageElement, pageIndex) => {
-			const leafIndex = Math.floor(pageIndex / 2);
-
-			const isOddPage = (pageIndex + 1) % 2 === 1;
-			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
-
-			// Determine current page based on initial turned leaves
-			// Current pages are the first two visible pages after all initially turned leaves
-			const firstVisibleLeafIndex =
-				this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) + 1 : 0;
-			const isCurrentPage =
-				leafIndex === firstVisibleLeafIndex ||
-				(leafIndex === firstVisibleLeafIndex - 1 && isInitiallyTurned);
-
-			pageElement.classList.add(
-				isOddPage ? "odd" : "even",
-				...(isCurrentPage ? ["current-page"] : []),
-			);
-			if (isOddPage) {
-				this.leaves[leafIndex] = new Leaf(
-					leafIndex,
-					[pageElement, undefined],
-					isInitiallyTurned,
-					{
-						isLTR: this.isLTR,
-						leavesCount: leavesCount,
-						pagesCount: this.pagesCount,
-						pageShadow: this.pageShadow,
-						snapshotDuringFlip: this.snapshotDuringFlip,
-					},
-					(direction: FlipDirection) => {
-						const currentVisiblePageIndices: [number] | [number, number] =
-							direction === FlipDirection.Forward
-								? pageIndex + 2 === this.pagesCount
-									? [pageIndex + 1]
-									: [pageIndex + 1, pageIndex + 2]
-								: pageIndex === 0
-									? [pageIndex]
-									: [pageIndex - 1, pageIndex];
-						if (
-							this.prevVisiblePageIndices &&
-							this.prevVisiblePageIndices.length === currentVisiblePageIndices.length &&
-							currentVisiblePageIndices.every((v, i) => v === this.prevVisiblePageIndices?.[i])
-						) {
-							return;
-						}
-						const prevVisiblePageIndices = this.prevVisiblePageIndices;
-						this.prevVisiblePageIndices = currentVisiblePageIndices;
-
-						// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally
-						this.onTurned(currentVisiblePageIndices, prevVisiblePageIndices);
-					},
-				);
-			} else {
-				// Even page (back side of leaf) — attach to the leaf created above.
-				this.leaves[leafIndex].pages[1] = pageElement;
-
-				// Both pages of the leaf are now available.
-				// Use applyTransform to set the correct initial transform — this ensures
-				// the transforms exactly match what applyTransform produces during flips.
-				// Previously, hardcoded transforms used rotateY(±180deg) for turned pages,
-				// which made them invisible due to backface-visibility: hidden.
-				const initialPosition = isInitiallyTurned ? 1 : 0;
-				this.leaves[leafIndex].applyTransform(initialPosition);
-			}
-		});
-
 		// Set initial visible page indices based on initially turned leaves.
 		// Must match the post-flip model: the visible spread is the back of
 		// the last turned leaf (odd page) and the front of the next un-turned
@@ -772,7 +702,67 @@ class FlipBook {
 		);
 		this.bookmarkLayer.setMouseMode(this.mouseMode);
 		this.bookmarkLayer.setProvider(this.getBookmarkProvider());
-		if (this.bookmarksEnabled) this.recalculateSizes();
+
+		// Compute and apply sizes (also called on resize).
+		// Must run after dataset.isCoverPage is set so covers get coverSize.
+		this.recalculateSizes();
+
+		this.pageElements.forEach((pageElement, pageIndex) => {
+			const leafIndex = Math.floor(pageIndex / 2);
+
+			const isOddPage = (pageIndex + 1) % 2 === 1;
+			const isInitiallyTurned = this.initialTurnedLeaves.has(leafIndex);
+
+			pageElement.classList.add(isOddPage ? "odd" : "even");
+			if (isOddPage) {
+				this.leaves[leafIndex] = new Leaf(
+					leafIndex,
+					[pageElement, undefined],
+					isInitiallyTurned,
+					{
+						isLTR: this.isLTR,
+						leavesCount: leavesCount,
+						pagesCount: this.pagesCount,
+						pageShadow: this.pageShadow,
+						snapshotDuringFlip: this.snapshotDuringFlip,
+					},
+					(direction: FlipDirection) => {
+						const currentVisiblePageIndices: [number] | [number, number] =
+							direction === FlipDirection.Forward
+								? pageIndex + 2 === this.pagesCount
+									? [pageIndex + 1]
+									: [pageIndex + 1, pageIndex + 2]
+								: pageIndex === 0
+									? [pageIndex]
+									: [pageIndex - 1, pageIndex];
+						if (
+							this.prevVisiblePageIndices &&
+							this.prevVisiblePageIndices.length === currentVisiblePageIndices.length &&
+							currentVisiblePageIndices.every((v, i) => v === this.prevVisiblePageIndices?.[i])
+						) {
+							return;
+						}
+						const prevVisiblePageIndices = this.prevVisiblePageIndices;
+						this.prevVisiblePageIndices = currentVisiblePageIndices;
+
+						// TODO expose to outside using https://github.com/open-draft/strict-event-emitter, and just be a consumer internally
+						this.onTurned(currentVisiblePageIndices, prevVisiblePageIndices);
+					},
+				);
+			} else {
+				// Even page (back side of leaf) — attach to the leaf created above.
+				this.leaves[leafIndex].pages[1] = pageElement;
+
+				// Both pages of the leaf are now available.
+				// Use applyTransform to set the correct initial transform — this ensures
+				// the transforms exactly match what applyTransform produces during flips.
+				// Previously, hardcoded transforms used rotateY(±180deg) for turned pages,
+				// which made them invisible due to backface-visibility: hidden.
+				const initialPosition = isInitiallyTurned ? 1 : 0;
+				this.leaves[leafIndex].applyTransform(initialPosition);
+			}
+		});
+
 		this.observeBookmarkLeaves();
 
 		// Observe container size changes and re-layout automatically.

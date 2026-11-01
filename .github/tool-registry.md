@@ -76,3 +76,14 @@ Each entry should include:
 - For shared benchmark `node_modules`, use `fs.promises.symlink` with `junction` on Windows and `dir` elsewhere. Keep targets absolute.
 - A local reproduction found that MSYS `ln -s` reported success while creating an `Archive, ReparsePoint` file link to the directory; Node module traversal failed with `EACCES`. A native `Directory, ReparsePoint` junction resolved the same Vite package correctly.
 - API reference: https://nodejs.org/api/fs.html#fspromisessymlinktarget-path-type
+
+## Vite deferred example assets
+
+**Version**: Vite 8.3.5
+**Date**: 2026-11-01
+
+### Key Learnings
+
+- [Glob imports](https://vite.dev/guide/features.html#glob-import) create deferred import functions by default; `import: "default"` returns the asset value when called. Keep chapter PDF loaders aligned with page slots and invoke only the selected loaders during download. `eager: true` embeds the PDFs in the initial application graph.
+- Ordinary dynamic imports defer Markdown and PDF exporters until the corresponding reader or download needs them. Keep the existing chunk warning limit and remove startup dependencies instead of raising it.
+- `import.meta.env.BASE_URL` preserves the configured Pages prefix when requesting a PDF-only font. Exercise the production bundle under `/html-flip-book/` and verify a real PDF download plus a successful font response.

@@ -77,8 +77,8 @@ export default defineConfig(({ mode }) => {
 				name: "pdf-b64-loader",
 				transform(_code, id) {
 					// Handle *.pdf?b64 imports: read the file and export as base64 string.
-					// This lets import.meta.glob("*.pdf", { query: "?b64", eager: true })
-					// give us the PDF content inline, no fetch needed at runtime.
+					// Deferred glob imports keep each chapter's data in a separate module,
+					// fetched only when that chapter is selected for download.
 					if (id.endsWith(".pdf?b64")) {
 						const filePath = id.replace("?b64", "");
 						const data = fs.readFileSync(filePath);

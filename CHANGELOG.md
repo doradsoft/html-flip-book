@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The first page fit reserves bookmark space immediately and avoids a duplicate bookmark refresh for initial history state, reducing opening layout work while preserving navigation updates.
+- Example readers load PDF exporters, chapter PDF data and the export font on download; the Hebrew reader also avoids loading the English Markdown renderer. The bundled, licensed Hebrew font respects the deployed Pages URL prefix and keeps Hebrew exports readable.
 - Books initialize without interleaving page style reads and writes, and reuse declarative content directions without measuring every React page. Bookmark rails measure their dimensions before page resizing, and RTL page turns reuse the current layout's host width, avoiding repeated layout work while keeping CSS and resize geometry current.
 - Page turns avoid redundant bookmark attributes, styles and rail moves, and only change the page's folded class when its fold state changes, reducing animation-time DOM work while preserving live geometry and provider updates.
 - Destroying a book now stops its debug refresh timer and removes the debug bar, preventing background updates from accumulating after reader remounts.

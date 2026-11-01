@@ -530,6 +530,63 @@ describe("FlipBook", () => {
 			}
 		});
 
+		it("fits pages once with the initial bookmark clearance already known", () => {
+			const pages = createPages(4);
+			const width = vi.fn(() => 800);
+			Object.defineProperty(container, "clientWidth", { get: width, configurable: true });
+			const book = new FlipBook({
+				pagesCount: 4,
+				enableBookmarks: true,
+				enableHistory: false,
+				bookmarkProvider: {
+					getBookmarks: () => [{ id: "chapter", pageIndex: 2, label: "Chapter" }],
+				},
+			});
+			try {
+				book.render(container);
+				expect(width).toHaveBeenCalledTimes(1);
+				expect(Number.parseFloat(pages[0].style.width)).toBeGreaterThan(0);
+			} finally {
+				book.destroy();
+			}
+		});
+
+		it("does not measure hidden bookmark styles when bookmarks are disabled", () => {
+			createPages(4);
+			const read = vi.spyOn(window, "getComputedStyle");
+			const book = new FlipBook({ pagesCount: 4, enableBookmarks: false });
+			try {
+				book.render(container);
+				expect(
+					read.mock.calls.filter(([element]) => element.closest(".flipbook-bookmarks")),
+				).toHaveLength(0);
+			} finally {
+				book.destroy();
+			}
+		});
+
+		it("does not refresh initial bookmarks again to stamp history, but refreshes actual navigation", () => {
+			createPages(6);
+			const getBookmarks = vi.fn(() => [{ id: "chapter", pageIndex: 2, label: "Chapter" }]);
+			const book = new FlipBook({
+				pagesCount: 6,
+				enableBookmarks: true,
+				bookmarkProvider: { getBookmarks },
+				historyMapper: { routeToPage: () => null, pageToRoute: () => null },
+			});
+			try {
+				book.render(container);
+				expect(getBookmarks).toHaveBeenCalledTimes(1);
+				book.jumpToPage(3);
+				expect(getBookmarks).toHaveBeenCalledTimes(2);
+				expect(getBookmarks).toHaveBeenLastCalledWith(
+					expect.objectContaining({ currentPageIndex: 3 }),
+				);
+			} finally {
+				book.destroy();
+			}
+		});
+
 		it("preserves nonzero page scroll positions when installing scrollports", () => {
 			const pages = createPages(4);
 			pages[0].scrollTop = 27;
