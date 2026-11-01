@@ -242,6 +242,16 @@ export async function buildFixture(
 ): Promise<string> {
 	const fixtureDir = path.join(repoRoot, "perf", "fixture");
 	const dist = path.join(outDir, `fixture-${variant.name}`);
+	// Emitted library bundles retain bare runtime imports. Keep their fixture
+	// dependencies reachable when --out is outside the repository tree too.
+	const dependencies = path.join(outDir, "node_modules");
+	if (!(await exists(dependencies))) {
+		await symlink(
+			path.join(repoRoot, "node_modules"),
+			dependencies,
+			process.platform === "win32" ? "junction" : "dir",
+		);
+	}
 	// Vite's JS entry is invoked through node directly: execFileSync cannot
 	// spawn package-manager .cmd shims on Windows, and argv arrays must never go
 	// through a shell.
