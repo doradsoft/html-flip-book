@@ -185,7 +185,7 @@ export class Leaf {
 	 * Signal that a flip interaction is starting (drag or animation).
 	 * Ref-counted: the snapshot class is added on the first call and
 	 * removed only when every `beginFlip` has a matching `endFlip`.
-	 * This keeps the GPU layer and scrollbar/selection lockdown stable
+	 * This keeps the GPU layer and input lock stable
 	 * across the full drag→release→animation cycle.
 	 */
 	beginFlip(): void {

@@ -115,27 +115,10 @@
   transition: none;
 }
 
-// Applied during flip animation when snapshotDuringFlip is enabled.
-// The browser freezes the page rendering as a GPU texture; scrollbar chrome
-// and text selection are hidden so the snapshot looks clean.
-// overflow is NOT changed — scroll position is fully preserved.
-.page--flipping {
-  contain: strict;
-  user-select: none;
-
-  // Hide legacy scrollbar paint without removing its gutter or changing its
-  // styling API. Switching a custom WebKit scrollbar to scrollbar-color can
-  // change its width too. Consumers using native scrollbar-color can hide
-  // their own scroll panes with that same property (without an API switch).
-  @supports selector(::-webkit-scrollbar) {
-    &::-webkit-scrollbar { visibility: hidden; }
-    *::-webkit-scrollbar { visibility: hidden !important; }
-  }
-  @supports not selector(::-webkit-scrollbar) {
-    scrollbar-color: transparent transparent;
-    * { scrollbar-color: transparent transparent !important; }
-  }
-}
+// Leaf promotes the moving paper without restyling its content. In particular,
+// changing inherited selection/scrollbar styles at either end of a turn would
+// invalidate every word and discard the rendering being reused. The input
+// handler blocks selection during the lock; scrollbar appearance stays intact.
 
 .page > * {
   // These values animate the paper's pseudo-elements, not consumer content.

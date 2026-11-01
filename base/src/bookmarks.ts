@@ -113,6 +113,7 @@ export class BookmarkLayer {
 	private provider: BookmarkProvider | undefined;
 	private bounds: BookmarkBounds | undefined;
 	private hostWidth: number | undefined;
+	private layoutMeasurements: BookmarkMeasurements | undefined;
 	private destroyed = false;
 	private mouseMode: MouseMode = "turn";
 
@@ -176,6 +177,16 @@ export class BookmarkLayer {
 
 	/** Re-read provider data after navigation or a consumer configuration update. */
 	refresh(): void {
+		this.refreshItems();
+	}
+
+	/** Page motion changes tab placement, not the measured book/rail dimensions. */
+	refreshForNavigation(): BookmarkInsets {
+		this.refreshItems(this.layoutMeasurements);
+		return this.getInsets(this.layoutMeasurements?.depth);
+	}
+
+	private refreshItems(measurements?: BookmarkMeasurements): void {
 		if (this.destroyed) return;
 		const active = this.host.ownerDocument.activeElement;
 		const preservePreview =
@@ -206,7 +217,8 @@ export class BookmarkLayer {
 		}
 		for (const rail of this.rails.values())
 			writeHidden(rail, rail.querySelector(".flipbook-bookmark:not([hidden])") === null);
-		if (this.bounds) this.layout(this.bounds);
+		if (this.bounds)
+			this.layout(this.bounds, measurements ? this.hostWidth : undefined, measurements);
 		if (focused?.isConnected) {
 			focused.focus({ preventScroll: true });
 			if (preservePreview) {
@@ -347,7 +359,9 @@ export class BookmarkLayer {
 	/** Position tab rails just outside the resting page spread. */
 	layout(bounds: BookmarkBounds, hostWidth?: number, measurements?: BookmarkMeasurements): void {
 		if (this.destroyed) return;
-		const { depth, length, preferredStep, gaps } = measurements ?? this.measure();
+		const measured = measurements ?? this.measure();
+		this.layoutMeasurements = measured;
+		const { depth, length, preferredStep, gaps } = measured;
 		this.hostWidth = hostWidth ?? this.host.clientWidth;
 		this.motion.restoreAll();
 		this.preview.close();
@@ -480,7 +494,8 @@ export class BookmarkLayer {
 		const resting = frame.restingPosition === 0 || frame.restingPosition === 1;
 		for (const item of items) {
 			// Restore the saved appearance before applying the committed paper depth.
-			if (resting && this.provider?.attachment !== "pinned") this.motion.restore(item.leaf.id);
+			if (resting && this.provider?.attachment !== "pinned")
+				this.motion.restore(item.leaf.id, true);
 			writeStyle(
 				item.button,
 				"z-index",

@@ -172,8 +172,8 @@ class FlipBook {
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
 		if (!isInitial && this.bookmarksEnabled && this.bookmarkLayer) {
-			this.bookmarkLayer.refresh();
-			if (Object.values(this.bookmarkLayer.getInsets()).join() !== this.bookmarkClearance) {
+			const insets = this.bookmarkLayer.refreshForNavigation();
+			if (Object.values(insets).join() !== this.bookmarkClearance) {
 				this.recalculateSizes();
 			}
 		}
@@ -382,6 +382,17 @@ class FlipBook {
 			(event.type !== "pointerdown" || (event as PointerEvent).pointerType === "mouse")
 		) {
 			event.stopPropagation();
+		}
+	};
+
+	/** Block selection during motion without changing inherited content styles. */
+	private handlePageSelectStart = (event: Event): void => {
+		if (
+			this.snapshotDuringFlip &&
+			event.currentTarget instanceof HTMLElement &&
+			event.currentTarget.classList.contains("page--flipping")
+		) {
+			event.preventDefault();
 		}
 	};
 
@@ -615,6 +626,7 @@ class FlipBook {
 			page.addEventListener("pointerdown", this.handlePageMouseDown);
 			page.addEventListener("mousedown", this.handlePageMouseDown);
 			page.addEventListener("dragstart", this.handlePageDragStart, true);
+			page.addEventListener("selectstart", this.handlePageSelectStart, true);
 		}
 		this.leaves.splice(0, this.leaves.length);
 		const leavesCount = Math.ceil(this.pagesCount / 2);
@@ -1722,6 +1734,7 @@ class FlipBook {
 				page.removeEventListener("pointerdown", this.handlePageMouseDown);
 				page.removeEventListener("mousedown", this.handlePageMouseDown);
 				page.removeEventListener("dragstart", this.handlePageDragStart, true);
+				page.removeEventListener("selectstart", this.handlePageSelectStart, true);
 			}
 			this.bookElement.removeEventListener("touchstart", this.handleTouchStart as EventListener);
 			this.bookElement.removeEventListener("touchmove", this.handleTouchMove as EventListener);

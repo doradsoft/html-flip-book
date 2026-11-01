@@ -300,9 +300,8 @@ export interface FlipBookProps {
 	 */
 	pageShadow?: boolean;
 	/**
-	 * When true, uses aggressive containment on pages during flip animations
-	 * so the browser can operate on a cached GPU texture rather than
-	 * re-rendering content every frame. Reduces jank when flipping rapidly.
+	 * When true, holds page--flipping through the drag and settling animation
+	 * and blocks new text selection without changing content or scrollbar styling.
 	 * Default: true.
 	 */
 	snapshotDuringFlip?: boolean;

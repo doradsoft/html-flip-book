@@ -60,7 +60,66 @@ describe("FlipBook", () => {
 		return pages;
 	}
 
+	describe("navigation layout work", () => {
+		it.each(["leaf", "pinned"] as const)(
+			"reuses %s bookmark geometry when a turn commits",
+			async (attachment) => {
+				vi.useFakeTimers();
+				try {
+					createPages(10);
+					const book = new FlipBook({
+						pagesCount: 10,
+						initialTurnedLeaves: [0],
+						enableBookmarks: true,
+						bookmarkProvider: {
+							attachment,
+							getBookmarks: () => [{ id: "chapter", pageIndex: 3, label: "Chapter" }],
+						},
+					});
+					book.render(container);
+					const reads = vi.spyOn(window, "getComputedStyle");
+					const turn = book.flipNext();
+					// Preparation may measure the resting tab. Once the paper moves,
+					// completing it must not force a new layout of the reader content.
+					reads.mockClear();
+					await vi.runAllTimersAsync();
+					await turn;
+					expect(book.currentPageIndex).toBe(3);
+					expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("Chapter");
+					expect(reads).not.toHaveBeenCalled();
+					book.destroy();
+				} finally {
+					vi.useRealTimers();
+				}
+			},
+		);
+	});
+
 	describe("native content dragging", () => {
+		it.each([true, false])(
+			"blocks selection during an active appearance lock only when enabled=%s",
+			(snapshotDuringFlip) => {
+				const pages = createPages(6);
+				const book = new FlipBook({ pagesCount: 6, snapshotDuringFlip });
+				book.render(container);
+				book.setMouseMode("select");
+				const select = () => {
+					const event = new Event("selectstart", { bubbles: true, cancelable: true });
+					pages[2].firstElementChild?.dispatchEvent(event);
+					return event.defaultPrevented;
+				};
+				const leaf = getFlipBookInternals(book).leaves[1];
+				expect(select()).toBe(false);
+				leaf.beginFlip();
+				expect(select()).toBe(snapshotDuringFlip);
+				leaf.endFlip();
+				expect(select()).toBe(false);
+				book.destroy();
+				pages[2].classList.add("page--flipping");
+				expect(select()).toBe(false);
+			},
+		);
+
 		function renderContent(kind: "image" | "link" | "linked-image") {
 			const pages = createPages(4);
 			const book = new FlipBook({ pagesCount: 4 });

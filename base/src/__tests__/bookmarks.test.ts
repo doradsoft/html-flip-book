@@ -197,6 +197,16 @@ describe("BookmarkLayer", () => {
 		observer.disconnect();
 	});
 
+	it("measures changed bookmark styling on explicit refresh after navigation", () => {
+		host.style.setProperty("--flipbook-bookmark-depth", "52px");
+		layer.setProvider({ getBookmarks: () => bookmarks });
+		layer.layout({ left: 100, top: 40, width: 600, height: 500 });
+		expect(layer.refreshForNavigation().left).toBe(52);
+		host.style.setProperty("--flipbook-bookmark-depth", "80px");
+		layer.refresh();
+		expect(layer.refreshForNavigation().left).toBe(80);
+	});
+
 	it("reads rail measurements before writing a new layout", () => {
 		layer.setProvider({ getBookmarks: () => bookmarks });
 		layer.layout({ left: 100, top: 40, width: 600, height: 500 });

@@ -92,7 +92,7 @@ export class BookmarkMotion {
 		faces?: BookmarkMotionFaces,
 	): void {
 		if (!moving(frame)) {
-			this.restore(bookmark.id);
+			this.restore(bookmark.id, true);
 			return;
 		}
 		let item = this.items.get(bookmark.id);
@@ -108,8 +108,10 @@ export class BookmarkMotion {
 		this.renderSurfaces(bookmark, item, frame, page0, surfaces, className);
 	}
 
-	restore(id: string): void {
-		this.prepared.delete(id);
+	restore(id: string, preservePrepared = false): void {
+		// An animation may first report its unchanged resting pose. Its prepared
+		// geometry still belongs to the upcoming motion; consume it when the leaf moves.
+		if (!preservePrepared) this.prepared.delete(id);
 		const item = this.items.get(id);
 		if (!item) return;
 		item.placeholder.before(item.button);

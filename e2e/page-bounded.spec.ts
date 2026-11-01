@@ -52,19 +52,24 @@ for (const direction of ["ltr", "rtl"] as const) {
 			const pane = element.querySelector<HTMLElement>(".pane");
 			if (!pane) throw new Error("Missing test scroll pane");
 			const before = pane.clientWidth;
+			const scrollbarBefore = getComputedStyle(pane, "::-webkit-scrollbar").visibility;
 			const gutter = pane.offsetWidth - before;
 			element.classList.add("page--flipping");
 			const during = pane.clientWidth;
+			const scrollbarDuring = getComputedStyle(pane, "::-webkit-scrollbar").visibility;
 			element.classList.remove("page--flipping");
 			return {
 				before,
 				during,
 				gutter,
+				scrollbarBefore,
+				scrollbarDuring,
 				idleShadowLayer: getComputedStyle(element, "::before").willChange,
 			};
 		});
 		expect(widths.gutter).toBeGreaterThan(0);
 		expect(widths.during).toBe(widths.before);
+		expect(widths.scrollbarDuring).toBe(widths.scrollbarBefore);
 		expect(widths.idleShadowLayer).toBe("auto");
 	});
 
