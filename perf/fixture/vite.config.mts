@@ -11,6 +11,7 @@ if (!vanilla || !css || !react) {
 export default {
 	root: ".",
 	resolve: {
+		dedupe: ["react", "react-dom"],
 		alias: {
 			"html-flip-book-vanilla": vanilla,
 			"html-flip-book-react": react,
