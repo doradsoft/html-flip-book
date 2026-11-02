@@ -121,6 +121,13 @@ update interval. A real press can cancel that preview before it causes a second
 paper render ahead of the drag. Leaving, changing to selection mode, rendering
 again and teardown cancel queued previews. Standard readers keep their leading
 hover behavior, and neither path changes the preview geometry or text rendering.
+Retained readers paint the first drag sample immediately, then coalesce later
+samples to the newest held corner per animation frame. Release and cancellation
+flush the latest point before choosing an endpoint; selection, render and teardown
+discard stale poses. Standard readers and environments without animation frames
+keep their synchronous path. Manual samples constrain their corner first, then
+construct the crease polygons and reflection once in the renderer.
+
 Moving paper prepares its clip mask alongside the existing transform hint.
 Rigid covers keep their transform-only hint, and balanced flip cleanup releases
 the hints. Original text nodes, raster appearance and scrollbar geometry stay

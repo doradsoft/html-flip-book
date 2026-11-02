@@ -104,6 +104,10 @@ class FlipBook {
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
 	private readonly keepPageContentLayout: boolean;
+	private manualPoseFrame: number | undefined;
+	private pendingManualPose:
+		| { event: HammerInput; fromBookmark: boolean; state: FlipState }
+		| undefined;
 	private bufferContentInitialized = false;
 	private readonly pendingContentPreparation = new Set<HTMLElement>();
 	private readonly contentPreparationListeners = new Set<() => void>();
@@ -381,6 +385,7 @@ class FlipBook {
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
 		if (mode === "select") {
 			this.cancelHoverUpdates();
+			this.cancelPendingManualPose();
 			this.clearHoverShadow();
 		}
 	}
@@ -489,7 +494,7 @@ class FlipBook {
 				started = true;
 				button.dataset.bookmarkDragged = "true";
 				this.onDragStart(input(pointer), true);
-			} else this.onDragUpdate(input(pointer), true);
+			} else this.queueManualDragUpdate(input(pointer), true);
 		};
 		const end = (pointer: PointerEvent) => {
 			if (pointer.pointerId === event.pointerId) finish(pointer, false);
@@ -629,6 +634,7 @@ class FlipBook {
 			);
 		}
 		this.cancelHoverUpdates();
+		this.cancelPendingManualPose();
 		this.contentPreparationHolds.clear();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
@@ -845,7 +851,7 @@ class FlipBook {
 		// Mouse pulls can move in both axes while touch keeps native vertical scrolling.
 		this.hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL });
 		this.hammer.on("panstart", this.onDragStart.bind(this));
-		this.hammer.on("panmove", this.onDragUpdate.bind(this));
+		this.hammer.on("panmove", this.queueManualDragUpdate.bind(this));
 		this.hammer.on("panend", this.onDragEnd.bind(this));
 		this.hammer.on("pancancel", (event) => this.onDragEnd(event, true));
 		this.bookElement.addEventListener("touchstart", this.handleTouchStart, {
@@ -1337,6 +1343,43 @@ class FlipBook {
 		}
 	}
 
+	private queueManualDragUpdate(event: HammerInput, fromBookmark = false): void {
+		const state = this.currentManualFlip;
+		if (
+			!this.keepPageContentLayout ||
+			!state ||
+			typeof requestAnimationFrame !== "function" ||
+			typeof cancelAnimationFrame !== "function"
+		) {
+			this.onDragUpdate(event, fromBookmark);
+			return;
+		}
+		// The leading pose stays immediate. Later samples replace work that
+		// would otherwise draw several complete folds before the next paint.
+		this.pendingManualPose = { event, fromBookmark, state };
+		if (this.manualPoseFrame === undefined)
+			this.manualPoseFrame = requestAnimationFrame(this.flushPendingManualPose);
+	}
+
+	private flushPendingManualPose = (): void => {
+		const pending = this.pendingManualPose;
+		this.cancelPendingManualPose();
+		if (
+			pending &&
+			this.activeFlips.get(pending.state.leaf.index) === pending.state &&
+			!pending.state.isDuringAutoFlip
+		) {
+			this.onDragUpdate(pending.event, pending.fromBookmark);
+		}
+	};
+
+	private cancelPendingManualPose(): void {
+		if (this.manualPoseFrame !== undefined && typeof cancelAnimationFrame === "function")
+			cancelAnimationFrame(this.manualPoseFrame);
+		this.manualPoseFrame = undefined;
+		this.pendingManualPose = undefined;
+	}
+
 	private onDragUpdate(event: HammerInput, fromBookmark = false) {
 		if (this.gestureStartedInNoFlipZone) return;
 		// Reject pan events that belong to a touch gesture locked to vertical.
@@ -1492,6 +1535,7 @@ class FlipBook {
 	}
 
 	private onDragEnd(event: HammerInput, cancelled = false) {
+		this.flushPendingManualPose();
 		this.gestureStartedInNoFlipZone = undefined;
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
@@ -2028,6 +2072,7 @@ class FlipBook {
 	 */
 	destroy() {
 		this.cancelHoverUpdates();
+		this.cancelPendingManualPose();
 		this.contentPreparationHolds.clear();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
