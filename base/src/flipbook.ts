@@ -103,10 +103,18 @@ class FlipBook {
 	private bookmarkLayer: BookmarkLayer | undefined;
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
+	private readonly keepPageContentLayout: boolean;
 	private bufferContentInitialized = false;
 	private readonly pendingContentPreparation = new Set<HTMLElement>();
 	private contentPreparationFrame: number | undefined;
 	private contentPreparationGeneration = 0;
+	private preparedContent = new WeakSet<HTMLElement>();
+	private preparationDocument: Document | undefined;
+	private preparationPointerHeld = false;
+	private readonly contentMasks = new Map<
+		HTMLElement,
+		{ opacity: string; priority: string; inert: string | null; ariaHidden: string | null }
+	>();
 	private readonly coverPageIndices?: number[] | "auto";
 	private downloadConfig: DownloadConfig | undefined;
 	private readonly downloadEnabled: boolean;
@@ -283,6 +291,8 @@ class FlipBook {
 				? (options.historyMapper ?? createDefaultHistoryMapper(options.pageSemantics))
 				: undefined;
 		this.leavesBuffer = options.leavesBuffer;
+		this.keepPageContentLayout =
+			options.keepPageContentLayout === true && options.leavesBuffer != null;
 		this.coverPageIndices = options.coverPageIndices;
 		this.downloadEnabled = options.enableDownload !== false;
 		this.downloadConfig = undefined;
@@ -613,8 +623,27 @@ class FlipBook {
 			);
 		}
 		this.cancelContentPreparation();
+		this.unwatchPreparationInput();
+		this.restoreContentMasks();
+		this.preparedContent = new WeakSet();
 		this.bufferContentInitialized = false;
 		this.bookElement = bookElement as HTMLElement;
+		if (this.keepPageContentLayout) {
+			this.preparationDocument = this.bookElement.ownerDocument;
+			this.preparationDocument.addEventListener(
+				"pointerdown",
+				this.prioritizePreparationInput,
+				true,
+			);
+			this.preparationDocument.addEventListener("keydown", this.deferPreparationForInput, true);
+			this.preparationDocument.addEventListener("pointerup", this.releasePreparationInput, true);
+			this.preparationDocument.addEventListener(
+				"pointercancel",
+				this.releasePreparationInput,
+				true,
+			);
+			this.preparationDocument.defaultView?.addEventListener("blur", this.releasePreparationInput);
+		}
 		this.setMouseMode(this.mouseMode);
 		if (!this.bookElement.classList.contains("flipbook")) {
 			this.bookElement.classList.add("flipbook");
@@ -935,17 +964,23 @@ class FlipBook {
 
 			// Cover leaves are always visible; other leaves follow the buffer range.
 			const visible = isCoverLeaf || isWithinBuffer || isFlipping;
+			const retainLayout =
+				this.keepPageContentLayout &&
+				(isCoverLeaf ||
+					isFlipping ||
+					Math.abs(i - currentLeafIndex) <= Math.max(2, this.leavesBuffer));
 
 			// Update both pages of the leaf
 			for (const page of leaf.pages) {
 				if (page) {
-					const display = visible ? "" : "none";
+					const display = visible || retainLayout ? "" : "none";
 					if (page.style.display !== display) page.style.display = display;
 					// Skip descendant work even if consumer CSS overrides display.
 					// content-visibility retains the paper box; display:none removes it.
-					const visibility = visible ? "visible" : "hidden";
+					const visibility = visible || retainLayout ? "visible" : "hidden";
 					if (page.style.contentVisibility !== visibility)
 						page.style.contentVisibility = visibility;
+					if (this.keepPageContentLayout) this.maskContent(page, retainLayout && !visible);
 					const scrollport = page.firstElementChild as HTMLElement | null;
 					if (scrollport?.classList.contains("flipbook-page-scrollport")) {
 						const pageIndex = Number(page.dataset.pageIndex);
@@ -958,6 +993,30 @@ class FlipBook {
 							isCoverLeaf || (exposedContent.has(pageIndex) && contentRequired)
 								? "visible"
 								: "hidden";
+						if (this.keepPageContentLayout) {
+							this.maskContent(scrollport, retainLayout && contentVisibility === "hidden");
+							const content = scrollport.firstElementChild;
+							const hasContent = content?.classList.contains("flipbook-page-content")
+								? content.hasChildNodes()
+								: scrollport.hasChildNodes();
+							const keepLayout = retainLayout && hasContent;
+							if (!keepLayout && contentVisibility === "hidden") {
+								scrollport.style.contentVisibility = "hidden";
+								this.preparedContent.delete(scrollport);
+							} else if (
+								this.preparedContent.has(scrollport) ||
+								!canPrepareLater ||
+								isCoverLeaf ||
+								requiredContent.has(pageIndex)
+							) {
+								scrollport.style.contentVisibility = "visible";
+								if (hasContent) this.preparedContent.add(scrollport);
+							} else {
+								scrollport.style.contentVisibility = "hidden";
+								this.pendingContentPreparation.add(scrollport);
+							}
+							continue;
+						}
 						if (scrollport.style.contentVisibility !== contentVisibility) {
 							if (
 								canPrepareLater &&
@@ -979,6 +1038,102 @@ class FlipBook {
 		this.scheduleContentPreparation();
 	}
 
+	/** Notify the engine after replacing or materializing the content of page slots. */
+	refreshPageContent(pageIndices: readonly number[]): void {
+		if (!this.keepPageContentLayout || !this.bookElement || pageIndices.length === 0) return;
+		for (const index of pageIndices) {
+			const scrollport = this.pageElements[index]?.firstElementChild as
+				| HTMLElement
+				| null
+				| undefined;
+			if (scrollport?.classList.contains("flipbook-page-scrollport")) {
+				this.preparedContent.delete(scrollport);
+				scrollport.style.contentVisibility = "hidden";
+			}
+		}
+		this.updateLeavesBufferVisibility();
+	}
+
+	private maskContent(element: HTMLElement, hidden: boolean): void {
+		const previous = this.contentMasks.get(element);
+		if (hidden) {
+			if (!previous) {
+				this.contentMasks.set(element, {
+					opacity: element.style.opacity,
+					priority: element.style.getPropertyPriority("opacity"),
+					inert: element.getAttribute("inert"),
+					ariaHidden: element.getAttribute("aria-hidden"),
+				});
+			}
+			// Opacity preserves layout without propagating a visibility change to
+			// every word. Keep the dormant content out of focus and accessibility.
+			if (
+				element.style.opacity !== "0" ||
+				element.style.getPropertyPriority("opacity") !== "important"
+			)
+				element.style.setProperty("opacity", "0", "important");
+			element.classList.add("flipbook-layout-dormant");
+			if (!element.hasAttribute("inert")) element.setAttribute("inert", "");
+			if (element.getAttribute("aria-hidden") !== "true")
+				element.setAttribute("aria-hidden", "true");
+		} else if (previous) {
+			element.style.setProperty("opacity", previous.opacity, previous.priority);
+			element.classList.remove("flipbook-layout-dormant");
+			if (previous.inert === null) element.removeAttribute("inert");
+			else element.setAttribute("inert", previous.inert);
+			if (previous.ariaHidden === null) element.removeAttribute("aria-hidden");
+			else element.setAttribute("aria-hidden", previous.ariaHidden);
+			this.contentMasks.delete(element);
+		}
+	}
+
+	private restoreContentMasks(): void {
+		for (const element of this.contentMasks.keys()) this.maskContent(element, false);
+	}
+
+	private prioritizePreparationInput = (event: PointerEvent): void => {
+		if (event.isPrimary === false || event.button !== 0) return;
+		this.preparationPointerHeld = true;
+		this.deferPreparationForInput();
+	};
+
+	private releasePreparationInput = (event: Event): void => {
+		if ((event as PointerEvent).isPrimary === false) return;
+		this.preparationPointerHeld = false;
+		this.scheduleContentPreparation();
+	};
+
+	private deferPreparationForInput = (): void => {
+		if (this.pendingContentPreparation.size === 0) return;
+		this.contentPreparationGeneration++;
+		if (this.contentPreparationFrame !== undefined) {
+			cancelAnimationFrame(this.contentPreparationFrame);
+			this.contentPreparationFrame = undefined;
+		}
+		this.scheduleContentPreparation();
+	};
+
+	private unwatchPreparationInput(): void {
+		this.preparationDocument?.removeEventListener(
+			"pointerdown",
+			this.prioritizePreparationInput,
+			true,
+		);
+		this.preparationDocument?.removeEventListener("keydown", this.deferPreparationForInput, true);
+		this.preparationDocument?.removeEventListener("pointerup", this.releasePreparationInput, true);
+		this.preparationDocument?.removeEventListener(
+			"pointercancel",
+			this.releasePreparationInput,
+			true,
+		);
+		this.preparationDocument?.defaultView?.removeEventListener(
+			"blur",
+			this.releasePreparationInput,
+		);
+		this.preparationDocument = undefined;
+		this.preparationPointerHeld = false;
+	}
+
 	private cancelContentPreparation(): void {
 		this.contentPreparationGeneration++;
 		if (this.contentPreparationFrame !== undefined) {
@@ -998,10 +1153,17 @@ class FlipBook {
 		const prepare = () => {
 			if (generation !== this.contentPreparationGeneration) return;
 			this.contentPreparationFrame = undefined;
+			if (this.preparationPointerHeld) {
+				this.contentPreparationFrame = requestAnimationFrame(prepare);
+				return;
+			}
 			const content = this.pendingContentPreparation.values().next().value;
 			if (content) {
 				this.pendingContentPreparation.delete(content);
-				if (content.isConnected) content.style.contentVisibility = "visible";
+				if (content.isConnected) {
+					content.style.contentVisibility = "visible";
+					if (this.keepPageContentLayout) this.preparedContent.add(content);
+				}
 			}
 			if (this.pendingContentPreparation.size > 0) {
 				this.contentPreparationFrame = requestAnimationFrame(prepare);
@@ -1789,6 +1951,9 @@ class FlipBook {
 	 */
 	destroy() {
 		this.cancelContentPreparation();
+		this.unwatchPreparationInput();
+		this.restoreContentMasks();
+		this.preparedContent = new WeakSet();
 		this.bufferContentInitialized = false;
 		this.gestureStartedInNoFlipZone = undefined;
 		if (this.debugTimer !== undefined) {

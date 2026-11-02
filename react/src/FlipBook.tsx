@@ -223,7 +223,7 @@ export interface FlipBookHandlers {
  * `handlers`, `bookmarkProvider`, `enableBookmarks`, `pageShadow`, and `downloadConfig`
  * update the mounted engine in place. The remaining options are initialization-only;
  * changing them after mount does not rebuild the engine (`className`, `pageSemantics`,
- * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`,
+ * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`, `keepPageContentLayout`,
  * `coverConfig`, `leafAspectRatio`, `coverAspectRatio`, `historyMapper`, `tocPageIndex`,
  * `snapshotDuringFlip`, `enableHistory`, `enableDownload`).
  */
@@ -258,6 +258,8 @@ export interface FlipBookProps {
 	 * Default: undefined (all leaves are always rendered)
 	 */
 	leavesBuffer?: number;
+	/** Keep nearby covered content laid out and prepare newly mounted pages separately. Default: false. */
+	keepPageContentLayout?: boolean;
 	/**
 	 * Configuration for cover pages (front and back covers).
 	 */
@@ -358,6 +360,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
+			keepPageContentLayout = false,
 			pageShadow = true,
 			snapshotDuringFlip = true,
 			enableHistory,
@@ -517,6 +520,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					initialTurnedLeaves: initialTurnedLeaves,
 					fastDeltaThreshold: fastDeltaThreshold,
 					leavesBuffer: leavesBuffer,
+					keepPageContentLayout,
 					leafAspectRatio: leafAspectRatio,
 					coverAspectRatio: coverAspectRatio,
 					coverPageIndices: coverConfig?.coverIndices,
@@ -735,7 +739,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					})()
 				: undefined;
 		usePageMountEffect(() => {
+			const previous = mountedPageIndicesRef.current;
 			mountedPageIndicesRef.current = mountedPageIndices;
+			if (keepPageContentLayout && previous && mountedPageIndices) {
+				const materialized = Array.from(mountedPageIndices).filter((index) => !previous.has(index));
+				if (materialized.length) flipBook.refreshPageContent(materialized);
+			}
 		});
 		const contentByIndex = (index: number) =>
 			!mountedPageIndices || mountedPageIndices.has(index)

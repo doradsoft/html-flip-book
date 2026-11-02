@@ -87,6 +87,21 @@ The first turn from a fresh reader and the subsequent turns have separate
 results and independently enforce those same limits; attached-bookmark lag
 cannot be hidden by averaging it together with a handoff improvement.
 
+`turnReactRetainedLeaf`, `turnReactRetainedPinned`, and
+`turnReactRetainedHidden` separately exercise `keepPageContentLayout` with the
+consumer's zero content buffer. The paired baseline receives the same buffer
+and fixture. Existing scenarios remain unchanged.
+
+The opt-in retains the layout of the nearest two covered leaves, without
+changing text nodes, typography, scroll positions, or the visible paper
+stack. Covered retained content uses an opacity mask and is inert and hidden
+from accessibility until exposed. Older layout is retired before the adapter
+removes its host. Newly materialized chapters are prepared one scrollport per
+animation frame after the critical pose; held pointer input pauses that work
+and new pointer or keyboard input defers it. Current faces, moving faces and
+their underlays remain synchronous. These operations do not change the
+adapter's existing 80ms window debounce or any interaction deadline.
+
 Moving tabs prepare their resting geometry before any paper snapshot/fold
 writes, without changing the resting DOM. Resize/provider changes discard
 that preparation. A per-leaf index also avoids scanning every chapter's tab on
@@ -117,4 +132,5 @@ the outcome. CI uploads `perf-results/` with 30-day retention.
 - The workflow runs on `pull_request` with `contents: read` and no secrets,
   so untrusted PR code executes read-only.
 - Timing noise on shared CI runners can push metrics to `inconclusive`;
-  rerun or increase `--samples` rather than widening thresholds.
+  retain the raw samples and investigate the measured path and calibration.
+  Do not widen thresholds or repeat runs to select a passing result.

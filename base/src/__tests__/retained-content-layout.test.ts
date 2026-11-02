@@ -1,0 +1,257 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FlipBook } from "../flipbook";
+import { createMockContainer, getFlipBookInternals } from "./test-utils";
+
+vi.mock("hammerjs", () => {
+	function MockHammer() {
+		return { on: vi.fn(), off: vi.fn(), destroy: vi.fn(), get: () => ({ set: vi.fn() }) };
+	}
+	MockHammer.DIRECTION_HORIZONTAL = 6;
+	MockHammer.DIRECTION_ALL = 30;
+	return { default: MockHammer };
+});
+
+describe("retained content layout", () => {
+	let container: HTMLDivElement;
+	let pages: HTMLDivElement[];
+	let book: FlipBook | undefined;
+	let callbacks: Map<number, FrameRequestCallback>;
+	let nextFrame: number;
+
+	beforeEach(() => {
+		({ container, pages } = createMockContainer(24));
+		for (const page of pages) {
+			page.innerHTML =
+				'<div class="flipbook-page-scrollport"><div class="flipbook-page-content"><button>Original chapter</button></div></div>';
+		}
+		callbacks = new Map();
+		nextFrame = 0;
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callbacks.set(++nextFrame, callback);
+			return nextFrame;
+		});
+		vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+			callbacks.delete(id);
+		});
+	});
+
+	afterEach(() => {
+		book?.destroy();
+		book = undefined;
+		container.remove();
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	function open(leavesBuffer: number | undefined = 0) {
+		book = new FlipBook({
+			pagesCount: pages.length,
+			initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6],
+			leavesBuffer,
+			keepPageContentLayout: true,
+			coverPageIndices: "auto",
+			enableHistory: false,
+		});
+		book.render(container);
+		return book;
+	}
+
+	function port(index: number) {
+		return pages[index].firstElementChild as HTMLElement;
+	}
+
+	function frame() {
+		const current = Array.from(callbacks.values());
+		callbacks.clear();
+		for (const callback of current) callback(performance.now());
+	}
+
+	function finishPreparation() {
+		for (let index = 0; callbacks.size && index < pages.length; index++) frame();
+		expect(callbacks.size).toBe(0);
+	}
+
+	it("retains nearby text layout without exposing covered content to input or accessibility", () => {
+		open();
+		for (const index of [13, 14]) {
+			expect(port(index).style.contentVisibility).toBe("visible");
+			expect(port(index).hasAttribute("inert")).toBe(false);
+			expect(port(index).getAttribute("aria-hidden")).toBeNull();
+		}
+		expect(port(16).style.contentVisibility).toBe("visible");
+		expect(port(16).classList.contains("flipbook-layout-dormant")).toBe(true);
+		expect(port(16).hasAttribute("inert")).toBe(true);
+		expect(port(16).getAttribute("aria-hidden")).toBe("true");
+		expect(pages[18].style.display).not.toBe("none");
+		expect(pages[18].classList.contains("flipbook-layout-dormant")).toBe(true);
+	});
+
+	it("bounds retained layout and releases older text before its React host is removed", () => {
+		const reader = open();
+		const original = port(10).firstChild;
+		expect(port(10).style.contentVisibility).toBe("visible");
+		expect(port(8).style.contentVisibility).toBe("hidden");
+		reader.jumpToPage(17);
+		expect(pages[10].isConnected).toBe(true);
+		expect(port(10).firstChild).toBe(original);
+		expect(port(10).style.contentVisibility).toBe("hidden");
+		finishPreparation();
+		expect(port(20).style.contentVisibility).toBe("visible");
+	});
+
+	it("prepares newly materialized covered chapters separately after the critical pose", () => {
+		const reader = open();
+		reader.refreshPageContent([16, 18]);
+		for (const index of [13, 14]) expect(port(index).style.contentVisibility).toBe("visible");
+		for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
+		frame();
+		for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
+		frame();
+		expect(port(16).style.contentVisibility).toBe("visible");
+		expect(port(18).style.contentVisibility).toBe("hidden");
+		frame();
+		expect(port(18).style.contentVisibility).toBe("visible");
+		expect(port(18).hasAttribute("inert")).toBe(true);
+	});
+
+	it("promotes a newly required face immediately ahead of queued preparation", () => {
+		const reader = open();
+		reader.refreshPageContent([16, 18]);
+		reader.jumpToPage(17);
+		expect(port(18).style.contentVisibility).toBe("visible");
+		expect(port(18).hasAttribute("inert")).toBe(false);
+		expect(port(18).getAttribute("aria-hidden")).toBeNull();
+	});
+
+	it("does not prepare stale content after navigation reverses", () => {
+		const reader = open();
+		reader.refreshPageContent([16, 18]);
+		reader.jumpToPage(5);
+		finishPreparation();
+		for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
+	});
+
+	it.each(["pointerup", "pointercancel", "blur"])(
+		"prioritizes a held pointer and resumes after %s",
+		(release) => {
+			const reader = open();
+			reader.refreshPageContent([16, 18]);
+			container.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }));
+			for (let index = 0; index < 4; index++) frame();
+			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
+			if (release === "blur") window.dispatchEvent(new Event(release));
+			else document.dispatchEvent(new MouseEvent(release, { bubbles: true, button: 0 }));
+			finishPreparation();
+			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("visible");
+		},
+	);
+
+	it("keeps moving faces and underlays ready while background preparation is paused", () => {
+		const reader = open();
+		reader.refreshPageContent([16, 18]);
+		container.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }));
+		const engine = getFlipBookInternals(reader);
+		engine.onDragStart({ center: { x: 700 } });
+		engine.onDragUpdate({ center: { x: 600 } });
+		for (const index of [13, 14, 15, 16])
+			expect(port(index).style.contentVisibility).toBe("visible");
+	});
+
+	it("restores consumer accessibility and opacity values on promotion and teardown", () => {
+		pages[18].style.opacity = "0.6";
+		pages[18].setAttribute("inert", "kept");
+		pages[18].setAttribute("aria-hidden", "false");
+		port(18).setAttribute("aria-hidden", "false");
+		const reader = open();
+		expect(pages[18].getAttribute("aria-hidden")).toBe("true");
+		reader.jumpToPage(17);
+		expect(pages[18].style.opacity).toBe("0.6");
+		expect(pages[18].getAttribute("inert")).toBe("kept");
+		expect(pages[18].getAttribute("aria-hidden")).toBe("false");
+		reader.jumpToPage(13);
+		reader.destroy();
+		expect(pages[18].getAttribute("aria-hidden")).toBe("false");
+		expect(port(18).getAttribute("aria-hidden")).toBe("false");
+		expect(port(18).hasAttribute("inert")).toBe(false);
+		expect(container.querySelectorAll(".flipbook-layout-dormant")).toHaveLength(0);
+	});
+
+	it("cancels stale work and restores masks when rendered again or destroyed", () => {
+		const reader = open();
+		reader.refreshPageContent([16, 18]);
+		const stale = Array.from(callbacks.values());
+		reader.render(container);
+		expect(callbacks.size).toBe(0);
+		for (const callback of stale) callback(performance.now());
+		expect(callbacks.size).toBe(0);
+		reader.refreshPageContent([16, 18]);
+		reader.destroy();
+		for (const callback of callbacks.values()) callback(performance.now());
+		expect(callbacks.size).toBe(0);
+		expect(document.querySelectorAll(".flipbook-layout-dormant")).toHaveLength(0);
+	});
+
+	it("ignores invalid slots and leaves empty retained slots dormant", () => {
+		port(16).firstElementChild?.replaceChildren();
+		const reader = open();
+		expect(port(16).style.contentVisibility).toBe("hidden");
+		reader.refreshPageContent([-1, 1000]);
+		reader.refreshPageContent([]);
+		expect(port(16).style.contentVisibility).toBe("hidden");
+		port(16).firstElementChild?.append(document.createTextNode("Materialized"));
+		reader.refreshPageContent([16]);
+		finishPreparation();
+		expect(port(16).style.contentVisibility).toBe("visible");
+	});
+
+	it("lets keyboard input preempt background layout and ignores secondary pointers", () => {
+		const reader = open();
+		reader.refreshPageContent([16]);
+		frame();
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft" }));
+		frame();
+		expect(port(16).style.contentVisibility).toBe("hidden");
+		frame();
+		expect(port(16).style.contentVisibility).toBe("visible");
+		reader.refreshPageContent([16]);
+		document.dispatchEvent(new MouseEvent("pointerdown", { button: 2 }));
+		finishPreparation();
+		expect(port(16).style.contentVisibility).toBe("visible");
+		reader.refreshPageContent([16]);
+		const secondary = new MouseEvent("pointerdown", { button: 0 });
+		Object.defineProperty(secondary, "isPrimary", { value: false });
+		document.dispatchEvent(secondary);
+		const release = new MouseEvent("pointerup", { button: 0 });
+		Object.defineProperty(release, "isPrimary", { value: false });
+		document.dispatchEvent(release);
+		finishPreparation();
+		expect(port(16).style.contentVisibility).toBe("visible");
+	});
+
+	it("requires an explicit buffer and feature opt-in", () => {
+		book = new FlipBook({
+			pagesCount: pages.length,
+			keepPageContentLayout: true,
+			enableHistory: false,
+		});
+		book.refreshPageContent([1]);
+		book.render(container);
+		book.refreshPageContent([1]);
+		expect(container.querySelectorAll(".flipbook-layout-dormant")).toHaveLength(0);
+		book.destroy();
+		book = new FlipBook({ pagesCount: pages.length, leavesBuffer: 0, enableHistory: false });
+		book.render(container);
+		book.refreshPageContent([1]);
+		expect(container.querySelectorAll(".flipbook-layout-dormant")).toHaveLength(0);
+	});
+
+	it.each(["requestAnimationFrame", "cancelAnimationFrame"])(
+		"prepares synchronously when %s is unavailable",
+		(name) => {
+			vi.stubGlobal(name, undefined);
+			const reader = open();
+			reader.refreshPageContent([16, 18]);
+			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("visible");
+		},
+	);
+});

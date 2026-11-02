@@ -388,6 +388,40 @@ describe("FlipBook React Component", () => {
 		}
 	});
 
+	it("prepares newly committed slots without invalidating unchanged chapters", async () => {
+		vi.useFakeTimers();
+		let unmount: (() => void) | undefined;
+		try {
+			const pages = Array.from({ length: 30 }, (_, index) => `Prepared ${index}`);
+			const rendered = render(<FlipBook pages={pages} leavesBuffer={0} keepPageContentLayout />);
+			unmount = rendered.unmount;
+			const engine = mocked.instances[0];
+			expect(engine.options.keepPageContentLayout).toBe(true);
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			engine.refreshPageContent.mockImplementation((indices: number[]) => {
+				for (const index of indices) expect(screen.getByText(`Prepared ${index}`)).toBeTruthy();
+			});
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			await act(async () => vi.advanceTimersByTimeAsync(80));
+			expect(engine.refreshPageContent).toHaveBeenLastCalledWith(
+				Array.from({ length: 12 }, (_, i) => i + 8),
+			);
+			engine.refreshPageContent.mockClear();
+			rendered.rerender(
+				<FlipBook pages={pages} leavesBuffer={0} keepPageContentLayout className="updated" />,
+			);
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			engine.currentPageIndex = 15;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(15));
+			await act(async () => vi.advanceTimersByTimeAsync(80));
+			expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([20, 21]);
+		} finally {
+			unmount?.();
+			vi.useRealTimers();
+		}
+	});
+
 	it("coalesces rapid page changes into a single debounced recenter", async () => {
 		const pages = Array.from({ length: 26 }, (_, i) => `Rapid ${i}`).map((label) => (
 			<div key={label}>{label}</div>
