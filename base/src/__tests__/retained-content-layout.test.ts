@@ -149,9 +149,15 @@ describe("retained content layout", () => {
 			reader.refreshPageContent([16, 18]);
 			container.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }));
 			for (let index = 0; index < 4; index++) frame();
+			expect(callbacks.size).toBe(0);
 			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
 			if (release === "blur") window.dispatchEvent(new Event(release));
 			else document.dispatchEvent(new MouseEvent(release, { bubbles: true, button: 0 }));
+			frame();
+			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
+			frame();
+			expect(port(16).style.contentVisibility).toBe("visible");
+			expect(port(18).style.contentVisibility).toBe("hidden");
 			finishPreparation();
 			for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("visible");
 		},
@@ -237,6 +243,95 @@ describe("retained content layout", () => {
 		document.dispatchEvent(release);
 		finishPreparation();
 		expect(port(16).style.contentVisibility).toBe("visible");
+	});
+
+	it("notifies adapters only after the covered layout queue has drained", () => {
+		const reader = open();
+		const immediate = vi.fn();
+		reader.onPageContentPrepared(immediate)();
+		expect(immediate).toHaveBeenCalledOnce();
+		reader.refreshPageContent([16, 18]);
+		const ready = vi.fn();
+		reader.onPageContentPrepared(ready);
+		frame();
+		frame();
+		expect(port(16).style.contentVisibility).toBe("visible");
+		expect(port(18).style.contentVisibility).toBe("hidden");
+		expect(ready).not.toHaveBeenCalled();
+		frame();
+		expect(ready).toHaveBeenCalledOnce();
+		expect(port(18).style.contentVisibility).toBe("visible");
+	});
+
+	it("cancels a retired adapter subscription without dropping other listeners", () => {
+		const reader = open();
+		reader.refreshPageContent([16]);
+		const stale = vi.fn(),
+			ready = vi.fn();
+		const cancel = reader.onPageContentPrepared(stale);
+		reader.onPageContentPrepared(ready);
+		cancel();
+		cancel();
+		finishPreparation();
+		expect(stale).not.toHaveBeenCalled();
+		expect(ready).toHaveBeenCalledOnce();
+	});
+
+	it.each(["render", "destroy"] as const)(
+		"releases adapter waiters when preparation is cancelled by %s",
+		(method) => {
+			const reader = open();
+			reader.refreshPageContent([16]);
+			const ready = vi.fn();
+			reader.onPageContentPrepared(ready);
+			if (method === "render") reader.render(container);
+			else reader.destroy();
+			expect(ready).toHaveBeenCalledOnce();
+			expect(callbacks.size).toBe(0);
+		},
+	);
+
+	it("lets a real press preempt a queued hover without disabling later previews", async () => {
+		vi.useFakeTimers();
+		try {
+			const reader = open();
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 800, 600));
+			container.dispatchEvent(
+				new MouseEvent("mousemove", { bubbles: true, clientX: 750, clientY: 300 }),
+			);
+			expect(container.querySelector(".page--folded")).toBeNull();
+			pages[14].dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, button: 0 }));
+			await vi.advanceTimersByTimeAsync(20);
+			expect(container.querySelector(".page--folded")).toBeNull();
+			document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0 }));
+			container.dispatchEvent(
+				new MouseEvent("mousemove", { bubbles: true, clientX: 750, clientY: 300 }),
+			);
+			await vi.advanceTimersByTimeAsync(20);
+			expect(container.querySelectorAll(".page--folded")).toHaveLength(2);
+			reader.destroy();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("drops queued previews when the reader is destroyed", async () => {
+		vi.useFakeTimers();
+		try {
+			const reader = open();
+			vi.spyOn(container, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 800, 600));
+			const initial = vi.getTimerCount();
+			container.dispatchEvent(
+				new MouseEvent("mousemove", { bubbles: true, clientX: 750, clientY: 300 }),
+			);
+			expect(vi.getTimerCount()).toBe(initial + 1);
+			reader.destroy();
+			expect(vi.getTimerCount()).toBe(initial);
+			await vi.advanceTimersByTimeAsync(20);
+			expect(container.querySelector(".page--folded")).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("requires an explicit buffer and feature opt-in", () => {

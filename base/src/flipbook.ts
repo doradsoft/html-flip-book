@@ -106,6 +106,7 @@ class FlipBook {
 	private readonly keepPageContentLayout: boolean;
 	private bufferContentInitialized = false;
 	private readonly pendingContentPreparation = new Set<HTMLElement>();
+	private readonly contentPreparationListeners = new Set<() => void>();
 	private contentPreparationFrame: number | undefined;
 	private contentPreparationGeneration = 0;
 	private preparedContent = new WeakSet<HTMLElement>();
@@ -377,11 +378,15 @@ class FlipBook {
 		this.mouseMode = mode;
 		this.bookmarkLayer?.setMouseMode(mode);
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
-		if (mode === "select") this.clearHoverShadow();
+		if (mode === "select") {
+			this.cancelHoverUpdates();
+			this.clearHoverShadow();
+		}
 	}
 
 	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
 	private handlePageMouseDown = (event: Event): void => {
+		this.cancelHoverUpdates();
 		// A swipe may emit no click. A fresh press must not inherit suppression
 		// intended only for the previous gesture's synthetic click.
 		this._suppressNextClick = false;
@@ -622,6 +627,7 @@ class FlipBook {
 					: "Couldn't find container element",
 			);
 		}
+		this.cancelHoverUpdates();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
 		this.restoreContentMasks();
@@ -1058,6 +1064,24 @@ class FlipBook {
 		this.updateLeavesBufferVisibility();
 	}
 
+	/** Run once covered layout settles or is cancelled; returns a listener cleanup. */
+	onPageContentPrepared(ready: () => void): () => void {
+		if (this.pendingContentPreparation.size === 0) {
+			ready();
+			return () => undefined;
+		}
+		this.contentPreparationListeners.add(ready);
+		return () => {
+			this.contentPreparationListeners.delete(ready);
+		};
+	}
+
+	private finishContentPreparation(): void {
+		const listeners = Array.from(this.contentPreparationListeners);
+		this.contentPreparationListeners.clear();
+		for (const ready of listeners) ready();
+	}
+
 	private maskContent(element: HTMLElement, hidden: boolean): void {
 		const previous = this.contentMasks.get(element);
 		if (hidden) {
@@ -1109,6 +1133,7 @@ class FlipBook {
 	};
 
 	private deferPreparationForInput = (): void => {
+		this.cancelHoverUpdates();
 		if (this.pendingContentPreparation.size === 0) return;
 		this.contentPreparationGeneration++;
 		if (this.contentPreparationFrame !== undefined) {
@@ -1146,6 +1171,7 @@ class FlipBook {
 			this.contentPreparationFrame = undefined;
 		}
 		this.pendingContentPreparation.clear();
+		this.finishContentPreparation();
 	}
 
 	private scheduleContentPreparation(): void {
@@ -1153,15 +1179,12 @@ class FlipBook {
 			this.cancelContentPreparation();
 			return;
 		}
-		if (this.contentPreparationFrame !== undefined) return;
+		if (this.preparationPointerHeld || this.contentPreparationFrame !== undefined) return;
 		const generation = this.contentPreparationGeneration;
 		const prepare = () => {
 			if (generation !== this.contentPreparationGeneration) return;
 			this.contentPreparationFrame = undefined;
-			if (this.preparationPointerHeld) {
-				this.contentPreparationFrame = requestAnimationFrame(prepare);
-				return;
-			}
+			if (this.preparationPointerHeld) return;
 			const content = this.pendingContentPreparation.values().next().value;
 			if (content) {
 				this.pendingContentPreparation.delete(content);
@@ -1172,6 +1195,8 @@ class FlipBook {
 			}
 			if (this.pendingContentPreparation.size > 0) {
 				this.contentPreparationFrame = requestAnimationFrame(prepare);
+			} else {
+				this.finishContentPreparation();
 			}
 		};
 		// Let the critical paper pose paint before laying out a covered neighbor.
@@ -1251,6 +1276,7 @@ class FlipBook {
 	}
 
 	private onDragStart(event: HammerInput, fromBookmark = false) {
+		this.cancelHoverUpdates();
 		if (fromBookmark) this.gestureStartedInNoFlipZone = false;
 		const isTouch = event.pointerType === "touch" || event.srcEvent?.type.startsWith("touch");
 		if (isTouch && this.touchDirectionLock === "none") {
@@ -1566,7 +1592,7 @@ class FlipBook {
 		// 'vertical' or 'none' → let the browser handle native scroll
 	};
 
-	private handleMouseMove = throttle(MOUSE_MOVE_THROTTLE_MS, (event: MouseEvent) => {
+	private updateHoverShadow = (event: MouseEvent): void => {
 		if (!this.bookElement) return;
 		if (
 			this.isInsideNoFlipZone(event.target) ||
@@ -1632,10 +1658,26 @@ class FlipBook {
 			if (this.leavesBuffer === 0) this.updateLeavesBufferVisibility();
 		}
 		leaf.setHoverShadow(hoverStrength);
+	};
+
+	private readonly immediateHover = throttle(MOUSE_MOVE_THROTTLE_MS, this.updateHoverShadow);
+	private readonly deferredHover = throttle(MOUSE_MOVE_THROTTLE_MS, this.updateHoverShadow, {
+		noLeading: true,
 	});
+	private handleMouseMove = (event: MouseEvent): void => {
+		// Retained readers can cancel a preview when a real press follows it.
+		// Keep the same update interval and the original hover geometry.
+		if (this.keepPageContentLayout) this.deferredHover(event);
+		else this.immediateHover(event);
+	};
+
+	private cancelHoverUpdates(): void {
+		this.immediateHover.cancel({ upcomingOnly: true });
+		this.deferredHover.cancel({ upcomingOnly: true });
+	}
 
 	private handleMouseLeave = () => {
-		this.handleMouseMove.cancel({ upcomingOnly: true });
+		this.cancelHoverUpdates();
 		this.clearHoverShadow();
 	};
 
@@ -1955,6 +1997,7 @@ class FlipBook {
 	 * Should be called when the FlipBook is no longer needed.
 	 */
 	destroy() {
+		this.cancelHoverUpdates();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
 		this.restoreContentMasks();

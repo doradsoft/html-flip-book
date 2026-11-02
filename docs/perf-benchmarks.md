@@ -105,7 +105,24 @@ removes its host. Newly materialized chapters are prepared one scrollport per
 animation frame after the critical pose; held pointer input pauses that work
 and new pointer or keyboard input defers it. Current faces, moving faces and
 their underlays remain synchronous. These operations do not change the
-adapter's existing 80ms window debounce or any interaction deadline.
+interaction deadline. The standard buffer retains its 80ms debounce. The
+retained-content opt-in follows each committed spread. Covered mounts and
+retirements run one page per React commit, with at most one extra leaf retained
+beyond the mount window during cleanup. The adapter waits for the engine layout
+queue to drain before scheduling its next mutation behind a fresh paint barrier.
+Pointer holds stop both queues; release restarts the barrier. Current and moving
+faces and their immediate underlays stay synchronous. The adapter cancels its
+queue subscription on reversal and teardown.
+
+Retained readers also defer the leading hover preview within the existing 16ms
+update interval. A real press can cancel that preview before it causes a second
+paper render ahead of the drag. Leaving, changing to selection mode, rendering
+again and teardown cancel queued previews. Standard readers keep their leading
+hover behavior, and neither path changes the preview geometry or text rendering.
+Moving paper prepares its clip mask alongside the existing transform hint.
+Rigid covers keep their transform-only hint, and balanced flip cleanup releases
+the hints. Original text nodes, raster appearance and scrollbar geometry stay
+unchanged; matching resting and held-turn captures verify this independently.
 
 Moving tabs prepare their resting geometry before any paper snapshot/fold
 writes, without changing the resting DOM. Resize/provider changes discard

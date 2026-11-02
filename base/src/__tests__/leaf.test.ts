@@ -881,7 +881,7 @@ describe("Leaf", () => {
 			for (const page of leaf.pages) {
 				expect(page?.classList.contains("page--flipping")).toBe(true);
 				expect(page?.classList.contains("page--folded")).toBe(true);
-				expect(page?.style.willChange).toBe("transform");
+				expect(page?.style.willChange).toBe("transform, clip-path");
 			}
 			expect(onTurnedMock).not.toHaveBeenCalled();
 
