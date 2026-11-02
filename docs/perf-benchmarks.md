@@ -156,3 +156,18 @@ the outcome. CI uploads `perf-results/` with 30-day retention.
 - Timing noise on shared CI runners can push metrics to `inconclusive`;
   retain the raw samples and investigate the measured path and calibration.
   Do not widen thresholds or repeat runs to select a passing result.
+
+## Consumer appearance evidence
+
+These are real captures from Bible on Site with the same full-content fixture.
+The before capture uses the full consumer build at library commit `bc115f3`;
+the after capture uses the current local library candidate. The complete held
+fold has zero changed pixels. All three bookmark modes also have zero changed
+page pixels at rest, during a held turn, and in both hover directions. These
+images document appearance; the reduced-route diagnostic build is not final
+performance qualification. The complete consumer build and timing matrix remain
+required before delivery.
+
+| Before | After |
+| --- | --- |
+| ![Reader before queue and preview changes](images/sefer-turn-lag/reader-before.png) | ![Reader after queue and preview changes](images/sefer-turn-lag/reader-after.png) |
