@@ -271,6 +271,24 @@ export const turnReactHidden: ScenarioDriver = {
 	}),
 };
 
+// Exercise retained layout separately from the original adapter workload.
+// Both revisions receive the same zero-buffer window; only the candidate
+// understands the new opt-in, so the paired comparison measures its cost.
+function retainedReactTurn(bookmarks: "leaf" | "pinned" | "hidden"): ScenarioDriver {
+	return {
+		name: `turn-react-retained-${bookmarks}`,
+		sizes: [0],
+		metricsFor: turnMetrics,
+		runSample: (page, dist, _size, delayMs) => runTurnSample(page, dist, delayMs, {
+			adapter: "react", heavy: "1", bounded: "1", retainLayout: "1", bookmarks,
+		}),
+	};
+}
+
+export const turnReactRetainedLeaf = retainedReactTurn("leaf");
+export const turnReactRetainedPinned = retainedReactTurn("pinned");
+export const turnReactRetainedHidden = retainedReactTurn("hidden");
+
 // ---------------------------------------------------------------------------
 // #291: large-book scaling and lifecycle/resource cleanup
 // ---------------------------------------------------------------------------
@@ -387,5 +405,8 @@ export const ALL_SCENARIOS: Record<string, ScenarioDriver> = {
 	turnReact,
 	turnReactPinned,
 	turnReactHidden,
+	turnReactRetainedLeaf,
+	turnReactRetainedPinned,
+	turnReactRetainedHidden,
 	scaling,
 };

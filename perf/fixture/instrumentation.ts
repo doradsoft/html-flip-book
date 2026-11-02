@@ -202,6 +202,9 @@ export function installInstrumentation(): PerfInstrumentation {
 		"pointerdown",
 		() => {
 			pointerReceivedAt = performance.now();
+			// Background preparation can mutate between arming and the press.
+			// Discard it before observing this input's first visual mutation.
+			mutations.arm();
 		},
 		{ capture: true },
 	);

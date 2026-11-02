@@ -19,6 +19,7 @@ const PAGES = 76;
 const QUERY = new URLSearchParams(location.search);
 const HEAVY = QUERY.has("heavy");
 const BOUNDED = QUERY.has("bounded");
+const RETAIN_LAYOUT = QUERY.has("retainLayout");
 const BOOKMARK_MODE = QUERY.get("bookmarks") ?? "leaf";
 const HEAVY_VERSES = 40;
 const HEAVY_WORDS = 14;
@@ -83,7 +84,8 @@ const bookProps: FlipBookProps & { ref: (h: FlipBookHandle | null) => void } = {
 	pages,
 	className: "perf-book",
 	direction: "rtl",
-	leavesBuffer: 7,
+	leavesBuffer: RETAIN_LAYOUT ? 0 : 7,
+	keepPageContentLayout: RETAIN_LAYOUT,
 	pageShadow: true,
 	coverConfig: { hardCovers: true, noShadow: true, coverIndices: "auto" },
 	enableBookmarks: BOOKMARK_MODE !== "hidden",

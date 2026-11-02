@@ -87,6 +87,52 @@ The first turn from a fresh reader and the subsequent turns have separate
 results and independently enforce those same limits; attached-bookmark lag
 cannot be hidden by averaging it together with a handoff improvement.
 
+`turnReactRetainedLeaf`, `turnReactRetainedPinned`, and
+`turnReactRetainedHidden` separately exercise `keepPageContentLayout` with the
+consumer's zero content buffer. The paired baseline receives the same buffer
+and fixture. Existing scenarios remain unchanged.
+CI runs the existing and retained-content scenarios on separate runners, each
+with the same eight paired samples, calibration, limits and 30-minute deadline.
+The complete suite otherwise takes almost that entire deadline. Both groups
+are required, and their artifacts use matching group names. The injected-stall
+selfcheck runs with the existing group.
+
+The opt-in retains the layout of the nearest two covered leaves, without
+changing text nodes, typography, scroll positions, or the visible paper
+stack. Covered retained content uses an opacity mask and is inert and hidden
+from accessibility until exposed. Older layout is retired before the adapter
+removes its host. Newly materialized chapters are prepared one scrollport per
+animation frame after the critical pose; held pointer input pauses that work
+and new pointer or keyboard input defers it. Current faces, moving faces and
+their underlays remain synchronous. These operations do not change the
+interaction deadline. The standard buffer retains its 80ms debounce. The
+retained-content opt-in follows each committed spread. Covered mounts and
+retirements run one page per React commit, with at most one extra leaf retained
+beyond the mount window during cleanup. The adapter waits for the engine layout
+queue to drain before scheduling its next mutation behind a fresh paint barrier.
+It rechecks readiness at the mutation and holds background layout through the DOM
+commit, then releases it after the engine has refreshed the new page slots.
+Pointer holds stop both queues; release restarts the barrier. Current and moving
+faces and their immediate underlays stay synchronous. The adapter cancels its
+queue subscription on reversal and teardown.
+
+Retained readers also defer the leading hover preview within the existing 16ms
+update interval. A real press can cancel that preview before it causes a second
+paper render ahead of the drag. Leaving, changing to selection mode, rendering
+again and teardown cancel queued previews. Standard readers keep their leading
+hover behavior, and neither path changes the preview geometry or text rendering.
+Retained readers paint the first drag sample immediately, then coalesce later
+samples to the newest held corner per animation frame. Release and cancellation
+flush the latest point before choosing an endpoint; selection, render and teardown
+discard stale poses. Standard readers and environments without animation frames
+keep their synchronous path. Manual samples constrain their corner first, then
+construct the crease polygons and reflection once in the renderer.
+
+Moving paper prepares its clip mask alongside the existing transform hint.
+Rigid covers keep their transform-only hint, and balanced flip cleanup releases
+the hints. Original text nodes, raster appearance and scrollbar geometry stay
+unchanged; matching resting and held-turn captures verify this independently.
+
 Moving tabs prepare their resting geometry before any paper snapshot/fold
 writes, without changing the resting DOM. Resize/provider changes discard
 that preparation. A per-leaf index also avoids scanning every chapter's tab on
@@ -117,4 +163,20 @@ the outcome. CI uploads `perf-results/` with 30-day retention.
 - The workflow runs on `pull_request` with `contents: read` and no secrets,
   so untrusted PR code executes read-only.
 - Timing noise on shared CI runners can push metrics to `inconclusive`;
-  rerun or increase `--samples` rather than widening thresholds.
+  retain the raw samples and investigate the measured path and calibration.
+  Do not widen thresholds or repeat runs to select a passing result.
+
+## Consumer appearance evidence
+
+These are real captures from Bible on Site with the same full-content fixture.
+The before capture uses the full consumer build at library commit `bc115f3`;
+the after capture uses the current local library candidate. The complete held
+fold has zero changed pixels. All three bookmark modes also have zero changed
+page pixels at rest, during a held turn, and in both hover directions. These
+images document appearance; the reduced-route diagnostic build is not final
+performance qualification. The complete consumer build and timing matrix remain
+required before delivery.
+
+| Before | After |
+| --- | --- |
+| ![Reader before queue and preview changes](images/sefer-turn-lag/reader-before.png) | ![Reader after queue and preview changes](images/sefer-turn-lag/reader-after.png) |

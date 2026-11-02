@@ -23,6 +23,31 @@ const countCommit = () => {
 	commitCount++;
 };
 
+function mockPageFrames() {
+	const frames = new Map<number, FrameRequestCallback>();
+	let next = 0;
+	const request = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+		frames.set(++next, callback);
+		return next;
+	});
+	const cancel = vi
+		.spyOn(window, "cancelAnimationFrame")
+		.mockImplementation((id) => frames.delete(id));
+	return {
+		frames,
+		step: () =>
+			act(() => {
+				const pending = Array.from(frames.values());
+				frames.clear();
+				for (const callback of pending) callback(0);
+			}),
+		restore: () => {
+			request.mockRestore();
+			cancel.mockRestore();
+		},
+	};
+}
+
 describe("FlipBook React Component", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -385,6 +410,291 @@ describe("FlipBook React Component", () => {
 		} finally {
 			unmount?.();
 			vi.useRealTimers();
+		}
+	});
+
+	it("prepares newly committed slots without invalidating unchanged chapters", () => {
+		const queue = mockPageFrames();
+		const frames = queue.frames;
+		const commitPage = () => {
+			queue.step();
+			queue.step();
+		};
+		let unmount: (() => void) | undefined;
+		try {
+			const pages = Array.from({ length: 30 }, (_, index) => `Prepared ${index}`);
+			const rendered = render(<FlipBook pages={pages} leavesBuffer={0} keepPageContentLayout />);
+			unmount = rendered.unmount;
+			const engine = mocked.instances[0];
+			expect(engine.options.keepPageContentLayout).toBe(true);
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			engine.refreshPageContent.mockImplementation((indices: number[]) => {
+				for (const index of indices) expect(screen.getByText(`Prepared ${index}`)).toBeTruthy();
+			});
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			// Both current faces and their underlays are synchronous after a jump.
+			expect(engine.refreshPageContent).toHaveBeenLastCalledWith([11, 12, 13, 14, 15, 16]);
+			for (let frame = 0; frame < 6; frame++) {
+				engine.refreshPageContent.mockClear();
+				commitPage();
+				expect(engine.refreshPageContent).toHaveBeenCalledTimes(1);
+				expect(engine.refreshPageContent.mock.calls[0][0]).toHaveLength(1);
+			}
+			engine.refreshPageContent.mockClear();
+			commitPage();
+			commitPage();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			expect(frames.size).toBe(0);
+			engine.refreshPageContent.mockClear();
+			rendered.rerender(
+				<FlipBook pages={pages} leavesBuffer={0} keepPageContentLayout className="updated" />,
+			);
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+		} finally {
+			unmount?.();
+			queue.restore();
+		}
+	});
+
+	it("retires covered slots one commit at a time after preparing their replacements", () => {
+		const queue = mockPageFrames();
+		const commitPage = () => {
+			queue.step();
+			queue.step();
+		};
+		const rendered = render(
+			<FlipBook
+				pages={Array.from({ length: 30 }, (_, index) => `Prepared ${index}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			for (let commit = 0; commit < 8; commit++) commitPage();
+			engine.refreshPageContent.mockClear();
+			engine.currentPageIndex = 15;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(15));
+			expect(screen.getByText("Prepared 6")).toBeTruthy();
+			expect(screen.getByText("Prepared 7")).toBeTruthy();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			commitPage();
+			commitPage();
+			expect(engine.refreshPageContent.mock.calls.map(([indices]) => indices)).toEqual([
+				[20],
+				[21],
+			]);
+			engine.refreshPageContent.mockClear();
+			commitPage();
+			expect(screen.queryByText("Prepared 6")).toBeNull();
+			expect(screen.getByText("Prepared 7")).toBeTruthy();
+			commitPage();
+			expect(screen.queryByText("Prepared 7")).toBeNull();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			expect(queue.frames.size).toBe(0);
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("pauses chapter mounting while the pointer is held and cancels work on unmount", () => {
+		const queue = mockPageFrames();
+		const rendered = render(
+			<FlipBook
+				className="staged"
+				pages={Array.from({ length: 30 }, (_, i) => `Staged ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			engine.refreshPageContent.mockClear();
+			act(() =>
+				rendered.container.firstElementChild?.dispatchEvent(
+					new MouseEvent("pointerdown", { bubbles: true, button: 0 }),
+				),
+			);
+			expect(queue.frames.size).toBe(0);
+			for (let frame = 0; frame < 3; frame++) queue.step();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			expect(screen.queryByText("Staged 17")).toBeNull();
+			act(() => document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0 })));
+			queue.step();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			queue.step();
+			expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([17]);
+			const stale = Array.from(queue.frames.values());
+			rendered.unmount();
+			expect(queue.frames.size).toBe(0);
+			act(() => {
+				for (const callback of stale) callback(0);
+			});
+			expect(queue.frames.size).toBe(0);
+			expect(engine.refreshPageContent).toHaveBeenCalledTimes(1);
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("discards a stale mount plan after reversal and retains every moving underlay", () => {
+		const queue = mockPageFrames();
+		const rendered = render(
+			<FlipBook
+				className="reversed"
+				pages={Array.from({ length: 30 }, (_, i) => `Reversed ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			const stale = Array.from(queue.frames.values());
+			engine.currentPageIndex = 5;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(5));
+			act(() => {
+				for (const callback of stale) callback(0);
+			});
+			expect(screen.queryByText("Reversed 17")).toBeNull();
+			for (let page = 0; page < 3; page++) {
+				queue.step();
+				queue.step();
+			}
+			expect(screen.getByText("Reversed 13")).toBeTruthy();
+			queue.step();
+			queue.step();
+			expect(screen.getByText("Reversed 13")).toBeTruthy();
+			queue.step();
+			queue.step();
+			expect(screen.queryByText("Reversed 13")).toBeNull();
+			expect(queue.frames.size).toBe(0);
+			act(() =>
+				(engine.options.onLeafFlipActivity as (index: number, active: boolean) => void)(12, true),
+			);
+			for (const index of [23, 24, 25, 26])
+				expect(screen.getByText(`Reversed ${index}`)).toBeTruthy();
+			act(() =>
+				(engine.options.onLeafFlipActivity as (index: number, active: boolean) => void)(12, false),
+			);
+			for (const index of [23, 24, 25, 26])
+				expect(screen.queryByText(`Reversed ${index}`)).toBeNull();
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("waits for engine layout before mounting another covered chapter and cancels its subscription", () => {
+		const queue = mockPageFrames();
+		const rendered = render(
+			<FlipBook
+				className="coordinated"
+				pages={Array.from({ length: 30 }, (_, i) => `Coordinated ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			const ready: (() => void)[] = [];
+			const unsubscribe = vi.fn();
+			engine.onPageContentPrepared.mockImplementation((callback: () => void) => {
+				ready.push(callback);
+				return unsubscribe;
+			});
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			expect(queue.frames.size).toBe(0);
+			expect(screen.getByText("Coordinated 13")).toBeTruthy();
+			expect(screen.queryByText("Coordinated 17")).toBeNull();
+			engine.refreshPageContent.mockClear();
+			act(() => ready[0]());
+			queue.step();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			queue.step();
+			expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([17]);
+			expect(queue.frames.size).toBe(0);
+			expect(unsubscribe).toHaveBeenCalledOnce();
+			rendered.unmount();
+			expect(unsubscribe).toHaveBeenCalledTimes(2);
+			act(() => ready[1]());
+			expect(queue.frames.size).toBe(0);
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("rechecks readiness after the paint barrier and holds layout until the new page commits", () => {
+		const queue = mockPageFrames();
+		const rendered = render(
+			<FlipBook
+				className="atomic"
+				pages={Array.from({ length: 30 }, (_, i) => `Atomic ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			engine.refreshPageContent.mockClear();
+			const ready: (() => void)[] = [];
+			engine.onPageContentPrepared.mockImplementation((callback: () => void) => {
+				ready.push(callback);
+				return () => {};
+			});
+			engine.holdPreparedPageContent.mockReturnValueOnce(undefined);
+			queue.step();
+			queue.step();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			expect(screen.queryByText("Atomic 17")).toBeNull();
+			expect(ready).toHaveLength(1);
+			const release = vi.fn(() => {
+				expect(screen.getByText("Atomic 17")).toBeTruthy();
+				expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([17]);
+			});
+			engine.holdPreparedPageContent.mockReturnValue(release);
+			act(() => ready[0]());
+			queue.step();
+			queue.step();
+			expect(release).toHaveBeenCalledOnce();
+			expect(queue.frames.size).toBe(0);
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("mounts the complete retained window when animation-frame scheduling is unavailable", () => {
+		vi.stubGlobal("requestAnimationFrame", undefined);
+		const rendered = render(
+			<FlipBook
+				className="synchronous"
+				pages={Array.from({ length: 30 }, (_, i) => `Synchronous ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			for (const index of [8, 10, 13, 14, 19])
+				expect(screen.getByText(`Synchronous ${index}`)).toBeTruthy();
+		} finally {
+			rendered.unmount();
+			vi.unstubAllGlobals();
 		}
 	});
 

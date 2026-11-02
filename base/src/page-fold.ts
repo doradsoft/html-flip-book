@@ -129,6 +129,16 @@ export function getPageFoldDestination(
 	return constrainDestination(w, h, { x: w * (1 - 2 * p), y: cornerY + inward * travel }, corner);
 }
 
+/** Clamp a held corner without constructing polygons that the renderer will calculate. */
+export function constrainPageFoldDestination(
+	width: number,
+	height: number,
+	target: Point,
+	corner: "top" | "bottom",
+): Point {
+	return constrainDestination(dimension(width), dimension(height), target, corner);
+}
+
 /** Reflect a lifted corner toward a real pointer destination, with the entire spine fixed. */
 export function computePageFoldFromPoint(
 	width: number,

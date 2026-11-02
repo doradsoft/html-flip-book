@@ -223,7 +223,7 @@ export interface FlipBookHandlers {
  * `handlers`, `bookmarkProvider`, `enableBookmarks`, `pageShadow`, and `downloadConfig`
  * update the mounted engine in place. The remaining options are initialization-only;
  * changing them after mount does not rebuild the engine (`className`, `pageSemantics`,
- * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`,
+ * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`, `keepPageContentLayout`,
  * `coverConfig`, `leafAspectRatio`, `coverAspectRatio`, `historyMapper`, `tocPageIndex`,
  * `snapshotDuringFlip`, `enableHistory`, `enableDownload`).
  */
@@ -258,6 +258,8 @@ export interface FlipBookProps {
 	 * Default: undefined (all leaves are always rendered)
 	 */
 	leavesBuffer?: number;
+	/** Keep nearby covered content laid out and prepare newly mounted pages separately. Default: false. */
+	keepPageContentLayout?: boolean;
 	/**
 	 * Configuration for cover pages (front and back covers).
 	 */
@@ -358,6 +360,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			initialTurnedLeaves = [],
 			fastDeltaThreshold,
 			leavesBuffer,
+			keepPageContentLayout = false,
 			pageShadow = true,
 			snapshotDuringFlip = true,
 			enableHistory,
@@ -415,6 +418,11 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const activeLeavesRef = useRef(new Set<number>());
 		const pointerHeldRef = useRef(false);
 		const mountedPageIndicesRef = useRef<ReadonlySet<number> | undefined>(undefined);
+		const materializingPageRef = useRef<number | undefined>(undefined);
+		const retiringPageRef = useRef<number | undefined>(undefined);
+		const pageMountFrameRef = useRef<number | undefined>(undefined);
+		const resumePageMountRef = useRef<(() => void) | undefined>(undefined);
+		const releasePageMountRef = useRef<(() => void) | undefined>(undefined);
 		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
@@ -425,6 +433,20 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				// No buffer — currentPageIndex only feeds the buffer window, which
 				// mounts every page anyway. Re-rendering here would reconcile the
 				// whole page tree on every turn for no benefit (issue #343).
+				return;
+			}
+			if (keepPageContentLayout) {
+				// Retained layouts use a staged mount queue instead of batching
+				// several cold chapters after the standard debounce. Follow each
+				// committed spread so preparation can finish during the next turn.
+				const releaseInflight = activeLeavesRef.current.size === 0 && !pointerHeldRef.current;
+				const hadInflight = releaseInflight && inflightLeavesRef.current.size > 0;
+				if (releaseInflight) inflightLeavesRef.current.clear();
+				bufferTargetRef.current = index;
+				startTransition(() => {
+					if (hadInflight) setInflightVersion((v) => v + 1);
+					setPageIndexRef.current?.(index);
+				});
 				return;
 			}
 			if (activeLeavesRef.current.size > 0 || pointerHeldRef.current) return;
@@ -451,6 +473,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const beginPointerInteraction = useCallback(() => {
 			if (leavesBuffer == null) return;
 			pointerHeldRef.current = true;
+			if (pageMountFrameRef.current !== undefined) {
+				cancelAnimationFrame(pageMountFrameRef.current);
+				pageMountFrameRef.current = undefined;
+			}
 			if (pageChangedTimerRef.current != null) {
 				clearTimeout(pageChangedTimerRef.current);
 				pageChangedTimerRef.current = null;
@@ -473,7 +499,11 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			if (
 				!inTargetWindow ||
 				!mounted?.has(first) ||
-				(first + 1 < pages.length && !mounted.has(first + 1))
+				(first + 1 < pages.length && !mounted.has(first + 1)) ||
+				(keepPageContentLayout &&
+					[first - 1, first + 2].some(
+						(index) => index >= 0 && index < pages.length && !mounted?.has(index),
+					))
 			) {
 				startTransition(() => setInflightVersion((v) => v + 1));
 			}
@@ -499,6 +529,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// Clean up debounce timer on unmount.
 		useEffect(() => {
 			return () => {
+				releasePageMountRef.current?.();
+				releasePageMountRef.current = undefined;
 				if (pageChangedTimerRef.current != null) {
 					clearTimeout(pageChangedTimerRef.current);
 				}
@@ -517,6 +549,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					initialTurnedLeaves: initialTurnedLeaves,
 					fastDeltaThreshold: fastDeltaThreshold,
 					leavesBuffer: leavesBuffer,
+					keepPageContentLayout,
 					leafAspectRatio: leafAspectRatio,
 					coverAspectRatio: coverAspectRatio,
 					coverPageIndices: coverConfig?.coverIndices,
@@ -558,6 +591,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				if (!pointerHeldRef.current || (event as PointerEvent).isPrimary === false) return;
 				pointerHeldRef.current = false;
 				if (activeLeavesRef.current.size === 0) onPageChangedRef.current(flipBook.currentPageIndex);
+				resumePageMountRef.current?.();
 			};
 			document.addEventListener("pointerup", release, true);
 			document.addEventListener("pointercancel", release, true);
@@ -711,7 +745,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// Use a small margin so content is ready before vanilla shows the leaf (avoids empty flash when flipping).
 		// Cover pages are always mounted — they are cover-sized and sit behind leaf-sized pages,
 		// acting as the physical book boards. Unmounting them would remove the realistic frame effect.
-		const mountedPageIndices =
+		const desiredPageIndices =
 			leavesBuffer != null && totalPages > 0
 				? (() => {
 						const currentLeaf = Math.floor(currentPageIndex / 2);
@@ -728,14 +762,103 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 							if (partner >= 0 && partner < totalPages) mounted.add(partner);
 						}
 						for (const leaf of inflightLeavesRef.current) {
-							mounted.add(leaf * 2);
-							if (leaf * 2 + 1 < totalPages) mounted.add(leaf * 2 + 1);
+							const first = leaf * 2 - (keepPageContentLayout ? 1 : 0);
+							const last = leaf * 2 + (keepPageContentLayout ? 2 : 1);
+							for (let index = Math.max(0, first); index <= Math.min(last, totalPages - 1); index++)
+								mounted.add(index);
 						}
 						return mounted;
 					})()
 				: undefined;
+		const canStagePages =
+			keepPageContentLayout &&
+			typeof requestAnimationFrame === "function" &&
+			typeof cancelAnimationFrame === "function";
+		const inflightLeafIndices = Array.from(inflightLeavesRef.current);
+		const requiredForTurn = (index: number) =>
+			(index >= flipBook.currentPageIndex - 2 && index <= flipBook.currentPageIndex + 3) ||
+			inflightLeafIndices.some((leaf) => index >= leaf * 2 - 1 && index <= leaf * 2 + 2);
+		const previousMounted = mountedPageIndicesRef.current;
+		const mountedPageIndices =
+			canStagePages && desiredPageIndices && previousMounted
+				? new Set(
+						Array.from(new Set([...desiredPageIndices, ...previousMounted])).filter(
+							(index) =>
+								(!desiredPageIndices.has(index) &&
+									index !== retiringPageRef.current &&
+									Math.abs(Math.floor(index / 2) - Math.floor(currentPageIndex / 2)) <=
+										(leavesBuffer ?? 0) + bufferMargin + 1) ||
+								(desiredPageIndices.has(index) &&
+									(previousMounted.has(index) ||
+										index === materializingPageRef.current ||
+										requiredForTurn(index))),
+						),
+					)
+				: desiredPageIndices;
 		usePageMountEffect(() => {
+			const previous = mountedPageIndicesRef.current;
 			mountedPageIndicesRef.current = mountedPageIndices;
+			materializingPageRef.current = undefined;
+			retiringPageRef.current = undefined;
+			if (keepPageContentLayout && previous && mountedPageIndices) {
+				const materialized = Array.from(mountedPageIndices).filter((index) => !previous.has(index));
+				if (materialized.length) flipBook.refreshPageContent(materialized);
+			}
+			const release = releasePageMountRef.current;
+			releasePageMountRef.current = undefined;
+			release?.();
+			if (!canStagePages || !desiredPageIndices || !mountedPageIndices) return;
+			const center = flipBook.currentPageIndex + 0.5;
+			const next = Array.from(desiredPageIndices)
+				.filter((index) => !mountedPageIndices.has(index))
+				.sort((a, b) => Math.abs(a - center) - Math.abs(b - center) || b - a)[0];
+			const retire = Array.from(mountedPageIndices).find((index) => !desiredPageIndices.has(index));
+			if (next === undefined && retire === undefined) return;
+			let disposed = false;
+			const materialize = () => {
+				if (disposed) return;
+				pageMountFrameRef.current = undefined;
+				if (pointerHeldRef.current) return;
+				const release = flipBook.holdPreparedPageContent();
+				if (!release) {
+					waitForPreparation();
+					return;
+				}
+				releasePageMountRef.current = release;
+				materializingPageRef.current = next;
+				retiringPageRef.current = next === undefined ? retire : undefined;
+				// Wait for this commit before scheduling another page. A delayed
+				// transition must not collect several cold chapters into one commit.
+				startTransition(() => setInflightVersion((v) => v + 1));
+			};
+			const resume = () => {
+				if (disposed || pointerHeldRef.current || pageMountFrameRef.current !== undefined) return;
+				// A fresh barrier after input release lets the paper pose paint before
+				// covered mounting or retirement invalidates a chapter tree.
+				pageMountFrameRef.current = requestAnimationFrame(() => {
+					if (disposed) return;
+					pageMountFrameRef.current = undefined;
+					if (pointerHeldRef.current) return;
+					pageMountFrameRef.current = requestAnimationFrame(materialize);
+				});
+			};
+			let cancelPrepared: (() => void) | undefined;
+			const waitForPreparation = () => {
+				cancelPrepared?.();
+				cancelPrepared = flipBook.onPageContentPrepared(resume);
+			};
+			resumePageMountRef.current = waitForPreparation;
+			waitForPreparation();
+			return () => {
+				disposed = true;
+				cancelPrepared?.();
+				if (resumePageMountRef.current === waitForPreparation)
+					resumePageMountRef.current = undefined;
+				if (pageMountFrameRef.current !== undefined) {
+					cancelAnimationFrame(pageMountFrameRef.current);
+					pageMountFrameRef.current = undefined;
+				}
+			};
 		});
 		const contentByIndex = (index: number) =>
 			!mountedPageIndices || mountedPageIndices.has(index)

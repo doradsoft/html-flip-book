@@ -5,6 +5,7 @@ import { FlipDirection } from "./flip-direction";
 import {
 	computePageFold,
 	computePageFoldFromPoint,
+	constrainPageFoldDestination,
 	easePageTurn,
 	type PageFold,
 	type Point,
@@ -76,15 +77,15 @@ export class Leaf {
 			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
 			return;
 		}
-		const fold = computePageFoldFromPoint(
+		const destination = constrainPageFoldDestination(
 			size.width,
 			size.height,
 			{ x: point.x * size.width, y: point.y * size.height },
 			this.foldOrigin < 0.5 ? "top" : "bottom",
 		);
 		this.updateManualFold({
-			x: fold.destination.x / size.width,
-			y: fold.destination.y / size.height,
+			x: destination.x / size.width,
+			y: destination.y / size.height,
 		});
 	}
 
@@ -192,9 +193,12 @@ export class Leaf {
 		this.flipRefCount++;
 		if (this.flipRefCount !== 1) return; // already promoted
 		this.onBeforeFlip?.();
+		// Prepare the paper's moving clip mask alongside its existing layer.
+		// The original content and rigid-cover rendering remain unchanged.
+		const willChange = this.getPaperSize() ? "transform, clip-path" : "transform";
 		for (const page of this.pages) {
 			if (!page) continue;
-			page.style.willChange = "transform";
+			page.style.willChange = willChange;
 			if (this.bookProperties.snapshotDuringFlip) {
 				page.classList.add("page--flipping");
 			}

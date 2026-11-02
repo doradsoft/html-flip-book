@@ -117,6 +117,13 @@ export interface FlipBookOptions {
 	 */
 	leavesBuffer?: number;
 	/**
+	 * Keep nearby covered content laid out behind an opacity mask, without
+	 * exposing it to input or accessibility. Requires leavesBuffer. Newly
+	 * materialized covered pages are prepared separately after the current pose.
+	 * Default: false.
+	 */
+	keepPageContentLayout?: boolean;
+	/**
 	 * Page indices that are cover pages (sized to coverAspectRatio instead of leafAspectRatio).
 	 * Both sides of a cover leaf use coverSize.
 	 * If "auto", uses first and last pages: [0, pagesCount-1].
