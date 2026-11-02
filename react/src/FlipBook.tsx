@@ -422,6 +422,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		const retiringPageRef = useRef<number | undefined>(undefined);
 		const pageMountFrameRef = useRef<number | undefined>(undefined);
 		const resumePageMountRef = useRef<(() => void) | undefined>(undefined);
+		const releasePageMountRef = useRef<(() => void) | undefined>(undefined);
 		const bufferTargetRef = useRef(currentPageIndex);
 		const [, setInflightVersion] = useState(0);
 		const onPageChangedRef = useRef((index: number) => {
@@ -528,6 +529,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		// Clean up debounce timer on unmount.
 		useEffect(() => {
 			return () => {
+				releasePageMountRef.current?.();
+				releasePageMountRef.current = undefined;
 				if (pageChangedTimerRef.current != null) {
 					clearTimeout(pageChangedTimerRef.current);
 				}
@@ -771,23 +774,24 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			keepPageContentLayout &&
 			typeof requestAnimationFrame === "function" &&
 			typeof cancelAnimationFrame === "function";
+		const inflightLeafIndices = Array.from(inflightLeavesRef.current);
+		const requiredForTurn = (index: number) =>
+			(index >= flipBook.currentPageIndex - 2 && index <= flipBook.currentPageIndex + 3) ||
+			inflightLeafIndices.some((leaf) => index >= leaf * 2 - 1 && index <= leaf * 2 + 2);
+		const previousMounted = mountedPageIndicesRef.current;
 		const mountedPageIndices =
-			canStagePages && desiredPageIndices && mountedPageIndicesRef.current
+			canStagePages && desiredPageIndices && previousMounted
 				? new Set(
-						Array.from(new Set([...desiredPageIndices, ...mountedPageIndicesRef.current])).filter(
+						Array.from(new Set([...desiredPageIndices, ...previousMounted])).filter(
 							(index) =>
 								(!desiredPageIndices.has(index) &&
 									index !== retiringPageRef.current &&
 									Math.abs(Math.floor(index / 2) - Math.floor(currentPageIndex / 2)) <=
 										(leavesBuffer ?? 0) + bufferMargin + 1) ||
 								(desiredPageIndices.has(index) &&
-									(mountedPageIndicesRef.current?.has(index) ||
+									(previousMounted.has(index) ||
 										index === materializingPageRef.current ||
-										(index >= flipBook.currentPageIndex - 2 &&
-											index <= flipBook.currentPageIndex + 3) ||
-										Array.from(inflightLeavesRef.current).some(
-											(leaf) => index >= leaf * 2 - 1 && index <= leaf * 2 + 2,
-										))),
+										requiredForTurn(index))),
 						),
 					)
 				: desiredPageIndices;
@@ -800,6 +804,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				const materialized = Array.from(mountedPageIndices).filter((index) => !previous.has(index));
 				if (materialized.length) flipBook.refreshPageContent(materialized);
 			}
+			const release = releasePageMountRef.current;
+			releasePageMountRef.current = undefined;
+			release?.();
 			if (!canStagePages || !desiredPageIndices || !mountedPageIndices) return;
 			const center = flipBook.currentPageIndex + 0.5;
 			const next = Array.from(desiredPageIndices)
@@ -812,6 +819,12 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				if (disposed) return;
 				pageMountFrameRef.current = undefined;
 				if (pointerHeldRef.current) return;
+				const release = flipBook.holdPreparedPageContent();
+				if (!release) {
+					waitForPreparation();
+					return;
+				}
+				releasePageMountRef.current = release;
 				materializingPageRef.current = next;
 				retiringPageRef.current = next === undefined ? retire : undefined;
 				// Wait for this commit before scheduling another page. A delayed

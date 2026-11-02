@@ -413,28 +413,12 @@ describe("FlipBook React Component", () => {
 		}
 	});
 
-	it("prepares newly committed slots without invalidating unchanged chapters", async () => {
-		vi.useFakeTimers();
-		const frames = new Map<number, FrameRequestCallback>();
-		let nextFrame = 0;
-		const requestFrame = vi
-			.spyOn(window, "requestAnimationFrame")
-			.mockImplementation((callback) => {
-				frames.set(++nextFrame, callback);
-				return nextFrame;
-			});
-		const cancelFrame = vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
-			frames.delete(id);
-		});
-		const commitFrame = () =>
-			act(() => {
-				const pending = Array.from(frames.values());
-				frames.clear();
-				for (const callback of pending) callback(0);
-			});
+	it("prepares newly committed slots without invalidating unchanged chapters", () => {
+		const queue = mockPageFrames();
+		const frames = queue.frames;
 		const commitPage = () => {
-			commitFrame();
-			commitFrame();
+			queue.step();
+			queue.step();
 		};
 		let unmount: (() => void) | undefined;
 		try {
@@ -488,9 +472,7 @@ describe("FlipBook React Component", () => {
 			expect(frames.size).toBe(0);
 		} finally {
 			unmount?.();
-			requestFrame.mockRestore();
-			cancelFrame.mockRestore();
-			vi.useRealTimers();
+			queue.restore();
 		}
 	});
 
@@ -620,6 +602,48 @@ describe("FlipBook React Component", () => {
 			rendered.unmount();
 			expect(unsubscribe).toHaveBeenCalledTimes(2);
 			act(() => ready[1]());
+			expect(queue.frames.size).toBe(0);
+		} finally {
+			rendered.unmount();
+			queue.restore();
+		}
+	});
+
+	it("rechecks readiness after the paint barrier and holds layout until the new page commits", () => {
+		const queue = mockPageFrames();
+		const rendered = render(
+			<FlipBook
+				className="atomic"
+				pages={Array.from({ length: 30 }, (_, i) => `Atomic ${i}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			engine.refreshPageContent.mockClear();
+			const ready: (() => void)[] = [];
+			engine.onPageContentPrepared.mockImplementation((callback: () => void) => {
+				ready.push(callback);
+				return () => {};
+			});
+			engine.holdPreparedPageContent.mockReturnValueOnce(undefined);
+			queue.step();
+			queue.step();
+			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+			expect(screen.queryByText("Atomic 17")).toBeNull();
+			expect(ready).toHaveLength(1);
+			const release = vi.fn(() => {
+				expect(screen.getByText("Atomic 17")).toBeTruthy();
+				expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([17]);
+			});
+			engine.holdPreparedPageContent.mockReturnValue(release);
+			act(() => ready[0]());
+			queue.step();
+			queue.step();
+			expect(release).toHaveBeenCalledOnce();
 			expect(queue.frames.size).toBe(0);
 		} finally {
 			rendered.unmount();

@@ -6,6 +6,7 @@ interface MockFlipBookInstance {
 	setDownloadConfig: ReturnType<typeof vi.fn>;
 	refreshPageContent: ReturnType<typeof vi.fn>;
 	onPageContentPrepared: ReturnType<typeof vi.fn>;
+	holdPreparedPageContent: ReturnType<typeof vi.fn>;
 	bookElement: HTMLElement | null;
 	options: Record<string, unknown>;
 	currentPageIndex: number;
@@ -21,6 +22,7 @@ export const mocked: {
 		destroy = vi.fn();
 		setDownloadConfig = vi.fn();
 		refreshPageContent = vi.fn();
+		holdPreparedPageContent = vi.fn(() => () => {});
 		onPageContentPrepared = vi.fn((ready: () => void) => {
 			ready();
 			return () => {};

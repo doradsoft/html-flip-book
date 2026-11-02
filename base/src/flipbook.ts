@@ -107,6 +107,7 @@ class FlipBook {
 	private bufferContentInitialized = false;
 	private readonly pendingContentPreparation = new Set<HTMLElement>();
 	private readonly contentPreparationListeners = new Set<() => void>();
+	private readonly contentPreparationHolds = new Set<symbol>();
 	private contentPreparationFrame: number | undefined;
 	private contentPreparationGeneration = 0;
 	private preparedContent = new WeakSet<HTMLElement>();
@@ -628,6 +629,7 @@ class FlipBook {
 			);
 		}
 		this.cancelHoverUpdates();
+		this.contentPreparationHolds.clear();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
 		this.restoreContentMasks();
@@ -1066,13 +1068,25 @@ class FlipBook {
 
 	/** Run once covered layout settles or is cancelled; returns a listener cleanup. */
 	onPageContentPrepared(ready: () => void): () => void {
-		if (this.pendingContentPreparation.size === 0) {
+		if (this.pendingContentPreparation.size === 0 && this.contentPreparationHolds.size === 0) {
 			ready();
 			return () => undefined;
 		}
 		this.contentPreparationListeners.add(ready);
 		return () => {
 			this.contentPreparationListeners.delete(ready);
+		};
+	}
+
+	/** Hold covered layout for a ready adapter update; release after committing its DOM. */
+	holdPreparedPageContent(): (() => void) | undefined {
+		if (this.pendingContentPreparation.size > 0 || this.contentPreparationHolds.size > 0)
+			return undefined;
+		const hold = Symbol();
+		this.contentPreparationHolds.add(hold);
+		return () => {
+			if (this.contentPreparationHolds.delete(hold) && this.contentPreparationHolds.size === 0)
+				this.scheduleContentPreparation();
 		};
 	}
 
@@ -1175,6 +1189,7 @@ class FlipBook {
 	}
 
 	private scheduleContentPreparation(): void {
+		if (this.contentPreparationHolds.size > 0) return;
 		if (this.pendingContentPreparation.size === 0) {
 			this.cancelContentPreparation();
 			return;
@@ -1184,7 +1199,7 @@ class FlipBook {
 		const prepare = () => {
 			if (generation !== this.contentPreparationGeneration) return;
 			this.contentPreparationFrame = undefined;
-			if (this.preparationPointerHeld) return;
+			if (this.preparationPointerHeld || this.contentPreparationHolds.size > 0) return;
 			const content = this.pendingContentPreparation.values().next().value;
 			if (content) {
 				this.pendingContentPreparation.delete(content);
@@ -1649,16 +1664,20 @@ class FlipBook {
 		const edgeProgress = 1 - Math.min(1, distanceFromEdge / edgeZone);
 		const hoverStrength = edgeProgress * HOVER_STRENGTH_MAX;
 
+		this.applyHoverPreview(leaf, hoverStrength, (y - top) / height);
+	};
+
+	private applyHoverPreview(leaf: Leaf, hoverStrength: number, originY: number): void {
 		if (this.hoveredLeaf && this.hoveredLeaf !== leaf) {
 			this.hoveredLeaf.setHoverShadow(0);
 		}
 		if (this.hoveredLeaf !== leaf) {
-			leaf.setFoldOrigin((y - top) / height);
+			leaf.setFoldOrigin(originY);
 			this.hoveredLeaf = leaf;
 			if (this.leavesBuffer === 0) this.updateLeavesBufferVisibility();
 		}
 		leaf.setHoverShadow(hoverStrength);
-	};
+	}
 
 	private readonly immediateHover = throttle(MOUSE_MOVE_THROTTLE_MS, this.updateHoverShadow);
 	private readonly deferredHover = throttle(MOUSE_MOVE_THROTTLE_MS, this.updateHoverShadow, {
@@ -1998,6 +2017,7 @@ class FlipBook {
 	 */
 	destroy() {
 		this.cancelHoverUpdates();
+		this.contentPreparationHolds.clear();
 		this.cancelContentPreparation();
 		this.unwatchPreparationInput();
 		this.restoreContentMasks();

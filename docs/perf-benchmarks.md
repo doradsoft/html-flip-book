@@ -110,6 +110,8 @@ retained-content opt-in follows each committed spread. Covered mounts and
 retirements run one page per React commit, with at most one extra leaf retained
 beyond the mount window during cleanup. The adapter waits for the engine layout
 queue to drain before scheduling its next mutation behind a fresh paint barrier.
+It rechecks readiness at the mutation and holds background layout through the DOM
+commit, then releases it after the engine has refreshed the new page slots.
 Pointer holds stop both queues; release restarts the barrier. Current and moving
 faces and their immediate underlays stay synchronous. The adapter cancels its
 queue subscription on reversal and teardown.

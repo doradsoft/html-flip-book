@@ -334,6 +334,41 @@ describe("retained content layout", () => {
 		}
 	});
 
+	it("holds background layout through a content commit and resumes behind a fresh barrier", () => {
+		const reader = open();
+		const release = reader.holdPreparedPageContent();
+		expect(release).toBeTypeOf("function");
+		const ready = vi.fn();
+		reader.onPageContentPrepared(ready);
+		expect(ready).not.toHaveBeenCalled();
+		reader.refreshPageContent([16]);
+		expect(callbacks.size).toBe(0);
+		expect(reader.holdPreparedPageContent()).toBeUndefined();
+		release?.();
+		frame();
+		expect(port(16).style.contentVisibility).toBe("hidden");
+		frame();
+		expect(port(16).style.contentVisibility).toBe("visible");
+		expect(ready).toHaveBeenCalledOnce();
+		release?.();
+		expect(callbacks.size).toBe(0);
+	});
+
+	it.each(["render", "destroy"] as const)(
+		"expires content holds when %s cancels the update",
+		(method) => {
+			const reader = open();
+			const release = reader.holdPreparedPageContent();
+			const ready = vi.fn();
+			reader.onPageContentPrepared(ready);
+			if (method === "render") reader.render(container);
+			else reader.destroy();
+			expect(ready).toHaveBeenCalledOnce();
+			release?.();
+			expect(callbacks.size).toBe(0);
+		},
+	);
+
 	it("requires an explicit buffer and feature opt-in", () => {
 		book = new FlipBook({
 			pagesCount: pages.length,
