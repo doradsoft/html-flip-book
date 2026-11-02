@@ -5,6 +5,7 @@ import { FlipDirection } from "./flip-direction";
 import {
 	computePageFold,
 	computePageFoldFromPoint,
+	constrainPageFoldDestination,
 	easePageTurn,
 	type PageFold,
 	type Point,
@@ -76,15 +77,15 @@ export class Leaf {
 			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
 			return;
 		}
-		const fold = computePageFoldFromPoint(
+		const destination = constrainPageFoldDestination(
 			size.width,
 			size.height,
 			{ x: point.x * size.width, y: point.y * size.height },
 			this.foldOrigin < 0.5 ? "top" : "bottom",
 		);
 		this.updateManualFold({
-			x: fold.destination.x / size.width,
-			y: fold.destination.y / size.height,
+			x: destination.x / size.width,
+			y: destination.y / size.height,
 		});
 	}
 

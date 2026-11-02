@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FlipDirection } from "../flip-direction";
 import { FLIPPED, type FlipPosition, Leaf, NOT_FLIPPED } from "../leaf";
+import * as pageFold from "../page-fold";
 import { getLeafInternals, setLeafInternals } from "./test-utils";
 
 describe("Leaf", () => {
@@ -454,6 +455,19 @@ describe("Leaf", () => {
 				y: (b * x + d * y + ty) / height,
 			};
 		};
+
+		it("calculates a single crease and reflection per manual pointer sample", () => {
+			const leaf = createPaperLeaf();
+			const calculate = vi.spyOn(pageFold, "computePageFoldFromPoint");
+			leaf.setFoldOrigin(0.1);
+			leaf.setManualFold({ x: 0.35, y: 0.3 });
+			leaf.setManualFold({ x: 0.2, y: 0.4 });
+			expect(calculate).toHaveBeenCalledTimes(2);
+			expect(liftedCorner(leaf, true, "top")).toEqual({
+				x: expect.closeTo(0.2, 8),
+				y: expect.closeTo(0.4, 8),
+			});
+		});
 
 		it.each([
 			[true, "top"],
