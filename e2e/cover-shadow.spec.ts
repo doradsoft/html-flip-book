@@ -1,3 +1,4 @@
+import { TEST_PARAM_INITIAL_TURNED_LEAVES } from "../react/example/src/test-url-params";
 import { expect, type Locator, test } from "./fixtures/coverage-test";
 
 const bookClass = (direction: string) => `.${direction === "ltr" ? "en" : "he"}-book.flipbook`;
@@ -17,6 +18,50 @@ async function hoverEdge(target: Locator, side: "left" | "right") {
 }
 
 for (const direction of ["ltr", "rtl"] as const) {
+	test(`${direction}: paper shading finishes with the turn while covers retain their fade`, async ({
+		page,
+	}) => {
+		const params = new URLSearchParams({
+			example: `${direction}-buffer`,
+			[TEST_PARAM_INITIAL_TURNED_LEAVES]: "0,1,2",
+		});
+		await page.goto(`/?${params}`);
+		const book = page.locator(bookClass(direction));
+		const paper = book.locator('.page[data-page-index="6"]');
+		const cover = book.locator('.page[data-page-index="0"]');
+		await expect(paper).toBeVisible();
+		for (const pseudo of ["::before", "::after"]) {
+			expect(
+				await paper.evaluate(
+					(element, pseudo) => getComputedStyle(element, pseudo).transitionDuration,
+					pseudo,
+				),
+			).toBe("0s");
+			expect(
+				await cover.evaluate(
+					(element, pseudo) => getComputedStyle(element, pseudo).transitionDuration,
+					pseudo,
+				),
+			).toBe("0.12s");
+		}
+		await page.locator(".flipbook-toolbar-next").click();
+		await expect(book.locator('.page[data-page-index="8"]')).toHaveClass(/current-page/);
+		await expect(book.locator(".page--flipping")).toHaveCount(0);
+		expect(
+			await paper.evaluate(
+				(element) =>
+					element
+						.getAnimations({ subtree: true })
+						.filter(
+							(animation) =>
+								animation instanceof CSSTransition &&
+								animation.transitionProperty === "opacity" &&
+								animation.playState === "running",
+						).length,
+			),
+		).toBe(0);
+	});
+
 	test(`${direction}: coverConfig.noShadow hides cover overlays while interior shadow stays`, async ({
 		page,
 	}) => {

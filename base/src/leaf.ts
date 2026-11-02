@@ -51,6 +51,7 @@ export class Leaf {
 	private foldPointer = 0.75;
 	private manualNeedsSettlement = false;
 	private manualFoldPoint: Point | undefined;
+	private paperShading: boolean | undefined;
 
 	setFoldOrigin(normalizedY: number): void {
 		this.foldOrigin = Math.max(0, Math.min(1, normalizedY));
@@ -332,6 +333,14 @@ export class Leaf {
 		const width = Number.parseFloat(this.pages[0].style.width);
 		const height = Number.parseFloat(this.pages[0].style.height);
 		const paperSize = this.getPaperSize();
+		const paperShading = paperSize !== undefined;
+		if (this.paperShading !== paperShading) {
+			this.paperShading = paperShading;
+			for (const page of this.pages) {
+				if (page && page.classList.contains("page--paper") !== paperShading)
+					page.classList.toggle("page--paper", paperShading);
+			}
+		}
 		if (paperSize && this.manualFoldPoint) {
 			const fold = computePageFoldFromPoint(
 				width,

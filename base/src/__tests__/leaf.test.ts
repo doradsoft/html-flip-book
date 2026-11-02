@@ -60,6 +60,51 @@ describe("Leaf", () => {
 	});
 
 	describe("constructor", () => {
+		it("keeps paper shading immediate through folding and settlement, but preserves rigid shading", () => {
+			for (const page of [mockPage1, mockPage2]) {
+				page.style.width = "320px";
+				page.style.height = "480px";
+			}
+			const leaf = new Leaf(
+				1,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+			for (const position of [0, 0.4, 1]) {
+				leaf.applyTransform(position);
+				for (const page of [mockPage1, mockPage2])
+					expect(page.classList.contains("page--paper")).toBe(true);
+			}
+			mockPage2.dataset.isCoverPage = "1";
+			leaf.applyTransform(0);
+			for (const page of [mockPage1, mockPage2])
+				expect(page.classList.contains("page--paper")).toBe(false);
+			delete mockPage2.dataset.isCoverPage;
+			mockPage1.style.width = "0px";
+			leaf.applyTransform(0);
+			expect(mockPage1.classList.contains("page--paper")).toBe(false);
+			mockPage1.style.width = "320px";
+			leaf.applyTransform(0);
+			expect(mockPage1.classList.contains("page--paper")).toBe(true);
+		});
+
+		it("leaves an unpaired rigid face on its original shading path", () => {
+			mockPage1.style.width = "320px";
+			mockPage1.style.height = "480px";
+			mockPage1.classList.add("page--paper");
+			const leaf = new Leaf(
+				1,
+				[mockPage1, undefined],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+			leaf.applyTransform(0.4);
+			expect(mockPage1.classList.contains("page--paper")).toBe(false);
+		});
+
 		it("avoids redundant folded-class mutations while preserving real fold transitions", () => {
 			for (const page of [mockPage1, mockPage2]) {
 				page.style.width = "320px";
@@ -73,6 +118,7 @@ describe("Leaf", () => {
 				defaultBookProperties,
 				onTurnedMock,
 			);
+			leaf.applyTransform(0);
 			const observer = new MutationObserver(() => {});
 			for (const page of [mockPage1, mockPage2])
 				observer.observe(page, { attributes: true, attributeFilter: ["class"] });

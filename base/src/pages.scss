@@ -56,6 +56,14 @@
   z-index: var(--flipbook-shading-z-index, 10);
 }
 
+// A paper crease already controls shading each frame. Its flat shadow is
+// transparent; fading the old opacity after settlement only keeps compositing
+// work alive during the next turn. Rigid covers retain their original fade.
+.page--paper::before,
+.page--paper::after {
+  transition: none;
+}
+
 // Inner shadow: simulates shadow cast by lifted page onto the page below
 // - 0.35 opacity provides subtle but visible shadow
 // - 40% gradient stop creates a soft fade matching natural shadow falloff
