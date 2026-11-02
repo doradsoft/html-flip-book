@@ -42,11 +42,11 @@ describe("covered page preparation", () => {
 		vi.unstubAllGlobals();
 	});
 
-	function open(direction: "ltr" | "rtl" = "ltr") {
+	function open(direction: "ltr" | "rtl" = "ltr", leavesBuffer = 1) {
 		book = new FlipBook({
 			pagesCount: pages.length,
 			initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6],
-			leavesBuffer: 1,
+			leavesBuffer,
 			coverPageIndices: "auto",
 			enableHistory: false,
 			direction,
@@ -94,10 +94,15 @@ describe("covered page preparation", () => {
 		for (const index of [0, 23]) expect(visibility(index)).toBe("visible");
 	});
 
-	it.each(["ltr", "rtl"] as const)(
-		"reveals both moving faces and their immediate underlay before a %s drag returns",
-		(direction) => {
-			const reader = open(direction);
+	it.each([
+		["ltr", 0],
+		["rtl", 0],
+		["ltr", 1],
+		["rtl", 1],
+	] as const)(
+		"reveals both moving faces and their immediate underlay for %s with buffer %s",
+		(direction, leavesBuffer) => {
+			const reader = open(direction, leavesBuffer);
 			reader.jumpToPage(17);
 			expect(visibility(19)).toBe("hidden");
 			const start = direction === "ltr" ? 700 : 100;
@@ -105,9 +110,55 @@ describe("covered page preparation", () => {
 			const engine = getFlipBookInternals(reader);
 			engine.onDragStart({ center: { x: start } });
 			engine.onDragUpdate({ center: { x: move } });
-			for (const index of [17, 18, 19, 20]) expect(visibility(index)).toBe("visible");
+			for (const index of [17, 18, 19, 20]) {
+				expect(visibility(index)).toBe("visible");
+				expect(pages[index].style.display).not.toBe("none");
+			}
 		},
 	);
+
+	it("keeps both facing pages visible with a zero content buffer", () => {
+		const reader = open("ltr", 0);
+		for (const index of [13, 14]) {
+			expect(pages[index].style.display).not.toBe("none");
+			expect(visibility(index)).toBe("visible");
+		}
+		reader.jumpToPage(17);
+		for (const index of [17, 18]) {
+			expect(pages[index].style.display).not.toBe("none");
+			expect(visibility(index)).toBe("visible");
+		}
+	});
+
+	it("retains the original paper edges while skipping covered zero-buffer content", () => {
+		const reader = open();
+		const paperStyles = pages.map((page) => page.style.cssText);
+		reader.destroy();
+		open("ltr", 0);
+		expect(pages.map((page) => page.style.cssText)).toEqual(paperStyles);
+		for (const index of [12, 13, 14, 15]) expect(visibility(index)).toBe("visible");
+		expect(visibility(16)).toBe("hidden");
+	});
+
+	it("prepares a zero-buffer hover underlay before drawing its curl", () => {
+		open("ltr", 0);
+		expect(visibility(16)).toBe("hidden");
+		vi.spyOn(container, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 800, 600));
+		const width = Number.parseFloat(pages[14].style.width);
+		const height = Number.parseFloat(pages[14].style.height);
+		const top = Number.parseFloat(pages[14].style.top);
+		container.dispatchEvent(
+			new MouseEvent("mousemove", {
+				clientX: 400 + width - 2,
+				clientY: top + height * 0.8,
+				buttons: 0,
+				bubbles: true,
+			}),
+		);
+		expect(visibility(16)).toBe("visible");
+		expect(pages[16].style.display).not.toBe("none");
+		expect(visibility(17)).toBe("hidden");
+	});
 
 	it("promotes newly current pages immediately when the next turn beats preparation", () => {
 		const reader = open();

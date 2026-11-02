@@ -2647,15 +2647,19 @@ describe("FlipBook", () => {
 			});
 		});
 
-		it("should handle buffer size of 0", () => {
+		it("keeps opaque paper but skips covered content with buffer size 0", () => {
 			const pages = createPages(20);
 			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 0 });
 			flipBook.render(".flipbook-container");
 
-			// Only the current leaf (leaf 0) should be visible
+			// Both facing pages stay ready. Retain the neighboring paper edge,
+			// while its covered content stays out of the rendering pipeline.
 			expect(pages[0].style.display).not.toBe("none"); // leaf 0
 			expect(pages[1].style.display).not.toBe("none"); // leaf 0
-			expect(pages[2].style.display).toBe("none"); // leaf 1 - outside buffer
+			expect(pages[2].style.display).not.toBe("none");
+			expect((pages[2].firstElementChild as HTMLElement).style.contentVisibility).toBe("hidden");
+			expect(pages[4].style.display).toBe("none");
+			flipBook.destroy();
 		});
 
 		it("should always keep cover leaves visible when coverPageIndices is set, even outside buffer", () => {

@@ -874,8 +874,11 @@ class FlipBook {
 		const currentLeafIndex = rightLeaf?.index ?? leftLeaf?.index ?? 0;
 
 		// Calculate buffer range
-		const bufferStart = Math.max(0, currentLeafIndex - this.leavesBuffer);
-		const bufferEnd = Math.min(leavesCount - 1, currentLeafIndex + this.leavesBuffer);
+		// Keep opaque paper boxes even when their covered content is dormant.
+		// Removing the boxes changes the antialiased edge of the paper stack.
+		const paperBuffer = Math.max(1, this.leavesBuffer);
+		const bufferStart = Math.max(0, currentLeafIndex - paperBuffer);
+		const bufferEnd = Math.min(leavesCount - 1, currentLeafIndex + paperBuffer);
 
 		// Cover leaves must always stay visible — they are cover-sized and sit behind
 		// all leaf-sized pages, acting as the physical book boards. Hiding them would
@@ -906,6 +909,11 @@ class FlipBook {
 				for (let offset = -1; offset <= 2; offset++) {
 					requiredContent.add(leaf.index * 2 + offset);
 				}
+			}
+		}
+		if (this.hoveredLeaf) {
+			for (let offset = -1; offset <= 2; offset++) {
+				requiredContent.add(this.hoveredLeaf.index * 2 + offset);
 			}
 		}
 		this.pendingContentPreparation.clear();
@@ -940,8 +948,14 @@ class FlipBook {
 						page.style.contentVisibility = visibility;
 					const scrollport = page.firstElementChild as HTMLElement | null;
 					if (scrollport?.classList.contains("flipbook-page-scrollport")) {
+						const pageIndex = Number(page.dataset.pageIndex);
+						const firstFace = Math.floor(pageIndex / 2) * 2;
+						const contentRequired =
+							this.leavesBuffer !== 0 ||
+							requiredContent.has(firstFace) ||
+							requiredContent.has(firstFace + 1);
 						const contentVisibility =
-							isCoverLeaf || exposedContent.has(Number(page.dataset.pageIndex))
+							isCoverLeaf || (exposedContent.has(pageIndex) && contentRequired)
 								? "visible"
 								: "hidden";
 						if (scrollport.style.contentVisibility !== contentVisibility) {
@@ -1447,8 +1461,9 @@ class FlipBook {
 		}
 		if (this.hoveredLeaf !== leaf) {
 			leaf.setFoldOrigin((y - top) / height);
+			this.hoveredLeaf = leaf;
+			if (this.leavesBuffer === 0) this.updateLeavesBufferVisibility();
 		}
-		this.hoveredLeaf = leaf;
 		leaf.setHoverShadow(hoverStrength);
 	});
 

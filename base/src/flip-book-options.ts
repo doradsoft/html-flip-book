@@ -108,8 +108,10 @@ export interface FlipBookOptions {
 	initialTurnedLeaves?: number[];
 	/**
 	 * Number of leaves to keep rendered before and after the current position.
-	 * When set, only leaves within the buffer range are visible (have display: block).
-	 * Leaves outside the buffer are hidden (display: none) for performance.
+	 * Paper for both facing pages and nearby underlays is retained even at zero,
+	 * preserving the opaque paper edge. Zero skips covered content rather than
+	 * hiding a facing page; moving faces and hover underlays stay ready.
+	 * More distant leaves are hidden (display: none) for performance.
 	 * The buffer dynamically updates as the user navigates.
 	 * Default: undefined (all leaves are always rendered)
 	 */
