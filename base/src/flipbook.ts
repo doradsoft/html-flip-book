@@ -103,6 +103,10 @@ class FlipBook {
 	private bookmarkLayer: BookmarkLayer | undefined;
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
+	private bufferContentInitialized = false;
+	private readonly pendingContentPreparation = new Set<HTMLElement>();
+	private contentPreparationFrame: number | undefined;
+	private contentPreparationGeneration = 0;
 	private readonly coverPageIndices?: number[] | "auto";
 	private downloadConfig: DownloadConfig | undefined;
 	private readonly downloadEnabled: boolean;
@@ -608,6 +612,8 @@ class FlipBook {
 					: "Couldn't find container element",
 			);
 		}
+		this.cancelContentPreparation();
+		this.bufferContentInitialized = false;
 		this.bookElement = bookElement as HTMLElement;
 		this.setMouseMode(this.mouseMode);
 		if (!this.bookElement.classList.contains("flipbook")) {
@@ -890,12 +896,23 @@ class FlipBook {
 			for (let offset = -2; offset <= 2; offset++) exposedContent.add(index + offset);
 		};
 		for (const index of this.prevVisiblePageIndices ?? [0, 1]) expose(index);
+		const requiredContent = new Set(this.prevVisiblePageIndices ?? [0, 1]);
 		for (const leaf of this.leaves) {
 			if (this.activeFlips.has(leaf.index) || leaf.isFlipping) {
 				expose(leaf.index * 2);
 				expose(leaf.index * 2 + 1);
+				// Both moving faces and their immediate underlays must be ready
+				// before the input handler returns, including overlapping turns.
+				for (let offset = -1; offset <= 2; offset++) {
+					requiredContent.add(leaf.index * 2 + offset);
+				}
 			}
 		}
+		this.pendingContentPreparation.clear();
+		const canPrepareLater =
+			this.bufferContentInitialized &&
+			typeof requestAnimationFrame === "function" &&
+			typeof cancelAnimationFrame === "function";
 
 		// Update visibility of all leaves
 		for (let i = 0; i < leavesCount; i++) {
@@ -927,12 +944,62 @@ class FlipBook {
 							isCoverLeaf || exposedContent.has(Number(page.dataset.pageIndex))
 								? "visible"
 								: "hidden";
-						if (scrollport.style.contentVisibility !== contentVisibility)
-							scrollport.style.contentVisibility = contentVisibility;
+						if (scrollport.style.contentVisibility !== contentVisibility) {
+							if (
+								canPrepareLater &&
+								contentVisibility === "visible" &&
+								visible &&
+								!isCoverLeaf &&
+								!requiredContent.has(Number(page.dataset.pageIndex))
+							) {
+								this.pendingContentPreparation.add(scrollport);
+							} else {
+								scrollport.style.contentVisibility = contentVisibility;
+							}
+						}
 					}
 				}
 			}
 		}
+		this.bufferContentInitialized = true;
+		this.scheduleContentPreparation();
+	}
+
+	private cancelContentPreparation(): void {
+		this.contentPreparationGeneration++;
+		if (this.contentPreparationFrame !== undefined) {
+			cancelAnimationFrame(this.contentPreparationFrame);
+			this.contentPreparationFrame = undefined;
+		}
+		this.pendingContentPreparation.clear();
+	}
+
+	private scheduleContentPreparation(): void {
+		if (this.pendingContentPreparation.size === 0) {
+			this.cancelContentPreparation();
+			return;
+		}
+		if (this.contentPreparationFrame !== undefined) return;
+		const generation = this.contentPreparationGeneration;
+		const prepare = () => {
+			if (generation !== this.contentPreparationGeneration) return;
+			this.contentPreparationFrame = undefined;
+			const content = this.pendingContentPreparation.values().next().value;
+			if (content) {
+				this.pendingContentPreparation.delete(content);
+				if (content.isConnected) content.style.contentVisibility = "visible";
+			}
+			if (this.pendingContentPreparation.size > 0) {
+				this.contentPreparationFrame = requestAnimationFrame(prepare);
+			}
+		};
+		// Let the critical paper pose paint before laying out a covered neighbor.
+		// Each later frame prepares one page, rather than invalidating several
+		// complete scripture trees in the first drag or consecutive-turn frame.
+		this.contentPreparationFrame = requestAnimationFrame(() => {
+			if (generation !== this.contentPreparationGeneration) return;
+			this.contentPreparationFrame = requestAnimationFrame(prepare);
+		});
 	}
 
 	private fillDebugBar() {
@@ -1706,6 +1773,8 @@ class FlipBook {
 	 * Should be called when the FlipBook is no longer needed.
 	 */
 	destroy() {
+		this.cancelContentPreparation();
+		this.bufferContentInitialized = false;
 		this.gestureStartedInNoFlipZone = undefined;
 		if (this.debugTimer !== undefined) {
 			clearInterval(this.debugTimer);

@@ -2464,7 +2464,8 @@ describe("FlipBook", () => {
 	});
 
 	describe("leavesBuffer", () => {
-		it("keeps buffered content dormant until its spread can be exposed", () => {
+		it("keeps buffered content dormant until its spread can be exposed", async () => {
+			vi.useFakeTimers();
 			const pages = createPages(40);
 			const flipBook = new FlipBook({
 				pagesCount: 40,
@@ -2472,20 +2473,28 @@ describe("FlipBook", () => {
 				coverPageIndices: "auto",
 				initialTurnedLeaves: [0, 1, 2, 3, 4],
 			});
-			flipBook.render(".flipbook-container");
-			const contentVisibility = (index: number) =>
-				(pages[index].firstElementChild as HTMLElement).style.contentVisibility;
-			// Spread 9/10 and both neighboring spreads must be ready for a curl.
-			for (let index = 7; index <= 12; index++) expect(contentVisibility(index)).not.toBe("hidden");
-			// Keep the paper and boards; skip only text that is occluded by them.
-			expect(pages[20].style.display).not.toBe("none");
-			expect(contentVisibility(20)).toBe("hidden");
-			expect(contentVisibility(0)).not.toBe("hidden");
-			expect(contentVisibility(39)).not.toBe("hidden");
-			flipBook.jumpToPage(21);
-			expect(contentVisibility(20)).not.toBe("hidden");
-			expect(contentVisibility(9)).toBe("hidden");
-			flipBook.destroy();
+			try {
+				flipBook.render(".flipbook-container");
+				const contentVisibility = (index: number) =>
+					(pages[index].firstElementChild as HTMLElement).style.contentVisibility;
+				// Spread 9/10 and both neighboring spreads must be ready for a curl.
+				for (let index = 7; index <= 12; index++)
+					expect(contentVisibility(index)).not.toBe("hidden");
+				// Keep the paper and boards; skip only text that is occluded by them.
+				expect(pages[20].style.display).not.toBe("none");
+				expect(contentVisibility(20)).toBe("hidden");
+				expect(contentVisibility(0)).not.toBe("hidden");
+				expect(contentVisibility(39)).not.toBe("hidden");
+				flipBook.jumpToPage(21);
+				for (const index of [21, 22]) expect(contentVisibility(index)).not.toBe("hidden");
+				expect(contentVisibility(20)).toBe("hidden");
+				await vi.runAllTimersAsync();
+				expect(contentVisibility(20)).not.toBe("hidden");
+				expect(contentVisibility(9)).toBe("hidden");
+			} finally {
+				flipBook.destroy();
+				vi.useRealTimers();
+			}
 		});
 		it("should accept leavesBuffer option", () => {
 			const flipBook = new FlipBook({ pagesCount: 20, leavesBuffer: 3 });

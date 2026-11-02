@@ -1,0 +1,179 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FlipBook } from "../flipbook";
+import { createMockContainer, getFlipBookInternals } from "./test-utils";
+
+vi.mock("hammerjs", () => {
+	function MockHammer() {
+		return { on: vi.fn(), off: vi.fn(), destroy: vi.fn(), get: () => ({ set: vi.fn() }) };
+	}
+	MockHammer.DIRECTION_HORIZONTAL = 6;
+	MockHammer.DIRECTION_ALL = 30;
+	return { default: MockHammer };
+});
+
+describe("covered page preparation", () => {
+	let container: HTMLDivElement;
+	let pages: HTMLDivElement[];
+	let book: FlipBook | undefined;
+	let callbacks: Map<number, FrameRequestCallback>;
+	let nextFrame: number;
+
+	beforeEach(() => {
+		({ container, pages } = createMockContainer(24));
+		for (const page of pages) {
+			page.innerHTML = '<div class="flipbook-page-scrollport">Original reader content</div>';
+		}
+		callbacks = new Map();
+		nextFrame = 0;
+		vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+			callbacks.set(++nextFrame, callback);
+			return nextFrame;
+		});
+		vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+			callbacks.delete(id);
+		});
+	});
+
+	afterEach(() => {
+		book?.destroy();
+		book = undefined;
+		container.remove();
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	function open(direction: "ltr" | "rtl" = "ltr") {
+		book = new FlipBook({
+			pagesCount: pages.length,
+			initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6],
+			leavesBuffer: 1,
+			coverPageIndices: "auto",
+			enableHistory: false,
+			direction,
+		});
+		book.render(container);
+		return book;
+	}
+
+	function visibility(index: number) {
+		return (pages[index].firstElementChild as HTMLElement).style.contentVisibility;
+	}
+
+	function frame() {
+		const current = Array.from(callbacks.values());
+		callbacks.clear();
+		for (const callback of current) callback(performance.now());
+	}
+
+	function finishPreparation() {
+		for (let index = 0; callbacks.size && index < pages.length; index++) frame();
+		expect(callbacks.size).toBe(0);
+	}
+
+	it("keeps the initial spread and its preparation window ready synchronously", () => {
+		open();
+		for (const index of [0, 12, 13, 14, 15, 16, 23]) {
+			expect(visibility(index)).toBe("visible");
+		}
+		expect(callbacks.size).toBe(0);
+	});
+
+	it("prepares at most one covered page per frame after the current spread can paint", () => {
+		const reader = open();
+		reader.jumpToPage(17);
+		for (const index of [17, 18]) expect(visibility(index)).toBe("visible");
+		for (const index of [19, 20]) expect(visibility(index)).toBe("hidden");
+		frame();
+		for (const index of [19, 20]) expect(visibility(index)).toBe("hidden");
+		frame();
+		expect(visibility(19)).toBe("visible");
+		expect(visibility(20)).toBe("hidden");
+		frame();
+		expect(visibility(20)).toBe("visible");
+		expect(callbacks.size).toBe(0);
+		for (const index of [0, 23]) expect(visibility(index)).toBe("visible");
+	});
+
+	it.each(["ltr", "rtl"] as const)(
+		"reveals both moving faces and their immediate underlay before a %s drag returns",
+		(direction) => {
+			const reader = open(direction);
+			reader.jumpToPage(17);
+			expect(visibility(19)).toBe("hidden");
+			const start = direction === "ltr" ? 700 : 100;
+			const move = direction === "ltr" ? 600 : 200;
+			const engine = getFlipBookInternals(reader);
+			engine.onDragStart({ center: { x: start } });
+			engine.onDragUpdate({ center: { x: move } });
+			for (const index of [17, 18, 19, 20]) expect(visibility(index)).toBe("visible");
+		},
+	);
+
+	it("promotes newly current pages immediately when the next turn beats preparation", () => {
+		const reader = open();
+		reader.jumpToPage(17);
+		expect(visibility(19)).toBe("hidden");
+		reader.jumpToPage(19);
+		for (const index of [19, 20]) expect(visibility(index)).toBe("visible");
+		finishPreparation();
+		for (const index of [19, 20]) expect(visibility(index)).toBe("visible");
+	});
+
+	it("discards stale preparation when navigation changes direction", () => {
+		const reader = open();
+		reader.jumpToPage(17);
+		reader.jumpToPage(5);
+		for (const index of [5, 6]) expect(visibility(index)).toBe("visible");
+		finishPreparation();
+		for (const index of [19, 20]) expect(visibility(index)).toBe("hidden");
+	});
+
+	it.each(["first paint", "preparation"] as const)(
+		"cancels a stale %s callback on destroy",
+		(stage) => {
+			const reader = open();
+			reader.jumpToPage(17);
+			if (stage === "preparation") frame();
+			const stale = Array.from(callbacks.values());
+			expect(stale).toHaveLength(1);
+			reader.destroy();
+			expect(callbacks.size).toBe(0);
+			for (const callback of stale) callback(performance.now());
+			expect(callbacks.size).toBe(0);
+			for (const index of [19, 20]) expect(visibility(index)).toBe("hidden");
+		},
+	);
+
+	it("restores synchronous initial preparation when the engine renders again", () => {
+		const reader = open();
+		reader.jumpToPage(17);
+		expect(callbacks.size).toBe(1);
+		reader.destroy();
+		reader.render(container);
+		for (const index of [12, 13, 14, 15, 16]) expect(visibility(index)).toBe("visible");
+		expect(callbacks.size).toBe(0);
+	});
+
+	it("skips a covered page removed before its preparation frame", () => {
+		open().jumpToPage(17);
+		const removed = pages[19].firstElementChild as HTMLElement;
+		removed.remove();
+		finishPreparation();
+		expect(removed.style.contentVisibility).toBe("hidden");
+		expect(visibility(20)).toBe("visible");
+	});
+
+	it("falls back to synchronous preparation when animation frames are unavailable", () => {
+		vi.stubGlobal("requestAnimationFrame", undefined);
+		open().jumpToPage(17);
+		for (const index of [17, 18, 19, 20]) expect(visibility(index)).toBe("visible");
+		expect(callbacks.size).toBe(0);
+	});
+
+	it("falls back to synchronous preparation when queued frames cannot be cancelled", () => {
+		vi.stubGlobal("cancelAnimationFrame", undefined);
+		open().jumpToPage(17);
+		for (const index of [17, 18, 19, 20]) expect(visibility(index)).toBe("visible");
+		expect(callbacks.size).toBe(0);
+	});
+});
