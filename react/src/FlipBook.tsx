@@ -252,6 +252,8 @@ export interface FlipBookProps {
 	fastDeltaThreshold?: number;
 	/**
 	 * Number of leaves to keep rendered before and after the current position.
+	 * Zero keeps both facing pages, moving faces and their underlays ready while
+	 * skipping covered content. Opaque paper surfaces retain their appearance.
 	 * When set, only leaves within the buffer range are visible for performance.
 	 * Default: undefined (all leaves are always rendered)
 	 */
@@ -392,6 +394,9 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 		setPageIndexRef.current = setCurrentPageIndex;
 		const ofRef = useRef(of);
 		ofRef.current = of;
+		// A zero content buffer still needs the same mounted handoff margin as
+		// buffer one: both sides of the spread and the next revealed underlays.
+		const bufferMargin = leavesBuffer === 0 ? 3 : 2;
 
 		// Debounce buffer-related re-renders during rapid consecutive page flips.
 		// When leavesBuffer is set, each onPageChanged triggers a React re-render
@@ -464,7 +469,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			const targetLeaf = Math.floor(bufferTargetRef.current / 2);
 			// A concurrent recenter may not have committed yet. Skip only if both
 			// the current DOM and that target window retain the moving material.
-			const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + 2;
+			const inTargetWindow = Math.abs(flippingLeaf - targetLeaf) <= leavesBuffer + bufferMargin;
 			if (
 				!inTargetWindow ||
 				!mounted?.has(first) ||
@@ -711,11 +716,10 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				? (() => {
 						const currentLeaf = Math.floor(currentPageIndex / 2);
 						const leavesCount = Math.ceil(totalPages / 2);
-						const margin = 2;
-						const first = Math.max(0, currentLeaf - leavesBuffer - margin) * 2;
+						const first = Math.max(0, currentLeaf - leavesBuffer - bufferMargin) * 2;
 						const last = Math.min(
 							totalPages - 1,
-							Math.min(leavesCount - 1, currentLeaf + leavesBuffer + margin) * 2 + 1,
+							Math.min(leavesCount - 1, currentLeaf + leavesBuffer + bufferMargin) * 2 + 1,
 						);
 						const mounted = new Set(Array.from({ length: last - first + 1 }, (_, i) => first + i));
 						for (const index of coverIndicesSet) {

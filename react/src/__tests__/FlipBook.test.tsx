@@ -341,6 +341,53 @@ describe("FlipBook React Component", () => {
 		expect(screen.getByText("Mounted 3")).toBeTruthy();
 	});
 
+	it("keeps both directions' handoff pages mounted with a zero content buffer", async () => {
+		vi.useFakeTimers();
+		let unmount: (() => void) | undefined;
+		try {
+			commitCount = 0;
+			({ unmount } = render(
+				<Profiler id="zero-buffer-window" onRender={countCommit}>
+					<FlipBook
+						pages={Array.from({ length: 30 }, (_, index) => `Zero buffer ${index}`)}
+						leavesBuffer={0}
+					/>
+				</Profiler>,
+			));
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			await act(async () => vi.advanceTimersByTimeAsync(80));
+			for (const index of [6, 7, 18, 19]) {
+				expect(screen.getByText(`Zero buffer ${index}`)).toBeTruthy();
+			}
+			expect(screen.queryByText("Zero buffer 4")).toBeNull();
+			expect(screen.queryByText("Zero buffer 20")).toBeNull();
+			const before = commitCount;
+			const onPageFlipping = engine.options.onPageFlipping as (params: {
+				leafIndex: number;
+				pageIndices: [number, number];
+				semantics: [undefined, undefined];
+				direction: "forward";
+			}) => void;
+			act(() => {
+				onPageFlipping({
+					leafIndex: 9,
+					pageIndices: [18, 19],
+					semantics: [undefined, undefined],
+					direction: "forward",
+				});
+			});
+			expect(commitCount).toBe(before);
+			for (const index of [18, 19]) {
+				expect(screen.getByText(`Zero buffer ${index}`)).toBeTruthy();
+			}
+		} finally {
+			unmount?.();
+			vi.useRealTimers();
+		}
+	});
+
 	it("coalesces rapid page changes into a single debounced recenter", async () => {
 		const pages = Array.from({ length: 26 }, (_, i) => `Rapid ${i}`).map((label) => (
 			<div key={label}>{label}</div>
