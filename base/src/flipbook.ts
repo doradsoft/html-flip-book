@@ -1607,16 +1607,38 @@ class FlipBook {
 		// 'vertical' or 'none' → let the browser handle native scroll
 	};
 
-	private updateHoverShadow = (event: MouseEvent): void => {
-		if (!this.bookElement) return;
-		if (
+	private canPreviewHover(event: MouseEvent): boolean {
+		return !(
 			this.isInsideNoFlipZone(event.target) ||
 			this.mouseMode === "select" ||
 			event.buttons !== 0 ||
 			this.isDragging ||
 			this.currentManualFlip ||
 			this.activeFlips.size > 0
-		) {
+		);
+	}
+
+	private isHoverPointInPage(
+		distance: number,
+		y: number,
+		width: number,
+		height: number,
+		top: number,
+	): boolean {
+		if (![distance, y, width, height, top].every(Number.isFinite)) return false;
+		return (
+			width > 0 &&
+			height > 0 &&
+			distance >= 0 &&
+			distance <= width * EDGE_ZONE_RATIO &&
+			y >= top &&
+			y <= top + height
+		);
+	}
+
+	private updateHoverShadow = (event: MouseEvent): void => {
+		if (!this.bookElement) return;
+		if (!this.canPreviewHover(event)) {
 			this.clearHoverShadow();
 			return;
 		}
@@ -1646,18 +1668,7 @@ class FlipBook {
 		const top = Number.parseFloat(page.style.top);
 		const distanceFromEdge = isRightSide ? spineX + width - x : x - (spineX - width);
 		const edgeZone = width * EDGE_ZONE_RATIO;
-		if (
-			!Number.isFinite(distanceFromEdge) ||
-			!Number.isFinite(y) ||
-			!Number.isFinite(height) ||
-			!Number.isFinite(top) ||
-			width <= 0 ||
-			height <= 0 ||
-			distanceFromEdge < 0 ||
-			distanceFromEdge > edgeZone ||
-			y < top ||
-			y > top + height
-		) {
+		if (!this.isHoverPointInPage(distanceFromEdge, y, width, height, top)) {
 			this.clearHoverShadow();
 			return;
 		}

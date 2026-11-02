@@ -451,6 +451,31 @@ describe("FlipBook React Component", () => {
 				<FlipBook pages={pages} leavesBuffer={0} keepPageContentLayout className="updated" />,
 			);
 			expect(engine.refreshPageContent).not.toHaveBeenCalled();
+		} finally {
+			unmount?.();
+			queue.restore();
+		}
+	});
+
+	it("retires covered slots one commit at a time after preparing their replacements", () => {
+		const queue = mockPageFrames();
+		const commitPage = () => {
+			queue.step();
+			queue.step();
+		};
+		const rendered = render(
+			<FlipBook
+				pages={Array.from({ length: 30 }, (_, index) => `Prepared ${index}`)}
+				leavesBuffer={0}
+				keepPageContentLayout
+			/>,
+		);
+		try {
+			const engine = mocked.instances[0];
+			engine.currentPageIndex = 13;
+			act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+			for (let commit = 0; commit < 8; commit++) commitPage();
+			engine.refreshPageContent.mockClear();
 			engine.currentPageIndex = 15;
 			act(() => (engine.options.onPageChanged as (index: number) => void)(15));
 			expect(screen.getByText("Prepared 6")).toBeTruthy();
@@ -469,9 +494,9 @@ describe("FlipBook React Component", () => {
 			commitPage();
 			expect(screen.queryByText("Prepared 7")).toBeNull();
 			expect(engine.refreshPageContent).not.toHaveBeenCalled();
-			expect(frames.size).toBe(0);
+			expect(queue.frames.size).toBe(0);
 		} finally {
-			unmount?.();
+			rendered.unmount();
 			queue.restore();
 		}
 	});
