@@ -1001,7 +1001,8 @@ class FlipBook {
 								: scrollport.hasChildNodes();
 							const keepLayout = retainLayout && hasContent;
 							if (!keepLayout && contentVisibility === "hidden") {
-								scrollport.style.contentVisibility = "hidden";
+								if (scrollport.style.contentVisibility !== "hidden")
+									scrollport.style.contentVisibility = "hidden";
 								this.preparedContent.delete(scrollport);
 							} else if (
 								this.preparedContent.has(scrollport) ||
@@ -1009,10 +1010,12 @@ class FlipBook {
 								isCoverLeaf ||
 								requiredContent.has(pageIndex)
 							) {
-								scrollport.style.contentVisibility = "visible";
+								if (scrollport.style.contentVisibility !== "visible")
+									scrollport.style.contentVisibility = "visible";
 								if (hasContent) this.preparedContent.add(scrollport);
 							} else {
-								scrollport.style.contentVisibility = "hidden";
+								if (scrollport.style.contentVisibility !== "hidden")
+									scrollport.style.contentVisibility = "hidden";
 								this.pendingContentPreparation.add(scrollport);
 							}
 							continue;
@@ -1048,7 +1051,8 @@ class FlipBook {
 				| undefined;
 			if (scrollport?.classList.contains("flipbook-page-scrollport")) {
 				this.preparedContent.delete(scrollport);
-				scrollport.style.contentVisibility = "hidden";
+				if (scrollport.style.contentVisibility !== "hidden")
+					scrollport.style.contentVisibility = "hidden";
 			}
 		}
 		this.updateLeavesBufferVisibility();
@@ -1072,7 +1076,8 @@ class FlipBook {
 				element.style.getPropertyPriority("opacity") !== "important"
 			)
 				element.style.setProperty("opacity", "0", "important");
-			element.classList.add("flipbook-layout-dormant");
+			if (!element.classList.contains("flipbook-layout-dormant"))
+				element.classList.add("flipbook-layout-dormant");
 			if (!element.hasAttribute("inert")) element.setAttribute("inert", "");
 			if (element.getAttribute("aria-hidden") !== "true")
 				element.setAttribute("aria-hidden", "true");

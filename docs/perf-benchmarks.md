@@ -91,6 +91,11 @@ cannot be hidden by averaging it together with a handoff improvement.
 `turnReactRetainedHidden` separately exercise `keepPageContentLayout` with the
 consumer's zero content buffer. The paired baseline receives the same buffer
 and fixture. Existing scenarios remain unchanged.
+CI runs the existing and retained-content scenarios on separate runners, each
+with the same eight paired samples, calibration, limits and 30-minute deadline.
+The complete suite otherwise takes almost that entire deadline. Both groups
+are required, and their artifacts use matching group names. The injected-stall
+selfcheck runs with the existing group.
 
 The opt-in retains the layout of the nearest two covered leaves, without
 changing text nodes, typography, scroll positions, or the visible paper

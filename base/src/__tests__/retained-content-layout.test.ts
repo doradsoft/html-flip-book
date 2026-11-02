@@ -99,6 +99,17 @@ describe("retained content layout", () => {
 		expect(port(20).style.contentVisibility).toBe("visible");
 	});
 
+	it("does not mutate unrelated page appearance when refreshing a current chapter", () => {
+		const reader = open();
+		const observer = new MutationObserver(() => {});
+		observer.observe(container, { attributes: true, subtree: true });
+		reader.refreshPageContent([13]);
+		expect(observer.takeRecords().filter((record) => record.target !== port(13))).toHaveLength(0);
+		reader.refreshPageContent([16]);
+		expect(observer.takeRecords().some((record) => record.target === port(16))).toBe(true);
+		observer.disconnect();
+	});
+
 	it("prepares newly materialized covered chapters separately after the critical pose", () => {
 		const reader = open();
 		reader.refreshPageContent([16, 18]);

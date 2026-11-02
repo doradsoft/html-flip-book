@@ -18,8 +18,17 @@ concurrency:
 
 jobs:
   perf:
+    name: perf (${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: existing
+            scenarios: turn,turnHeavy,turnBounded,turnReact,turnReactPinned,turnReactHidden,scaling
+          - group: retained-content
+            scenarios: turnReactRetainedLeaf,turnReactRetainedPinned,turnReactRetainedHidden
     steps:
       - uses: actions/checkout@v7
         with:
@@ -60,6 +69,7 @@ jobs:
         run: bunx playwright install-deps chromium
 
       - name: Selfcheck (injected slowdown must be detected)
+        if: matrix.group == 'existing'
         run: bun run perf:selfcheck -- --out perf-results/selfcheck
 
       - name: Base vs candidate comparison
@@ -69,7 +79,7 @@ jobs:
         # Exit 1 (calibrated regression or harness error) still fails the job.
         run: |
           set +e
-          bun run perf -- --base origin/${{ github.base_ref }} --samples 8 --out perf-results/compare
+          bun run perf -- --base origin/${{ github.base_ref }} --scenario '${{ matrix.scenarios }}' --samples 8 --out perf-results/compare
           code=$?
           if [ "$code" -eq 2 ]; then
             echo "::warning::perf inconclusive — noise floor or sample budget not met; check the perf-results artifacts"
@@ -80,7 +90,7 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: perf-results
+          name: perf-results-${{ matrix.group }}
           path: perf-results/
           retention-days: 30
           if-no-files-found: ignore
