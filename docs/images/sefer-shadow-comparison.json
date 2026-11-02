@@ -1,0 +1,169 @@
+{
+	"before": "A47 runtime, registry alpha.102",
+	"after": "8def667 source, local alpha.103",
+	"limits": {
+		"changedPixels": 0,
+		"characterRectangleDeltaPx": 0.05
+	},
+	"images": [
+		{
+			"name": "125-hidden-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-hidden-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-hidden-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-leaf-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-leaf-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-leaf-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-pinned-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-pinned-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "125-pinned-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-hidden-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-hidden-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-hidden-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-leaf-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-leaf-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-leaf-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-pinned-angled-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-pinned-rest-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		},
+		{
+			"name": "300-pinned-straight-original.png",
+			"changedPixels": 0,
+			"totalChannelError": 0,
+			"width": 1440,
+			"height": 772
+		}
+	],
+	"characters": [
+		{
+			"name": "125-hidden-original-characters.json",
+			"count": 3243,
+			"maxDelta": 0
+		},
+		{
+			"name": "125-leaf-original-characters.json",
+			"count": 3243,
+			"maxDelta": 0
+		},
+		{
+			"name": "125-pinned-original-characters.json",
+			"count": 3243,
+			"maxDelta": 0
+		},
+		{
+			"name": "300-hidden-original-characters.json",
+			"count": 5319,
+			"maxDelta": 0
+		},
+		{
+			"name": "300-leaf-original-characters.json",
+			"count": 5319,
+			"maxDelta": 0
+		},
+		{
+			"name": "300-pinned-original-characters.json",
+			"count": 5319,
+			"maxDelta": 0
+		}
+	],
+	"pass": true
+}
