@@ -15,7 +15,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 			const host = document.createElement("div");
 			host.id = "retained-book";
 			host.style.cssText = "position:fixed;inset:20px;z-index:100000;background:white";
-			for (let index = 0; index < 24; index++) {
+			for (let index = 0; index < 40; index++) {
 				const surface = document.createElement("div");
 				surface.className = "page";
 				const port = document.createElement("div");
@@ -36,7 +36,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 			}
 			document.body.append(host);
 			const book = new FlipBook({
-				pagesCount: 24,
+				pagesCount: 40,
 				direction: readingDirection,
 				leavesBuffer: 0,
 				keepPageContentLayout: true,
@@ -65,6 +65,13 @@ for (const direction of ["ltr", "rtl"] as const) {
 		const before = await original.boundingBox();
 		await original.evaluate((element) => Reflect.set(window, "__retainedOriginal", element));
 		await page.evaluate(() => Reflect.get(window, "__retainedBook").jumpToPage(17));
+		// This chapter remains inside React's mount window after the turn.
+		const mountedPort = host.locator('[data-page-index="10"] > .flipbook-page-scrollport');
+		expect(
+			await mountedPort.evaluate((element) => (element as HTMLElement).style.contentVisibility),
+		).toBe("visible");
+		await expect(mountedPort).toHaveAttribute("inert", "");
+		await expect(mountedPort).toHaveAttribute("aria-hidden", "true");
 		await expect(dormant).not.toHaveAttribute("inert");
 		await expect(dormant).not.toHaveAttribute("aria-hidden");
 		expect(
@@ -77,7 +84,7 @@ for (const direction of ["ltr", "rtl"] as const) {
 		await retiredPort.evaluate((element) => {
 			element.scrollTop = 120;
 		});
-		await page.evaluate(() => Reflect.get(window, "__retainedBook").jumpToPage(23));
+		await page.evaluate(() => Reflect.get(window, "__retainedBook").jumpToPage(35));
 		expect(
 			await retiredPort.evaluate((element) => (element as HTMLElement).style.contentVisibility),
 		).toBe("hidden");

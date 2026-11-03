@@ -166,11 +166,11 @@ the outcome. CI uploads `perf-results/` with 30-day retention.
   retain the raw samples and investigate the measured path and calibration.
   Do not widen thresholds or repeat runs to select a passing result.
 
-## Consumer appearance evidence
+## Earlier queue and preview appearance evidence
 
 These are real captures from Bible on Site with the same full-content fixture.
 The before capture uses the full consumer build at library commit `bc115f3`;
-the after capture uses the current local library candidate. The complete held
+the after capture uses the local library candidate from that investigation. The complete held
 fold has zero changed pixels. All three bookmark modes also have zero changed
 page pixels at rest, during a held turn, and in both hover directions. These
 images document appearance; the reduced-route diagnostic build is not final
@@ -180,3 +180,54 @@ required before delivery.
 | Before | After |
 | --- | --- |
 | ![Reader before queue and preview changes](images/sefer-turn-lag/reader-before.png) | ![Reader after queue and preview changes](images/sefer-turn-lag/reader-after.png) |
+
+## Retained layout and moving-bookmark guard
+
+The engine must retain the layout of a chapter that the React adapter still
+mounts after a turn. The adapter's handoff margin, staged retiring leaf and
+one-leaf difference between window centers exceed the old two-leaf layout
+window. Discarding that layout at completion rebuilds a whole chapter near
+the next input. The retained window now covers that handoff and remains
+bounded; distant chapters are still culled and React still retires covered
+content incrementally.
+
+Moving bookmarks also have an independent work budget: capture the host once
+for the tab, its clipping rails and its caption, then use those coordinates
+through the turn. A new capture must measure the host again. Independent
+horizontal/vertical scaling and border offsets remain unchanged. Unit tests
+reproduce the old five host reads and the premature chapter-layout discard.
+
+The [full-reader measurements](performance/retained-reader-metrics.json)
+record all twelve chapter/bookmark/gesture scenarios before and after the
+fix, including failures. Each scenario starts in its own browser context;
+moving, pinned and hidden bookmarks are guarded independently. First turns
+and immediate consecutive turns have separate budgets so later smooth frames
+cannot hide the first pause. These are separate build qualifications, not
+interleaved evidence for a causal speedup factor.
+
+| Guard | Limit | Before | After |
+| --- | --- | --- | --- |
+| Windows scenario budgets | All 12 pass | 9 pass, 3 fail | 12 pass |
+| Worst response p95 | 200 ms | 112 ms | 121.1 ms |
+| Worst frame gap | 100 ms | 116.6 ms | 83.3 ms |
+| Worst first-turn frame-gap p95 | 50 ms | 50.1 ms | 49.9 ms |
+| Worst consecutive-turn frame-gap p95 | 50 ms | 50 ms | 50 ms |
+
+The Windows profile uses headed Chromium with 4x CPU throttling, native timers
+and no retries. Its thirteenth check detects an injected 250 ms second-turn
+stall. The complete Linux performance profile passes all 35 checks. The
+consumer uses the full fixture and all 20,504 routes, with 20,497 prerendered
+routes. The measurement file identifies both reader builds and the exact
+local library source; production delivery additionally requires the published
+package and its normal consumer build.
+
+All 24 resting/straight/angled appearance pairs have zero changed pixels;
+eight per-character geometry comparisons have zero movement. The screenshot
+fixture fixes only the displayed calendar date, preventing a Hebrew-date
+change at nightfall from changing tabs. Performance clocks and timers remain
+native, and timing tests use no clock override. These captures use the actual
+full reader builds without style or application-code overrides.
+
+| Before retained-layout fix | After retained-layout fix |
+| --- | --- |
+| ![Held angled turn before retained-layout fix](performance/retained-reader-before.png) | ![Same held angled turn after retained-layout fix](performance/retained-reader-after.png) |

@@ -15,6 +15,14 @@ interface BookmarkFace extends BookmarkTarget {
 	label: string;
 }
 
+interface BookmarkHostSpace {
+	box: DOMRect;
+	scaleX: number;
+	scaleY: number;
+	clientLeft: number;
+	clientTop: number;
+}
+
 export interface BookmarkMotionFaces {
 	activeFace: 0 | 1;
 	reverse?: HTMLElement;
@@ -147,12 +155,15 @@ export class BookmarkMotion {
 		page0: HTMLElement,
 		faces?: BookmarkMotionFaces,
 	): MovingBookmark {
-		const full = this.hostRectangle(button);
+		// All tab parts share this resting coordinate system. No live DOM is
+		// changed during capture, so measure the host only once for this turn.
+		const space = this.captureHostSpace();
+		const full = this.hostRectangle(button, space);
 		const onRight = this.sourceOnRight(button, frame, faces);
 		const rectangle = this.sheetRectangle(full, frame, page0, onRight);
-		const visible = this.exposedRectangle(button, full);
+		const visible = this.exposedRectangle(button, full, space);
 		const exposed = this.sheetRectangle(visible, frame, page0, onRight);
-		const caption = this.captureCaption(button, full, onRight, faces);
+		const caption = this.captureCaption(button, full, onRight, space, faces);
 		const placeholder = this.makePlaceholder(button, rectangle);
 		const visual = this.cloneVisual(button);
 		const storage = this.host.ownerDocument.createElement("div");
@@ -180,14 +191,15 @@ export class BookmarkMotion {
 	private exposedRectangle(
 		button: HTMLButtonElement,
 		full: BookmarkSheetRectangle,
+		space: BookmarkHostSpace,
 	): BookmarkSheetRectangle {
 		const slot = button.closest<HTMLElement>(".flipbook-bookmark-slot");
 		if (!slot) return full;
-		const boxes = [full, this.hostRectangle(slot)];
+		const boxes = [full, this.hostRectangle(slot, space)];
 		const group = slot.closest<HTMLElement>(".flipbook-bookmarks__leaf-rail");
-		if (group) boxes.push(this.hostRectangle(group));
+		if (group) boxes.push(this.hostRectangle(group, space));
 		const rail = slot.closest<HTMLElement>(".flipbook-bookmarks__rail");
-		if (rail) boxes.push(this.hostRectangle(rail));
+		if (rail) boxes.push(this.hostRectangle(rail, space));
 		const left = Math.max(...boxes.map((box) => box.left));
 		const top = Math.max(...boxes.map((box) => box.top));
 		const right = Math.min(...boxes.map((box) => box.left + box.width));
@@ -210,11 +222,12 @@ export class BookmarkMotion {
 		button: HTMLButtonElement,
 		full: BookmarkSheetRectangle,
 		onRight: boolean,
+		space: BookmarkHostSpace,
 		faces?: BookmarkMotionFaces,
 	): MovingBookmark["caption"] {
 		const brief = button.querySelector<HTMLElement>(".flipbook-bookmark__content");
 		if (!brief) return undefined;
-		const box = this.hostRectangle(brief);
+		const box = this.hostRectangle(brief, space);
 		const visible = box.width > 0 && box.height > 0 ? box : full;
 		const style = this.host.ownerDocument.defaultView?.getComputedStyle(button);
 		const borderLeft = Number.parseFloat(style?.borderLeftWidth ?? "") || 0;
@@ -326,16 +339,27 @@ export class BookmarkMotion {
 		faces.visualFace = face;
 	}
 
-	private hostRectangle(button: HTMLElement): BookmarkSheetRectangle {
-		const hostBox = this.host.getBoundingClientRect();
+	private captureHostSpace(): BookmarkHostSpace {
+		const box = this.host.getBoundingClientRect();
+		const width = this.host.clientWidth;
+		const height = this.host.clientHeight;
+		return {
+			box,
+			scaleX: width > 0 ? box.width / width || 1 : 1,
+			scaleY: height > 0 ? box.height / height || 1 : 1,
+			clientLeft: this.host.clientLeft,
+			clientTop: this.host.clientTop,
+		};
+	}
+
+	private hostRectangle(button: HTMLElement, space: BookmarkHostSpace): BookmarkSheetRectangle {
 		const box = button.getBoundingClientRect();
-		const scaleX = this.host.clientWidth > 0 ? hostBox.width / this.host.clientWidth || 1 : 1;
-		const scaleY = this.host.clientHeight > 0 ? hostBox.height / this.host.clientHeight || 1 : 1;
+		const { box: hostBox, scaleX, scaleY, clientLeft, clientTop } = space;
 		return {
 			width: box.width / scaleX,
 			height: box.height / scaleY,
-			left: (box.left - hostBox.left) / scaleX - this.host.clientLeft,
-			top: (box.top - hostBox.top) / scaleY - this.host.clientTop,
+			left: (box.left - hostBox.left) / scaleX - clientLeft,
+			top: (box.top - hostBox.top) / scaleY - clientTop,
 		};
 	}
 

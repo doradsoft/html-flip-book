@@ -115,18 +115,22 @@ describe("bookmark motion surfaces", () => {
 		host.remove();
 	});
 
-	it("converts a scaled book's physical tab rectangle back into page coordinates", () => {
-		const { host, page, button, motion, frame } = setup();
-		host.getBoundingClientRect = () => box(100, 50, 1600, 1200);
-		button.getBoundingClientRect = () => box(1700, 250, 72, 56);
-		motion.sync({ id: "chapter", pageIndex: 2 }, button, frame, page);
-		const surface = host.querySelector<HTMLElement>(".flipbook-bookmark-surface");
-		expect(surface?.style.width).toBe("36px");
-		expect(surface?.style.height).toBe("28px");
-		expect(surface?.style.transform).toContain("translate(400px, 100px)");
-		motion.destroy();
-		host.remove();
-	});
+	it.each([2, 3])(
+		"preserves tab coordinates with borders and independent scales (scaleY=%s)",
+		(scaleY) => {
+			const { host, page, button, motion, frame } = setup();
+			Object.defineProperties(host, { clientLeft: { value: 7 }, clientTop: { value: 5 } });
+			host.getBoundingClientRect = () => box(100, 50, 1600, 600 * scaleY);
+			button.getBoundingClientRect = () => box(1714, 50 + 105 * scaleY, 72, 28 * scaleY);
+			motion.sync({ id: "chapter", pageIndex: 2 }, button, frame, page);
+			const surface = host.querySelector<HTMLElement>(".flipbook-bookmark-surface");
+			expect(surface?.style.width).toBe("36px");
+			expect(surface?.style.height).toBe("28px");
+			expect(surface?.style.transform).toContain("translate(400px, 100px)");
+			motion.destroy();
+			host.remove();
+		},
+	);
 
 	it.each([true, false])(
 		"shows the actual back-face caption and click metadata (LTR=%s)",

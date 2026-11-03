@@ -86,17 +86,25 @@ describe("retained content layout", () => {
 		expect(pages[18].classList.contains("flipbook-layout-dormant")).toBe(true);
 	});
 
-	it("bounds retained layout and releases older text before its React host is removed", () => {
-		const reader = open();
+	it.each([0, 1])("retains the adapter's mounted chapter through a turn (buffer=%s)", (buffer) => {
+		const reader = open(buffer);
 		const original = port(10).firstChild;
 		expect(port(10).style.contentVisibility).toBe("visible");
-		expect(port(8).style.contentVisibility).toBe("hidden");
 		reader.jumpToPage(17);
 		expect(pages[10].isConnected).toBe(true);
 		expect(port(10).firstChild).toBe(original);
-		expect(port(10).style.contentVisibility).toBe("hidden");
+		// React still mounts this chapter around the new first visible page.
+		// Discarding its layout here makes the next turn rebuild a whole chapter.
+		expect(port(10).style.contentVisibility).toBe("visible");
+		expect(pages[10].style.display).not.toBe("none");
+		expect(port(10).hasAttribute("inert")).toBe(true);
+		expect(port(10).getAttribute("aria-hidden")).toBe("true");
+		expect(port(2).style.contentVisibility).toBe("hidden");
 		finishPreparation();
 		expect(port(20).style.contentVisibility).toBe("visible");
+		reader.jumpToPage(23);
+		expect(port(10).style.contentVisibility).toBe("hidden");
+		finishPreparation();
 	});
 
 	it("does not mutate unrelated page appearance when refreshing a current chapter", () => {
@@ -137,7 +145,7 @@ describe("retained content layout", () => {
 	it("does not prepare stale content after navigation reverses", () => {
 		const reader = open();
 		reader.refreshPageContent([16, 18]);
-		reader.jumpToPage(5);
+		reader.jumpToPage(1);
 		finishPreparation();
 		for (const index of [16, 18]) expect(port(index).style.contentVisibility).toBe("hidden");
 	});
