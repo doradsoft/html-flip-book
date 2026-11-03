@@ -231,3 +231,5 @@ full reader builds without style or application-code overrides.
 | Before retained-layout fix | After retained-layout fix |
 | --- | --- |
 | ![Held angled turn before retained-layout fix](performance/retained-reader-before.png) | ![Same held angled turn after retained-layout fix](performance/retained-reader-after.png) |
+
+See [bookmark material initialization](performance/detached-bookmark-setup.md) for the connected-style operation guard, paired consumer diagnostics and matching appearance captures.

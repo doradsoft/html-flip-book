@@ -438,11 +438,10 @@ export class BookmarkMotion {
 		for (let index = 0; index < surfaces.length; index++) {
 			const surface = surfaces[index];
 			let wrapper = item.surfaces[index];
+			const created = !wrapper;
 			if (!wrapper) {
 				wrapper = this.host.ownerDocument.createElement("div");
 				wrapper.setAttribute("data-flipbook-no-flip", "");
-				if (page0.parentElement === this.host) this.host.insertBefore(wrapper, page0);
-				else this.host.append(wrapper);
 				item.surfaces.push(wrapper);
 			}
 			writeHidden(wrapper, false);
@@ -478,8 +477,14 @@ export class BookmarkMotion {
 			const content = index === 0 ? item.button : item.visual;
 			if (index === 0) this.showFace(item, surface.face);
 			else this.showVisualFace(item, surface.face);
-			this.placeContent(item, content, frame, surface.face);
 			if (content.parentElement !== wrapper) wrapper.append(content);
+			this.placeContent(item, content, frame, surface.face);
+			// Prepare the first pose before connecting it. Styling an attached
+			// surface or its reparented tab repeatedly invalidates the live book.
+			if (created) {
+				if (page0.parentElement === this.host) this.host.insertBefore(wrapper, page0);
+				else this.host.append(wrapper);
+			}
 		}
 		for (const surface of item.surfaces.slice(surfaces.length)) {
 			writeHidden(surface, true);
