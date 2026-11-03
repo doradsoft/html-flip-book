@@ -920,6 +920,11 @@ class FlipBook {
 		// Keep opaque paper boxes even when their covered content is dormant.
 		// Removing the boxes changes the antialiased edge of the paper stack.
 		const paperBuffer = Math.max(1, this.leavesBuffer);
+		// React mounts a handoff margin (three leaves for buffer zero, two
+		// otherwise), plus one retiring leaf. Its window centers on the last
+		// turned face, one leaf behind this first unturned leaf. Retain that
+		// bounded window so completing a turn cannot discard mounted text layout.
+		const contentBuffer = this.leavesBuffer + (this.leavesBuffer === 0 ? 3 : 2) + 2;
 		const bufferStart = Math.max(0, currentLeafIndex - paperBuffer);
 		const bufferEnd = Math.min(leavesCount - 1, currentLeafIndex + paperBuffer);
 
@@ -980,9 +985,7 @@ class FlipBook {
 			const visible = isCoverLeaf || isWithinBuffer || isFlipping;
 			const retainLayout =
 				this.keepPageContentLayout &&
-				(isCoverLeaf ||
-					isFlipping ||
-					Math.abs(i - currentLeafIndex) <= Math.max(2, this.leavesBuffer));
+				(isCoverLeaf || isFlipping || Math.abs(i - currentLeafIndex) <= contentBuffer);
 
 			// Update both pages of the leaf
 			for (const page of leaf.pages) {

@@ -4,6 +4,37 @@ import { computePageFoldFromPoint } from "../page-fold";
 import { box, dualFaces, setup } from "./bookmark-motion-fixture";
 
 describe("bookmark motion frame work", () => {
+	it("measures the host once for all clipped tab parts and refreshes it for the next turn", () => {
+		const { host, page, rail, button, motion, frame } = setup();
+		const slot = document.createElement("div");
+		slot.className = "flipbook-bookmark-slot";
+		const group = document.createElement("div");
+		group.className = "flipbook-bookmarks__leaf-rail";
+		rail.className = "flipbook-bookmarks__rail";
+		rail.append(group);
+		group.append(slot);
+		slot.append(button);
+		for (const element of [slot, group, rail]) {
+			element.getBoundingClientRect = () => box(800, 100, 36, 28);
+		}
+		const bounds = vi.spyOn(host, "getBoundingClientRect");
+		const bookmark = { id: "chapter", pageIndex: 2 };
+		try {
+			motion.prepare(bookmark, button, frame, page);
+			expect(bounds).toHaveBeenCalledTimes(1);
+			motion.sync(bookmark, button, frame, page);
+			expect(bounds).toHaveBeenCalledTimes(1);
+			expect(host.querySelector(".flipbook-bookmark-surface")).not.toBeNull();
+			motion.restoreAll();
+			motion.prepare(bookmark, button, frame, page);
+			expect(bounds).toHaveBeenCalledTimes(2);
+		} finally {
+			bounds.mockRestore();
+			motion.destroy();
+			host.remove();
+		}
+	});
+
 	it("updates moving geometry without rechecking static tab styles on every frame", () => {
 		const { host, page, button, motion, frame } = setup();
 		const bookmark = { id: "chapter", pageIndex: 2 };
