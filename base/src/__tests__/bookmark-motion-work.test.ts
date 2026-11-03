@@ -1,9 +1,39 @@
 import { describe, expect, it, vi } from "vitest";
+import * as bookmarkDom from "../bookmark-dom";
 import { computePageFoldFromPoint } from "../page-fold";
 
 import { box, dualFaces, setup } from "./bookmark-motion-fixture";
 
 describe("bookmark motion frame work", () => {
+	it.each([true, false])(
+		"keeps initial material style changes off the connected book (LTR=%s)",
+		(isLTR) => {
+			const { host, page, button, motion, frame } = setup(isLTR);
+			const faces = dualFaces(host, button);
+			const bookmark = { id: "chapter", pageIndex: 2 };
+			expect(host.isConnected).toBe(true);
+			motion.prepare(bookmark, button, frame, page, faces);
+			const connected: string[] = [];
+			const writeStyle = bookmarkDom.writeStyle;
+			const writes = vi
+				.spyOn(bookmarkDom, "writeStyle")
+				.mockImplementation((element, name, value) => {
+					if (element.isConnected && element.style.getPropertyValue(name) !== value)
+						connected.push(name);
+					writeStyle(element, name, value);
+				});
+			try {
+				motion.sync(bookmark, button, frame, page, "", faces);
+				expect(host.querySelectorAll(".flipbook-bookmark-surface").length).toBeGreaterThan(0);
+				expect(connected).toEqual([]);
+			} finally {
+				writes.mockRestore();
+				motion.destroy();
+				host.remove();
+			}
+		},
+	);
+
 	it("measures the host once for all clipped tab parts and refreshes it for the next turn", () => {
 		const { host, page, rail, button, motion, frame } = setup();
 		const slot = document.createElement("div");

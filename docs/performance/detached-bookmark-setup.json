@@ -1,0 +1,472 @@
+{
+	"kind": "Source-equivalent consumer diagnostic; published-package qualification is separate",
+	"time": "2026-11-03T20:58:09.7633276Z",
+	"consumerSource": "d183fd81cf639accb6f54ea06a6097cc619bf06d",
+	"consumerBuild": "7Z62MieU1DXNgh7-RQ3In",
+	"consumerBasePackage": "0.0.0-alpha.105",
+	"candidateSourceFile": "base/src/bookmark-motion.ts",
+	"candidateSourceSha256": "b23cefa5d3399f372f321a7bc1df2c375088e67216df9e890b171f61de6813bb",
+	"prototypeByteBinding": {
+		"kind": "Diagnostic source-equivalent detached bookmark setup; source83 focused tests pass,2 new connected-write guards fail before. Actual source build and qualification required.",
+		"controlSha256": "604a15ac2cdf365519fd8dbfb939a3f949d037f02a623bef53c72a5a8a816e41",
+		"candidateSha256": "3d90f886b161ff2eab99019a0b94f2eab968b67cf4c4bde0cced357be6881c9a",
+		"edits": [
+			["let c=o[p],u=t.surfaces[p];", "let c=o[p],u=t.surfaces[p],newSurface=!u;"],
+			[
+				"n.parentElement===this.host?this.host.insertBefore(u,n):this.host.append(u),t.surfaces.push(u)",
+				"t.surfaces.push(u)"
+			],
+			[
+				"this.placeContent(t,f,i,c.face),f.parentElement!==u&&u.append(f)",
+				"f.parentElement!==u&&u.append(f),this.placeContent(t,f,i,c.face),newSurface&&(n.parentElement===this.host?this.host.insertBefore(u,n):this.host.append(u))"
+			]
+		]
+	},
+	"profile": "Full Chromium 156, Linux software rendering, 1440x900, original4x CPU slowdown, one worker, native clocks, zero retries",
+	"limits": {
+		"responseP95Ms": 200,
+		"frameGapMaxMs": 100,
+		"frameGapP95Ms": 50
+	},
+	"operationGuard": {
+		"firstSetupConnectedStyleWrites": 0,
+		"directions": ["ltr", "rtl"],
+		"beforeFailingTests": 2
+	},
+	"sourceValidation": {
+		"unitPassed": 868,
+		"browserPassed": 56,
+		"browserSkipped": 6,
+		"browserRetries": 0,
+		"buildPassed": true
+	},
+	"appearance": {
+		"matchedLinuxPairs": 24,
+		"changedPixels": 0,
+		"characterComparisons": 8,
+		"maximumCharacterDelta": 0
+	},
+	"timingConclusion": "All 20 paired cases passed; no consistent timing speedup established by this diagnostic",
+	"cases": [
+		{
+			"case": "candidate-1-125-leaf-drag.json",
+			"metrics": {
+				"responseMs": [105.4, 48.3, 69.3, 54.9, 69.3, 51.4],
+				"responseP95Ms": 105.4,
+				"responseMaxMs": 105.4,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 105.4,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 69.3,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-1-125-leaf-toolbar.json",
+			"metrics": {
+				"responseMs": [56.3, 56.6, 35.4, 35.3, 38.7, 39.6],
+				"responseP95Ms": 56.6,
+				"responseMaxMs": 56.6,
+				"frameGapMaxMs": 66.7,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 56.3,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 56.6,
+					"frameGapMaxMs": 66.7,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-1-125-pinned-drag.json",
+			"metrics": {
+				"responseMs": [79.4, 54.7, 71.2, 59.8, 62.1, 67],
+				"responseP95Ms": 79.4,
+				"responseMaxMs": 79.4,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 49.9,
+				"firstTurn": {
+					"responseP95Ms": 79.4,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 71.2,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 49.9
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-1-300-leaf-drag.json",
+			"metrics": {
+				"responseMs": [81.7, 57.1, 48.8, 55.5, 83.6, 50.9],
+				"responseP95Ms": 83.6,
+				"responseMaxMs": 83.6,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 81.7,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 83.6,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-1-300-pinned-drag.json",
+			"metrics": {
+				"responseMs": [59.4, 66.9, 80.1, 51.8, 46.4, 55.7],
+				"responseP95Ms": 80.1,
+				"responseMaxMs": 80.1,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 59.4,
+					"frameGapMaxMs": 49.9,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 80.1,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-2-125-leaf-drag.json",
+			"metrics": {
+				"responseMs": [101.6, 60.6, 76.9, 70.4, 62.8, 96.7],
+				"responseP95Ms": 101.6,
+				"responseMaxMs": 101.6,
+				"frameGapMaxMs": 83.3,
+				"frameGapP95Ms": 50,
+				"firstTurn": {
+					"responseP95Ms": 101.6,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.5
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 96.7,
+					"frameGapMaxMs": 83.3,
+					"frameGapP95Ms": 50
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-2-125-leaf-toolbar.json",
+			"metrics": {
+				"responseMs": [47.9, 51.9, 45.2, 50.4, 49.4, 54.2],
+				"responseP95Ms": 54.2,
+				"responseMaxMs": 54.2,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 47.9,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 54.2,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-2-125-pinned-drag.json",
+			"metrics": {
+				"responseMs": [86.4, 57.6, 56.2, 64.2, 67.2, 56.9],
+				"responseP95Ms": 86.4,
+				"responseMaxMs": 86.4,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 49.9,
+				"firstTurn": {
+					"responseP95Ms": 86.4,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 67.2,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 50
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-2-300-leaf-drag.json",
+			"metrics": {
+				"responseMs": [72.9, 49.8, 48.7, 56.1, 52.2, 65.3],
+				"responseP95Ms": 72.9,
+				"responseMaxMs": 72.9,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.5,
+				"firstTurn": {
+					"responseP95Ms": 72.9,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 65.3,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.5
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "candidate-2-300-pinned-drag.json",
+			"metrics": {
+				"responseMs": [95.1, 60.9, 46.6, 54.4, 47.8, 55.6],
+				"responseP95Ms": 95.1,
+				"responseMaxMs": 95.1,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 95.1,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 60.9,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-after-125-leaf-drag.json",
+			"metrics": {
+				"responseMs": [87.5, 56.1, 53.3, 66.2, 54.7, 56.6],
+				"responseP95Ms": 87.5,
+				"responseMaxMs": 87.5,
+				"frameGapMaxMs": 66.7,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 87.5,
+					"frameGapMaxMs": 66.7,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 66.2,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-after-125-leaf-toolbar.json",
+			"metrics": {
+				"responseMs": [48.1, 34, 47.4, 29.7, 57.2, 30.9],
+				"responseP95Ms": 57.2,
+				"responseMaxMs": 57.2,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.5,
+				"firstTurn": {
+					"responseP95Ms": 48.1,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 57.2,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 49.9
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-after-125-pinned-drag.json",
+			"metrics": {
+				"responseMs": [84.7, 49.5, 49.6, 58.3, 53.4, 58.2],
+				"responseP95Ms": 84.7,
+				"responseMaxMs": 84.7,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 84.7,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 58.3,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-after-300-leaf-drag.json",
+			"metrics": {
+				"responseMs": [53.2, 61.1, 59.9, 50.7, 48.8, 54.6],
+				"responseP95Ms": 61.1,
+				"responseMaxMs": 61.1,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 53.2,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 61.1,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.5
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-after-300-pinned-drag.json",
+			"metrics": {
+				"responseMs": [65.4, 50, 79.6, 56.6, 52.2, 53.5],
+				"responseP95Ms": 79.6,
+				"responseMaxMs": 79.6,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 65.4,
+					"frameGapMaxMs": 33.3,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 79.6,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-before-125-leaf-drag.json",
+			"metrics": {
+				"responseMs": [68.5, 55.9, 54.1, 54, 60, 58.4],
+				"responseP95Ms": 68.5,
+				"responseMaxMs": 68.5,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 68.5,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 50
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 60,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-before-125-leaf-toolbar.json",
+			"metrics": {
+				"responseMs": [41.9, 32.1, 30.5, 50.7, 48.3, 51.3],
+				"responseP95Ms": 51.3,
+				"responseMaxMs": 51.3,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 41.9,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 51.3,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-before-125-pinned-drag.json",
+			"metrics": {
+				"responseMs": [98.8, 52.1, 66.6, 51.9, 55.5, 53.3],
+				"responseP95Ms": 98.8,
+				"responseMaxMs": 98.8,
+				"frameGapMaxMs": 66.7,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 98.8,
+					"frameGapMaxMs": 66.7,
+					"frameGapP95Ms": 50
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 66.6,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-before-300-leaf-drag.json",
+			"metrics": {
+				"responseMs": [79.3, 52.2, 103.2, 55.9, 82.5, 59.3],
+				"responseP95Ms": 103.2,
+				"responseMaxMs": 103.2,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 79.3,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 103.2,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		},
+		{
+			"case": "control-before-300-pinned-drag.json",
+			"metrics": {
+				"responseMs": [98.9, 43.3, 81.4, 51.4, 44.9, 47.7],
+				"responseP95Ms": 98.9,
+				"responseMaxMs": 98.9,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 98.9,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 81.4,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"failures": []
+		}
+	]
+}
