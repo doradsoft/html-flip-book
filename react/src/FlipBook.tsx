@@ -571,10 +571,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			if (leavesBuffer == null) return;
 			if (active) {
 				activeLeavesRef.current.add(index);
-				if (pageMountFrameRef.current !== undefined) {
-					cancelAnimationFrame(pageMountFrameRef.current);
-					pageMountFrameRef.current = undefined;
-				}
 				// A drag starts before its release animation. Hold buffer work for
 				// that entire interval, without reconciling already mounted pages.
 				retainFlippingLeaf(index);
@@ -584,7 +580,6 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					// A cancelled drag has no page-change event, but must still retire
 					// retained material and finish any previously pending recenter.
 					onPageChangedRef.current(flipBook.currentPageIndex);
-					resumePageMountRef.current?.();
 				}
 			}
 		};
@@ -823,7 +818,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			const materialize = () => {
 				if (disposed) return;
 				pageMountFrameRef.current = undefined;
-				if (pointerHeldRef.current || activeLeavesRef.current.size > 0) return;
+				if (pointerHeldRef.current) return;
 				const release = flipBook.holdPreparedPageContent();
 				if (!release) {
 					waitForPreparation();
@@ -837,20 +832,13 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				startTransition(() => setInflightVersion((v) => v + 1));
 			};
 			const resume = () => {
-				if (
-					disposed ||
-					pointerHeldRef.current ||
-					activeLeavesRef.current.size > 0 ||
-					pageMountFrameRef.current !== undefined
-				)
-					return;
+				if (disposed || pointerHeldRef.current || pageMountFrameRef.current !== undefined) return;
 				// A fresh barrier after input release lets the paper pose paint before
-				// covered mounting or retirement invalidates a chapter tree. Release
-				// animations and toolbar turns keep the same hold until they settle.
+				// covered mounting or retirement invalidates a chapter tree.
 				pageMountFrameRef.current = requestAnimationFrame(() => {
 					if (disposed) return;
 					pageMountFrameRef.current = undefined;
-					if (pointerHeldRef.current || activeLeavesRef.current.size > 0) return;
+					if (pointerHeldRef.current) return;
 					pageMountFrameRef.current = requestAnimationFrame(materialize);
 				});
 			};

@@ -406,7 +406,10 @@ export class BookmarkLayer {
 		stackItems?: ReadonlySet<string>,
 	): void {
 		const key = JSON.stringify([
-			bounds,
+			bounds.left,
+			bounds.top,
+			bounds.width,
+			bounds.height,
 			depth,
 			length,
 			preferredStep,
