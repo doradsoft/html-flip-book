@@ -104,6 +104,7 @@ class FlipBook {
 	private bookmarkClearance = "";
 	private readonly leavesBuffer?: number;
 	private readonly keepPageContentLayout: boolean;
+	private previousVisibilityLeaves: Set<number> | undefined;
 	private manualPoseFrame: number | undefined;
 	private pendingManualPose:
 		| { event: HammerInput; fromBookmark: boolean; state: FlipState }
@@ -678,6 +679,7 @@ class FlipBook {
 			page.addEventListener("selectstart", this.handlePageSelectStart, true);
 		}
 		this.leaves.splice(0, this.leaves.length);
+		this.previousVisibilityLeaves = undefined;
 		const leavesCount = Math.ceil(this.pagesCount / 2);
 
 		// Determine which specific pages are cover exteriors (use coverSize).
@@ -904,7 +906,7 @@ class FlipBook {
 	 * Update visibility of leaves based on the buffer setting.
 	 * Leaves outside the buffer range are hidden for performance.
 	 */
-	private updateLeavesBufferVisibility(): void {
+	private updateLeavesBufferVisibility(refreshedLeaves?: ReadonlySet<number>): void {
 		if (this.leavesBuffer === undefined) {
 			return; // No buffer - all leaves stay visible
 		}
@@ -948,8 +950,10 @@ class FlipBook {
 		};
 		for (const index of this.prevVisiblePageIndices ?? [0, 1]) expose(index);
 		const requiredContent = new Set(this.prevVisiblePageIndices ?? [0, 1]);
+		const nextVisibilityLeaves = this.keepPageContentLayout ? new Set<number>() : undefined;
 		for (const leaf of this.leaves) {
 			if (this.activeFlips.has(leaf.index) || leaf.isFlipping) {
+				nextVisibilityLeaves?.add(leaf.index);
 				expose(leaf.index * 2);
 				expose(leaf.index * 2 + 1);
 				// Both moving faces and their immediate underlays must be ready
@@ -964,14 +968,41 @@ class FlipBook {
 				requiredContent.add(this.hoveredLeaf.index * 2 + offset);
 			}
 		}
+		let leavesToUpdate: Iterable<number> = this.leaves.keys();
+		if (nextVisibilityLeaves) {
+			const include = (index: number) => {
+				if (Number.isInteger(index) && index >= 0 && index < leavesCount)
+					nextVisibilityLeaves.add(index);
+			};
+			for (const index of coverLeafIndices) include(index);
+			const radius = Math.max(paperBuffer, contentBuffer);
+			for (
+				let index = Math.max(0, Math.ceil(currentLeafIndex - radius));
+				index <= Math.min(leavesCount - 1, currentLeafIndex + radius);
+				index++
+			)
+				include(index);
+			for (const page of exposedContent) include(Math.floor(page / 2));
+			for (const page of requiredContent) include(Math.floor(page / 2));
+			if (this.previousVisibilityLeaves) {
+				// Distant pages remain hidden after the initial pass. Revisit the
+				// previous window to retire it, the new window to expose it, and
+				// any slots the consumer explicitly replaced. Preserve preparation
+				// order without reading styles on every page in a large book.
+				const changed = new Set([...this.previousVisibilityLeaves, ...nextVisibilityLeaves]);
+				for (const index of refreshedLeaves ?? []) {
+					if (Number.isInteger(index) && index >= 0 && index < leavesCount) changed.add(index);
+				}
+				leavesToUpdate = [...changed].sort((left, right) => left - right);
+			}
+		}
 		this.pendingContentPreparation.clear();
 		const canPrepareLater =
 			this.bufferContentInitialized &&
 			typeof requestAnimationFrame === "function" &&
 			typeof cancelAnimationFrame === "function";
 
-		// Update visibility of all leaves
-		for (let i = 0; i < leavesCount; i++) {
+		for (const i of leavesToUpdate) {
 			const leaf = this.leaves[i];
 			const isWithinBuffer = i >= bufferStart && i <= bufferEnd;
 			const isCoverLeaf = coverLeafIndices.has(i);
@@ -1054,6 +1085,7 @@ class FlipBook {
 				}
 			}
 		}
+		this.previousVisibilityLeaves = nextVisibilityLeaves;
 		this.bufferContentInitialized = true;
 		this.scheduleContentPreparation();
 	}
@@ -1061,18 +1093,19 @@ class FlipBook {
 	/** Notify the engine after replacing or materializing the content of page slots. */
 	refreshPageContent(pageIndices: readonly number[]): void {
 		if (!this.keepPageContentLayout || !this.bookElement || pageIndices.length === 0) return;
+		const refreshedLeaves = new Set<number>();
 		for (const index of pageIndices) {
-			const scrollport = this.pageElements[index]?.firstElementChild as
-				| HTMLElement
-				| null
-				| undefined;
+			const page = this.pageElements[index];
+			if (!page) continue;
+			refreshedLeaves.add(Math.floor(index / 2));
+			const scrollport = page.firstElementChild as HTMLElement | null;
 			if (scrollport?.classList.contains("flipbook-page-scrollport")) {
 				this.preparedContent.delete(scrollport);
 				if (scrollport.style.contentVisibility !== "hidden")
 					scrollport.style.contentVisibility = "hidden";
 			}
 		}
-		this.updateLeavesBufferVisibility();
+		this.updateLeavesBufferVisibility(refreshedLeaves);
 	}
 
 	/** Run once covered layout settles or is cancelled; returns a listener cleanup. */
@@ -1203,12 +1236,24 @@ class FlipBook {
 			this.cancelContentPreparation();
 			return;
 		}
-		if (this.preparationPointerHeld || this.contentPreparationFrame !== undefined) return;
+		// Required faces are already ready. Optional layout must not compete
+		// with programmatic or release animations after the pointer is lifted.
+		if (
+			this.preparationPointerHeld ||
+			this.activeFlips.size > 0 ||
+			this.contentPreparationFrame !== undefined
+		)
+			return;
 		const generation = this.contentPreparationGeneration;
 		const prepare = () => {
 			if (generation !== this.contentPreparationGeneration) return;
 			this.contentPreparationFrame = undefined;
-			if (this.preparationPointerHeld || this.contentPreparationHolds.size > 0) return;
+			if (
+				this.preparationPointerHeld ||
+				this.activeFlips.size > 0 ||
+				this.contentPreparationHolds.size > 0
+			)
+				return;
 			const content = this.pendingContentPreparation.values().next().value;
 			if (content) {
 				this.pendingContentPreparation.delete(content);
@@ -1587,6 +1632,7 @@ class FlipBook {
 				this.pendingFlipStartingPos = 0;
 				this.pendingFlipStartingY = undefined;
 				this.isDragging = false;
+				this.scheduleContentPreparation();
 				return;
 		}
 
@@ -1609,6 +1655,7 @@ class FlipBook {
 			// the snapshot stays active until this final endFlip() zeroes it.
 			flipState.leaf.endFlip();
 			this.activeFlips.delete(flipState.leaf.index);
+			this.scheduleContentPreparation();
 		});
 	}
 
@@ -1890,6 +1937,7 @@ class FlipBook {
 		} finally {
 			this.activeFlips.delete(leaf.index);
 			leaf.endFlip();
+			this.scheduleContentPreparation();
 		}
 	}
 
@@ -1926,6 +1974,7 @@ class FlipBook {
 		} finally {
 			this.activeFlips.delete(leaf.index);
 			leaf.endFlip();
+			this.scheduleContentPreparation();
 		}
 	}
 

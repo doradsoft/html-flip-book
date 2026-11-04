@@ -60,6 +60,54 @@ describe("Leaf", () => {
 	});
 
 	describe("constructor", () => {
+		it("keeps stable paper styles untouched while the fold advances", () => {
+			for (const page of [mockPage1, mockPage2]) {
+				page.style.width = "320px";
+				page.style.height = "480px";
+			}
+			const leaf = new Leaf(
+				1,
+				[mockPage1, mockPage2],
+				NOT_FLIPPED,
+				defaultBookProperties,
+				onTurnedMock,
+			);
+			leaf.applyTransform(0.25);
+			const clip = mockPage1.style.clipPath;
+			const writes: { side: number; property: PropertyKey }[] = [];
+			for (const [side, page] of [mockPage1, mockPage2].entries()) {
+				const style = page.style;
+				const observed = new Proxy(style, {
+					get(target, property) {
+						const value = Reflect.get(target, property, target);
+						return typeof value === "function" ? value.bind(target) : value;
+					},
+					set(target, property, value) {
+						writes.push({ side, property });
+						return Reflect.set(target, property, value, target);
+					},
+				});
+				Object.defineProperty(page, "style", { configurable: true, get: () => observed });
+			}
+			try {
+				leaf.applyTransform(0.3);
+				expect(
+					writes.filter(
+						({ side, property }) =>
+							property === "transformOrigin" ||
+							property === "zIndex" ||
+							(side === 0 && property === "transform"),
+					),
+				).toEqual([]);
+				expect(mockPage1.style.clipPath).not.toBe(clip);
+				writes.length = 0;
+				leaf.applyTransform(0.6);
+				expect(writes.filter(({ property }) => property === "zIndex")).toHaveLength(2);
+			} finally {
+				for (const page of [mockPage1, mockPage2]) Reflect.deleteProperty(page, "style");
+			}
+		});
+
 		it("keeps paper shading immediate through folding and settlement, but preserves rigid shading", () => {
 			for (const page of [mockPage1, mockPage2]) {
 				page.style.width = "320px";

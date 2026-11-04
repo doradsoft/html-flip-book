@@ -500,22 +500,23 @@ export class Leaf {
 				y: point.y,
 			}));
 			if (!page.classList.contains("page--folded")) page.classList.add("page--folded");
-			page.style.transformOrigin = "0px 0px";
-			page.style.transform = front
+			const style = page.style;
+			// Keep stable paper properties untouched while its clip and crease move.
+			// Rewriting the origin, stationary face or stack order creates needless
+			// style-attribute mutations throughout every drag and animation frame.
+			if (style.transformOrigin !== "0px 0px") style.transformOrigin = "0px 0px";
+			const transform = front
 				? `translateX(${offsetX}px)`
 				: isLTR
 					? `matrix(${-a}, ${-b}, ${c}, ${d}, ${offsetX + a * width + tx}, ${b * width + ty})`
 					: `matrix(${-a}, ${b}, ${-c}, ${d}, ${offsetX + width - tx}, ${ty})`;
-			page.style.clipPath =
+			if (style.transform !== transform) style.transform = transform;
+			style.clipPath =
 				polygon.length < 3
 					? "polygon(0px 0px, 0px 0px, 0px 0px)"
 					: `polygon(${polygon.map((point) => `${point.x.toFixed(3)}px ${point.y.toFixed(3)}px`).join(", ")})`;
-			page.style.zIndex = this.getSurfaceZIndex(
-				page,
-				position,
-				backwardPreview ? 1 - side : side,
-				true,
-			);
+			const zIndex = this.getSurfaceZIndex(page, position, backwardPreview ? 1 - side : side, true);
+			if (style.zIndex !== zIndex) style.zIndex = zIndex;
 			if (this.bookProperties.pageShadow) {
 				this.applyCreaseShading(
 					page,
