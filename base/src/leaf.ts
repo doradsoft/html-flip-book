@@ -375,7 +375,8 @@ export class Leaf {
 		this.pages.forEach((page, index) => {
 			const isLTR = this.bookProperties.isLTR;
 			if (!page) return;
-			if (page.classList.contains("page--folded")) page.classList.remove("page--folded");
+			if (page.classList.contains("page--folded"))
+				page.classList.remove("page--folded", "page--angled-back");
 			page.style.clipPath = "";
 			page.style.removeProperty("--fold-shading");
 
@@ -499,7 +500,14 @@ export class Leaf {
 				x: mirror ? width - point.x : point.x,
 				y: point.y,
 			}));
-			if (!page.classList.contains("page--folded")) page.classList.add("page--folded");
+			// Consumers can isolate this already rotated content without matching
+			// the animated style attribute or changing straight-face rasterization.
+			const angledBack = !front && b !== 0;
+			if (!page.classList.contains("page--folded")) {
+				if (angledBack) page.classList.add("page--folded", "page--angled-back");
+				else page.classList.add("page--folded");
+			} else if (page.classList.contains("page--angled-back") !== angledBack)
+				page.classList.toggle("page--angled-back", angledBack);
 			const style = page.style;
 			// Keep stable paper properties untouched while its clip and crease move.
 			// Rewriting the origin, stationary face or stack order creates needless

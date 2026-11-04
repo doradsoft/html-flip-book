@@ -550,6 +550,33 @@ describe("Leaf", () => {
 			};
 		};
 
+		it.each([true, false])(
+			"marks the oblique back face through straight, resting and reverse poses for isLTR=%s",
+			(isLTR) => {
+				const leaf = createPaperLeaf(isLTR);
+				const angledFaces = () =>
+					leaf.pages.filter((page) => page?.classList.contains("page--angled-back"));
+				leaf.setManualFold({ x: 0.2, y: 0.7 });
+				expect(angledFaces()).toEqual([mockPage2]);
+
+				const writes = vi.spyOn(mockPage2.classList, "toggle");
+				leaf.setManualFold({ x: 0.1, y: 0.7 });
+				leaf.setManualFold({ x: 0.05, y: 0.8 });
+				expect(writes.mock.calls.filter(([name]) => name === "page--angled-back")).toHaveLength(0);
+
+				leaf.setManualFold({ x: 0.1, y: 1 });
+				expect(angledFaces()).toEqual([]);
+				leaf.setManualFold({ x: 0.2, y: 0.7 });
+				expect(angledFaces()).toEqual([mockPage2]);
+				leaf.setManualPosition(1 as FlipPosition);
+				expect(angledFaces()).toEqual([]);
+				leaf.setHoverShadow(0.5);
+				expect(angledFaces()).toEqual([mockPage1]);
+				leaf.setHoverShadow(0);
+				expect(angledFaces()).toEqual([]);
+			},
+		);
+
 		it("calculates a single crease and reflection per manual pointer sample", () => {
 			const leaf = createPaperLeaf();
 			const calculate = vi.spyOn(pageFold, "computePageFoldFromPoint");
