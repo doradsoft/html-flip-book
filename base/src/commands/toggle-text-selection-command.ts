@@ -11,6 +11,8 @@ export const toggleTextSelectionCommand: ToggleCommandDefinition = {
 	isActive: (ctx) => ctx.handle?.getMouseMode?.() === "select",
 	setActive: (ctx, active) => {
 		if (!ctx.handle?.setMouseMode) return false;
+		// Disabling native selection would prevent browser shortcuts from copying it.
+		if (ctx.transient && !active && window.getSelection()?.isCollapsed === false) return false;
 		const mode = active ? "select" : "turn";
 		if (ctx.transient) ctx.handle.setMouseMode(mode, { persist: false });
 		else ctx.handle.setMouseMode(mode);

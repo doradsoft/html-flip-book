@@ -2,6 +2,30 @@ import { expect, test } from "./fixtures/coverage-test";
 
 for (const direction of ["ltr", "rtl"] as const) {
 	for (const example of ["hold-hotkeys", "comprehensive"]) {
+		test(`${direction} ${example} copies selected text with Ctrl+C`, async ({ page, context }) => {
+			await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+			await page.goto(`/?example=${direction}-${example}&test-initialTurnedLeaves=0,1`);
+			const book = page.locator(`.${direction === "ltr" ? "en" : "he"}-book.flipbook`);
+			const button = page.locator(".flipbook-toolbar-mouse-mode");
+			await expect(button).toBeVisible();
+			await expect(button).toBeEnabled();
+			if ((await button.getAttribute("aria-pressed")) !== "true") await button.click();
+			await expect(book).toHaveClass(/flipbook--select-text/);
+			await page.evaluate(() => navigator.clipboard.writeText(""));
+			const content = direction === "ltr" ? ".en-page p" : ".bible-content";
+			await book.locator(`.current-page ${content}`).first().dblclick();
+			const selectedText = await page.evaluate(() => window.getSelection()?.toString());
+			expect(selectedText?.length).toBeGreaterThan(0);
+			await page.keyboard.press("Control+c");
+			await expect
+				.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+				.toBe(selectedText);
+			expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(selectedText);
+			await expect(button).toHaveAttribute("aria-pressed", "true");
+			await expect(button).toBeEnabled();
+			await expect(book).toHaveClass(/flipbook--select-text/);
+		});
+
 		test(`${direction} ${example} temporarily disables text selection while Ctrl is held`, async ({
 			page,
 		}) => {
