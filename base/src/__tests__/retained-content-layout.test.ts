@@ -196,7 +196,7 @@ describe("retained content layout", () => {
 						finish = resolve;
 					}),
 			);
-			const turning = reader[method]();
+			const turning = method === "flipNext" ? reader.flipNext() : reader.flipPrev();
 			reader.refreshPageContent([18]);
 			const ready = vi.fn();
 			reader.onPageContentPrepared(ready);
