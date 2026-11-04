@@ -178,6 +178,56 @@ describe("FlipBook", () => {
 	});
 
 	describe("native content dragging", () => {
+		it.each(["mousedown", "pointerdown"])(
+			"keeps existing text on a mode change, then clears it on %s",
+			(type) => {
+				const pages = createPages(4);
+				pages[0].textContent = "Existing selection";
+				const book = new FlipBook({ pagesCount: 4, mouseMode: "select" });
+				book.render(container);
+				const selection = window.getSelection();
+				const range = document.createRange();
+				range.selectNodeContents(pages[0]);
+				selection?.addRange(range);
+				book.setMouseMode("turn");
+				expect(book.getMouseMode()).toBe("turn");
+				expect(selection?.toString()).toBe("Existing selection");
+				pages[0].dispatchEvent(
+					new PointerEvent(type, { bubbles: true, button: 0, pointerType: "mouse" }),
+				);
+				expect(selection?.isCollapsed).toBe(true);
+				book.destroy();
+				selection?.removeAllRanges();
+			},
+		);
+
+		it("preserves excluded content and selections outside the book", () => {
+			const pages = createPages(4);
+			const excluded = document.createElement("span");
+			excluded.dataset.flipbookNoFlip = "";
+			excluded.textContent = "Excluded text";
+			pages[0].append(excluded);
+			const outside = document.createElement("p");
+			outside.textContent = "Other document text";
+			document.body.append(outside);
+			const book = new FlipBook({ pagesCount: 4, mouseMode: "select" });
+			book.render(container);
+			const selection = window.getSelection();
+			for (const target of [excluded, outside]) {
+				selection?.removeAllRanges();
+				const range = document.createRange();
+				range.selectNodeContents(target);
+				selection?.addRange(range);
+				book.setMouseMode("turn");
+				(target === excluded ? excluded : pages[0]).dispatchEvent(
+					new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+				);
+				expect(selection?.toString()).toBe(target.textContent);
+			}
+			book.destroy();
+			selection?.removeAllRanges();
+		});
+
 		it.each([true, false])(
 			"blocks selection during an active appearance lock only when enabled=%s",
 			(snapshotDuringFlip) => {

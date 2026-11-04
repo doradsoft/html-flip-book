@@ -382,6 +382,11 @@ class FlipBook {
 	setMouseMode(mode: MouseMode): void {
 		this.cancelBookmarkPointerDrag?.();
 		this.mouseMode = mode;
+		// Keep an existing native selection copyable until a page gesture starts.
+		this.bookElement?.classList.toggle(
+			"flipbook--preserve-selection",
+			mode === "turn" && this.getBookSelection() !== null,
+		);
 		this.bookmarkLayer?.setMouseMode(mode);
 		this.bookElement?.classList.toggle("flipbook--select-text", mode === "select");
 		if (mode === "select") {
@@ -389,6 +394,17 @@ class FlipBook {
 			this.cancelPendingManualPose();
 			this.clearHoverShadow();
 		}
+	}
+
+	private getBookSelection(): Selection | null {
+		const book = this.bookElement;
+		const selection = book?.ownerDocument.getSelection();
+		return book &&
+			selection &&
+			!selection.isCollapsed &&
+			(book.contains(selection.anchorNode) || book.contains(selection.focusNode))
+			? selection
+			: null;
 	}
 
 	/** Keep mouse selection native by stopping the page's down event before Hammer sees it. */
@@ -400,6 +416,16 @@ class FlipBook {
 		if (event.type === "mousedown" || (event as PointerEvent).pointerType === "mouse") {
 			this.gestureStartedInNoFlipZone = this.isInsideNoFlipZone(event.target);
 			if (this.gestureStartedInNoFlipZone) this.clearHoverShadow();
+			if (
+				this.mouseMode === "turn" &&
+				event instanceof MouseEvent &&
+				event.button === 0 &&
+				!this.gestureStartedInNoFlipZone
+			) {
+				this.getBookSelection()?.removeAllRanges();
+				// Restore selection blocking before the browser handles the press.
+				this.bookElement?.classList.remove("flipbook--preserve-selection");
+			}
 		}
 		if (
 			this.mouseMode === "select" &&
@@ -2159,6 +2185,7 @@ class FlipBook {
 			this.hammer = undefined;
 		}
 		if (this.bookElement) {
+			this.bookElement.classList.remove("flipbook--preserve-selection");
 			for (const page of this.pageElements) {
 				page.removeEventListener("pointerdown", this.handlePageMouseDown);
 				page.removeEventListener("mousedown", this.handlePageMouseDown);
