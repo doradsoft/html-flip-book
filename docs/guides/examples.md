@@ -88,6 +88,10 @@ function HebrewBook() {
 previous mode. Its toolbar button reflects the forced state and is disabled during
 the hold. Temporary changes do not overwrite `mouseModeStorageKey`.
 
+Ctrl activates page turning even when page text is already selected. That existing
+selection remains available to native **Ctrl+C** until the first primary mouse
+press on a page clears it and blocks new text selection for the turning gesture.
+
 The demo has dedicated **Hold hotkeys** items for LTR and RTL, and both
 **Comprehensive** examples support the same behavior.
 
