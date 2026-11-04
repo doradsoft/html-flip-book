@@ -34,6 +34,7 @@ npm install html-flip-book-react
 - **Concurrent Flip Animations** — Multiple pages can flip simultaneously
 - **Hover Effects** — Subtle inner-shadow preview on page edges
 - **Leaves Buffer** — Performance optimization for large books (only render nearby pages)
+- **Paper Fold State** — `page--angled-back` marks the reflected face during an oblique fold, allowing consumers to scope content-layer styles to that state. Straight folds and resting pages clear the marker.
 - **Bookmark Providers** — Opt-in TOC and chapter tabs, or custom content, placement, ordering, and click actions. Tabs have front and back content, expand on hover, and fold with their leaf. See the [bookmark guide](docs/guides/bookmarks.md).
 
 ### React Component
