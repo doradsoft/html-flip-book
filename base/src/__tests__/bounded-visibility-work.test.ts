@@ -81,7 +81,7 @@ describe("retained page visibility work", () => {
 		expect(large).toBeLessThan(64);
 	});
 
-	it.each([0, 1, 4])(
+	it.each([0, 1, 1.5, 4])(
 		"matches complete reconciliation through distant forward and backward jumps (buffer=%s)",
 		(buffer) => {
 			// Settle layout synchronously so the comparison observes final visibility,

@@ -977,7 +977,7 @@ class FlipBook {
 			for (const index of coverLeafIndices) include(index);
 			const radius = Math.max(paperBuffer, contentBuffer);
 			for (
-				let index = Math.max(0, currentLeafIndex - radius);
+				let index = Math.max(0, Math.ceil(currentLeafIndex - radius));
 				index <= Math.min(leavesCount - 1, currentLeafIndex + radius);
 				index++
 			)
