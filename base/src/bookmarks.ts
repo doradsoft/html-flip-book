@@ -114,6 +114,7 @@ export class BookmarkLayer {
 	private bounds: BookmarkBounds | undefined;
 	private hostWidth: number | undefined;
 	private layoutMeasurements: BookmarkMeasurements | undefined;
+	private sideStackLayoutKey: string | undefined;
 	private destroyed = false;
 	private mouseMode: MouseMode = "turn";
 
@@ -199,7 +200,14 @@ export class BookmarkLayer {
 		const provider = this.provider;
 		const context = this.getContext();
 		const bookmarks = this.getValidBookmarks(context);
-		this.orderedLeafIds = bookmarks.map((leaf) => leaf.id);
+		const nextOrder = bookmarks.map((leaf) => leaf.id);
+		const stackItems =
+			measurements &&
+			nextOrder.length === this.orderedLeafIds.length &&
+			nextOrder.every((id, index) => id === this.orderedLeafIds[index])
+				? new Set<string>()
+				: undefined;
+		this.orderedLeafIds = nextOrder;
 		const focused = this.element.querySelector<HTMLButtonElement>(".flipbook-bookmark:focus");
 		writeAttribute(this.element, "class", `flipbook-bookmarks ${provider?.className ?? ""}`.trim());
 		writeAttribute(this.element, "data-orientation", provider?.orientation ?? "perpendicular");
@@ -210,7 +218,7 @@ export class BookmarkLayer {
 		this.itemsByLeaf.clear();
 		const placements: RailPlacementCursors = new Map();
 		bookmarks.forEach((bookmark, index) => {
-			this.placeItem(bookmark, context, index, bookmarks.length, placements);
+			this.placeItem(bookmark, context, index, bookmarks.length, placements, stackItems);
 		});
 		for (const group of this.groups.values()) {
 			if (this.provider?.attachment === "pinned" && group.childElementCount === 0) group.remove();
@@ -218,7 +226,7 @@ export class BookmarkLayer {
 		for (const rail of this.rails.values())
 			writeHidden(rail, rail.querySelector(".flipbook-bookmark:not([hidden])") === null);
 		if (this.bounds)
-			this.layout(this.bounds, measurements ? this.hostWidth : undefined, measurements);
+			this.layout(this.bounds, measurements ? this.hostWidth : undefined, measurements, stackItems);
 		if (focused?.isConnected) {
 			focused.focus({ preventScroll: true });
 			if (preservePreview) {
@@ -248,7 +256,9 @@ export class BookmarkLayer {
 		slot: number,
 		count: number,
 		placements: RailPlacementCursors,
+		stackItems?: Set<string>,
 	): void {
+		const previousEdge = this.items.get(leaf.id)?.edge;
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
 		const leafIndex = this.getLeafIndex(item.bookmark);
 		const leafItems = this.itemsByLeaf.get(leafIndex) ?? [];
@@ -267,6 +277,7 @@ export class BookmarkLayer {
 		writeAttribute(item.button, "aria-label", bookmark.label);
 		writeAttribute(item.button, "dir", context.direction);
 		item.edge = this.getEdge(bookmark, context, slot, count);
+		if (item.edge !== previousEdge) stackItems?.add(leaf.id);
 		const fixedSide = item.edge === "left" || item.edge === "right";
 		writeHidden(
 			item.button,
@@ -357,7 +368,12 @@ export class BookmarkLayer {
 	}
 
 	/** Position tab rails just outside the resting page spread. */
-	layout(bounds: BookmarkBounds, hostWidth?: number, measurements?: BookmarkMeasurements): void {
+	layout(
+		bounds: BookmarkBounds,
+		hostWidth?: number,
+		measurements?: BookmarkMeasurements,
+		stackItems?: ReadonlySet<string>,
+	): void {
 		if (this.destroyed) return;
 		const measured = measurements ?? this.measure();
 		this.layoutMeasurements = measured;
@@ -377,7 +393,7 @@ export class BookmarkLayer {
 			if (horizontal) writeStyle(rail, "width", `${Math.max(0, bounds.width)}px`);
 			writeStyle(rail, "height", `${Math.max(0, horizontal ? depth : bounds.height)}px`);
 		}
-		this.layoutSideStacks(bounds, depth, length, preferredStep, gaps);
+		this.layoutSideStacks(bounds, depth, length, preferredStep, gaps, stackItems);
 		for (const [index, pose] of this.leafFrames) this.updateLeaf(index, pose.frame, pose.page);
 	}
 
@@ -387,7 +403,25 @@ export class BookmarkLayer {
 		length: number,
 		preferredStep: number,
 		gaps: ReadonlyMap<Edge, number>,
+		stackItems?: ReadonlySet<string>,
 	): void {
+		const key = JSON.stringify([
+			bounds.left,
+			bounds.top,
+			bounds.width,
+			bounds.height,
+			depth,
+			length,
+			preferredStep,
+			Array.from(gaps),
+			this.hostWidth,
+			this.provider?.orientation,
+			this.provider?.placement,
+		]);
+		// Navigation preserves ranks and dimensions. Revisit only tabs that changed
+		// rails; a reordered provider, resize or geometry change still lays out all.
+		const changedItems = key === this.sideStackLayoutKey ? stackItems : undefined;
+		this.sideStackLayoutKey = key;
 		for (const edge of ["left", "right"] as const) {
 			const rail = this.rails.get(edge);
 			if (!rail) continue;
@@ -411,7 +445,7 @@ export class BookmarkLayer {
 			if (edge === "left") writeStyle(rail, "left", `${bounds.left - stack.depth}px`);
 			this.orderedLeafIds.forEach((id, rank) => {
 				const item = this.items.get(id);
-				if (!item || item.edge !== edge) return;
+				if (!item || item.edge !== edge || (changedItems && !changedItems.has(id))) return;
 				const layer = Math.floor(rank / stack.capacity);
 				const row = rank % stack.capacity;
 				const width = stack.frontDepth + layer * stack.step;
