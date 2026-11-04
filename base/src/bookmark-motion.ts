@@ -158,13 +158,14 @@ export class BookmarkMotion {
 		// All tab parts share this resting coordinate system. No live DOM is
 		// changed during capture, so measure the host only once for this turn.
 		const space = this.captureHostSpace();
+		const style = this.host.ownerDocument.defaultView?.getComputedStyle(button);
 		const full = this.hostRectangle(button, space);
 		const onRight = this.sourceOnRight(button, frame, faces);
 		const rectangle = this.sheetRectangle(full, frame, page0, onRight);
 		const visible = this.exposedRectangle(button, full, space);
 		const exposed = this.sheetRectangle(visible, frame, page0, onRight);
-		const caption = this.captureCaption(button, full, onRight, space, faces);
-		const placeholder = this.makePlaceholder(button, rectangle);
+		const caption = this.captureCaption(button, full, onRight, space, style, faces);
+		const placeholder = this.makePlaceholder(button, rectangle, style);
 		const visual = this.cloneVisual(button);
 		const storage = this.host.ownerDocument.createElement("div");
 		storage.hidden = true;
@@ -180,7 +181,7 @@ export class BookmarkMotion {
 			surfaces: [],
 			visual,
 			storage,
-			appearance: this.captureAppearance(button),
+			appearance: this.captureAppearance(style),
 			surfaceLayouts: new WeakMap(),
 			placedFaces: new WeakMap(),
 			faces: this.captureFaces(button, faces),
@@ -223,13 +224,13 @@ export class BookmarkMotion {
 		full: BookmarkSheetRectangle,
 		onRight: boolean,
 		space: BookmarkHostSpace,
+		style: CSSStyleDeclaration | undefined,
 		faces?: BookmarkMotionFaces,
 	): MovingBookmark["caption"] {
 		const brief = button.querySelector<HTMLElement>(".flipbook-bookmark__content");
 		if (!brief) return undefined;
 		const box = this.hostRectangle(brief, space);
 		const visible = box.width > 0 && box.height > 0 ? box : full;
-		const style = this.host.ownerDocument.defaultView?.getComputedStyle(button);
 		const borderLeft = Number.parseFloat(style?.borderLeftWidth ?? "") || 0;
 		const borderTop = Number.parseFloat(style?.borderTopWidth ?? "") || 0;
 		const styles = new Map([[brief, brief.style.cssText]]);
@@ -248,8 +249,7 @@ export class BookmarkMotion {
 		};
 	}
 
-	private captureAppearance(button: HTMLButtonElement): [string, string][] {
-		const style = this.host.ownerDocument.defaultView?.getComputedStyle(button);
+	private captureAppearance(style: CSSStyleDeclaration | undefined): [string, string][] {
 		const names = [
 			"--flipbook-bookmark-depth",
 			"--flipbook-bookmark-length",
@@ -380,6 +380,7 @@ export class BookmarkMotion {
 	private makePlaceholder(
 		button: HTMLButtonElement,
 		rectangle: BookmarkSheetRectangle,
+		buttonStyle: CSSStyleDeclaration | undefined,
 	): HTMLSpanElement {
 		const placeholder = this.host.ownerDocument.createElement("span");
 		placeholder.className = "flipbook-bookmark-placeholder";
@@ -390,7 +391,6 @@ export class BookmarkMotion {
 		);
 		const column = railStyle?.flexDirection.startsWith("column") ?? false;
 		placeholder.style.cssText = `width:${rectangle.width}px;height:${rectangle.height}px;min-width:0;min-height:0;box-sizing:border-box;flex:0 0 ${column ? rectangle.height : rectangle.width}px;pointer-events:none;`;
-		const buttonStyle = this.host.ownerDocument.defaultView?.getComputedStyle(button);
 		if (buttonStyle?.gridRow) placeholder.style.gridRow = buttonStyle.gridRow;
 		if (buttonStyle?.gridColumn) placeholder.style.gridColumn = buttonStyle.gridColumn;
 		return placeholder;

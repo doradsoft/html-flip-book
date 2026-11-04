@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { BookmarkLeafFrame } from "../bookmark-fold";
 import type { BookmarkMotionFaces } from "../bookmark-motion";
 import { computePageFoldFromPoint } from "../page-fold";
@@ -6,6 +6,21 @@ import { computePageFoldFromPoint } from "../page-fold";
 import { box, dualFaces, setup } from "./bookmark-motion-fixture";
 
 describe("bookmark motion surfaces", () => {
+	it("reads the moving tab's computed style once during preparation", () => {
+		const { host, page, button, motion, frame } = setup();
+		const read = vi.spyOn(window, "getComputedStyle");
+		try {
+			motion.prepare({ id: "chapter", pageIndex: 2 }, button, frame, page);
+			expect(read.mock.calls.filter(([element]) => element === button)).toHaveLength(1);
+			motion.sync({ id: "chapter", pageIndex: 2 }, button, frame, page);
+			expect(read.mock.calls.filter(([element]) => element === button)).toHaveLength(1);
+		} finally {
+			read.mockRestore();
+			motion.destroy();
+			host.remove();
+		}
+	});
+
 	it.each([true, false])(
 		"moves a tab with its actual folded material and restores its slot (LTR=%s)",
 		(isLTR) => {
