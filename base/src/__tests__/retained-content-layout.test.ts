@@ -182,6 +182,91 @@ describe("retained content layout", () => {
 			expect(port(index).style.contentVisibility).toBe("visible");
 	});
 
+	it.each(["flipNext", "flipPrev"] as const)(
+		"keeps optional chapter layout out of an active %s animation and resumes afterwards",
+		async (method) => {
+			const reader = open();
+			reader.refreshPageContent([18]);
+			frame();
+			const leaf = getFlipBookInternals(reader).leaves[method === "flipNext" ? 7 : 6];
+			let finish!: () => void;
+			vi.spyOn(leaf, "flipToPosition").mockImplementation(
+				() =>
+					new Promise<void>((resolve) => {
+						finish = resolve;
+					}),
+			);
+			const turning = reader[method]();
+			reader.refreshPageContent([18]);
+			const ready = vi.fn();
+			reader.onPageContentPrepared(ready);
+			try {
+				for (let index = 0; index < 4; index++) frame();
+				expect(port(18).style.contentVisibility).toBe("hidden");
+				expect(ready).not.toHaveBeenCalled();
+			} finally {
+				finish();
+				await turning;
+			}
+			finishPreparation();
+			expect(port(18).style.contentVisibility).toBe("visible");
+			expect(ready).toHaveBeenCalledOnce();
+		},
+	);
+
+	it("resumes optional layout only after the last overlapping turn ends", async () => {
+		const reader = open();
+		const finish: (() => void)[] = [];
+		for (const index of [7, 8]) {
+			vi.spyOn(getFlipBookInternals(reader).leaves[index], "flipToPosition").mockImplementation(
+				() =>
+					new Promise<void>((resolve) => {
+						finish.push(resolve);
+					}),
+			);
+		}
+		const first = reader.flipNext();
+		const second = reader.flipNext();
+		expect(getFlipBookInternals(reader).activeFlips.size).toBe(2);
+		reader.refreshPageContent([20]);
+		try {
+			finish[0]();
+			await first;
+			for (let index = 0; index < 4; index++) frame();
+			expect(port(20).style.contentVisibility).toBe("hidden");
+		} finally {
+			for (const complete of finish) complete();
+			await Promise.all([first, second]);
+		}
+		finishPreparation();
+		expect(port(20).style.contentVisibility).toBe("visible");
+	});
+
+	it("keeps background layout paused through a drag's release animation", async () => {
+		const reader = open();
+		const engine = getFlipBookInternals(reader);
+		engine.onDragStart({ center: { x: 700 } });
+		engine.onDragUpdate({ center: { x: 600 } });
+		let finish!: () => void;
+		const animation = new Promise<void>((resolve) => {
+			finish = resolve;
+		});
+		vi.spyOn(engine.leaves[7], "flipToPosition").mockReturnValue(animation);
+		engine.onDragEnd({ center: { x: 600 }, velocityX: -1 });
+		reader.refreshPageContent([18]);
+		try {
+			for (let index = 0; index < 4; index++) frame();
+			expect(port(18).style.contentVisibility).toBe("hidden");
+			for (const index of [13, 14, 15, 16])
+				expect(port(index).style.contentVisibility).toBe("visible");
+		} finally {
+			finish();
+			await animation;
+		}
+		finishPreparation();
+		expect(port(18).style.contentVisibility).toBe("visible");
+	});
+
 	it("restores consumer accessibility and opacity values on promotion and teardown", () => {
 		pages[18].style.opacity = "0.6";
 		pages[18].setAttribute("inert", "kept");

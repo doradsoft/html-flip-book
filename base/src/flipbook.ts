@@ -1236,12 +1236,24 @@ class FlipBook {
 			this.cancelContentPreparation();
 			return;
 		}
-		if (this.preparationPointerHeld || this.contentPreparationFrame !== undefined) return;
+		// Required faces are already ready. Optional layout must not compete
+		// with programmatic or release animations after the pointer is lifted.
+		if (
+			this.preparationPointerHeld ||
+			this.activeFlips.size > 0 ||
+			this.contentPreparationFrame !== undefined
+		)
+			return;
 		const generation = this.contentPreparationGeneration;
 		const prepare = () => {
 			if (generation !== this.contentPreparationGeneration) return;
 			this.contentPreparationFrame = undefined;
-			if (this.preparationPointerHeld || this.contentPreparationHolds.size > 0) return;
+			if (
+				this.preparationPointerHeld ||
+				this.activeFlips.size > 0 ||
+				this.contentPreparationHolds.size > 0
+			)
+				return;
 			const content = this.pendingContentPreparation.values().next().value;
 			if (content) {
 				this.pendingContentPreparation.delete(content);
@@ -1620,6 +1632,7 @@ class FlipBook {
 				this.pendingFlipStartingPos = 0;
 				this.pendingFlipStartingY = undefined;
 				this.isDragging = false;
+				this.scheduleContentPreparation();
 				return;
 		}
 
@@ -1642,6 +1655,7 @@ class FlipBook {
 			// the snapshot stays active until this final endFlip() zeroes it.
 			flipState.leaf.endFlip();
 			this.activeFlips.delete(flipState.leaf.index);
+			this.scheduleContentPreparation();
 		});
 	}
 
@@ -1923,6 +1937,7 @@ class FlipBook {
 		} finally {
 			this.activeFlips.delete(leaf.index);
 			leaf.endFlip();
+			this.scheduleContentPreparation();
 		}
 	}
 
@@ -1959,6 +1974,7 @@ class FlipBook {
 		} finally {
 			this.activeFlips.delete(leaf.index);
 			leaf.endFlip();
+			this.scheduleContentPreparation();
 		}
 	}
 
