@@ -584,6 +584,118 @@ describe("FlipBook React Component", () => {
 		},
 	);
 
+	it.each(["pointer", "animation"] as const)(
+		"cancels an already queued optional mount when a new %s interaction starts",
+		(interaction) => {
+			const queue = mockPageFrames();
+			const rendered = render(
+				<FlipBook
+					pages={Array.from({ length: 30 }, (_, i) => `Queued ${i}`)}
+					leavesBuffer={0}
+					keepPageContentLayout
+				/>,
+			);
+			try {
+				const engine = mocked.instances[0];
+				const activity = engine.options.onLeafFlipActivity as (
+					index: number,
+					active: boolean,
+				) => void;
+				engine.currentPageIndex = 13;
+				act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+				engine.refreshPageContent.mockClear();
+				queue.step();
+				const pending = Array.from(queue.frames.values());
+				expect(pending).toHaveLength(1);
+				queue.frames.clear();
+				act(() => {
+					// The transition is ready to commit, but a new input arrives first.
+					for (const callback of pending) callback(0);
+					if (interaction === "pointer") {
+						rendered.container.firstElementChild?.dispatchEvent(
+							new MouseEvent("pointerdown", { bubbles: true, button: 0 }),
+						);
+					} else activity(7, true);
+				});
+				expect(screen.queryByText("Queued 17")).toBeNull();
+				expect(engine.refreshPageContent).not.toHaveBeenCalled();
+				for (const index of [13, 14, 15, 16])
+					expect(screen.getByText(`Queued ${index}`)).toBeTruthy();
+				act(() => {
+					if (interaction === "pointer")
+						document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0 }));
+					else activity(7, false);
+				});
+				queue.step();
+				queue.step();
+				expect(engine.refreshPageContent).toHaveBeenCalledExactlyOnceWith([17]);
+				expect(screen.getByText("Queued 17")).toBeTruthy();
+			} finally {
+				rendered.unmount();
+				queue.restore();
+			}
+		},
+	);
+
+	it.each(["pointer", "animation"] as const)(
+		"cancels queued retirement when a new %s interaction starts and releases its hold once",
+		(interaction) => {
+			const queue = mockPageFrames();
+			const rendered = render(
+				<FlipBook
+					pages={Array.from({ length: 30 }, (_, i) => `Retired ${i}`)}
+					leavesBuffer={0}
+					keepPageContentLayout
+				/>,
+			);
+			try {
+				const engine = mocked.instances[0];
+				const activity = engine.options.onLeafFlipActivity as (
+					index: number,
+					active: boolean,
+				) => void;
+				engine.currentPageIndex = 13;
+				act(() => (engine.options.onPageChanged as (index: number) => void)(13));
+				for (let frame = 0; frame < 16; frame++) queue.step();
+				engine.currentPageIndex = 15;
+				act(() => (engine.options.onPageChanged as (index: number) => void)(15));
+				for (let frame = 0; frame < 4; frame++) queue.step();
+				expect(screen.getByText("Retired 6")).toBeTruthy();
+				queue.step();
+				const pending = Array.from(queue.frames.values());
+				expect(pending).toHaveLength(1);
+				queue.frames.clear();
+				const release = vi.fn();
+				engine.holdPreparedPageContent.mockReturnValueOnce(release);
+				engine.refreshPageContent.mockClear();
+				act(() => {
+					for (const callback of pending) callback(0);
+					if (interaction === "pointer") {
+						rendered.container.firstElementChild?.dispatchEvent(
+							new MouseEvent("pointerdown", { bubbles: true, button: 0 }),
+						);
+					} else activity(8, true);
+				});
+				expect(screen.getByText("Retired 6")).toBeTruthy();
+				expect(engine.refreshPageContent).not.toHaveBeenCalled();
+				expect(release).toHaveBeenCalledOnce();
+				act(() => {
+					if (interaction === "pointer")
+						document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, button: 0 }));
+					else activity(8, false);
+				});
+				queue.step();
+				queue.step();
+				expect(screen.queryByText("Retired 6")).toBeNull();
+				rendered.unmount();
+				expect(release).toHaveBeenCalledOnce();
+			} finally {
+				rendered.unmount();
+				queue.restore();
+			}
+		},
+	);
+
 	it("resumes optional chapter mounts only after all overlapping turns finish", () => {
 		const queue = mockPageFrames();
 		const rendered = render(

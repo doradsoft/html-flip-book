@@ -470,9 +470,22 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				});
 			}, BUFFER_DEBOUNCE_MS);
 		};
+		const cancelQueuedPageMount = useCallback(() => {
+			if (materializingPageRef.current === undefined && retiringPageRef.current === undefined)
+				return;
+			// Cancelling a frame cannot cancel a transition that frame already queued.
+			// Invalidate its optional work before the new interaction can commit it.
+			materializingPageRef.current = undefined;
+			retiringPageRef.current = undefined;
+			const release = releasePageMountRef.current;
+			releasePageMountRef.current = undefined;
+			release?.();
+			setInflightVersion((v) => v + 1);
+		}, []);
 		const beginPointerInteraction = useCallback(() => {
 			if (leavesBuffer == null) return;
 			pointerHeldRef.current = true;
+			cancelQueuedPageMount();
 			if (pageMountFrameRef.current !== undefined) {
 				cancelAnimationFrame(pageMountFrameRef.current);
 				pageMountFrameRef.current = undefined;
@@ -481,7 +494,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				clearTimeout(pageChangedTimerRef.current);
 				pageChangedTimerRef.current = null;
 			}
-		}, [leavesBuffer]);
+		}, [leavesBuffer, cancelQueuedPageMount]);
 		const retainFlippingLeaf = (flippingLeaf: number) => {
 			if (leavesBuffer == null) return;
 			if (pageChangedTimerRef.current != null) {
@@ -571,6 +584,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			if (leavesBuffer == null) return;
 			if (active) {
 				activeLeavesRef.current.add(index);
+				cancelQueuedPageMount();
 				if (pageMountFrameRef.current !== undefined) {
 					cancelAnimationFrame(pageMountFrameRef.current);
 					pageMountFrameRef.current = undefined;
