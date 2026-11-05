@@ -1,0 +1,4238 @@
+{
+	"kind": "Complete bounded source-equivalent diagnostic, not hosted repeatability or a published-package qualification",
+	"time": "2026-11-05T07:17:53.348Z",
+	"baseline": {
+		"websiteHead": "d72c0e03235cf31efdf673177e2bade3bce59033",
+		"producer": "5b92471128918f907b636cd39cf959f607f33518",
+		"library": "alpha.111",
+		"source": "Actual normal111 full-content production reader; private wrapper only strips paper rotateY(0deg), controls retain the same wrapper and redraw."
+	},
+	"method": "One worker, zero retries, fixed software4x profile,20s deadline,1440x900,six original turns per case,4CPU12GB; all nine sequences and all54 completion callbacks retained. Browser trace measured original sequence from before navigation.",
+	"clock": "Probe-mark clock binding checked against end marker; whole enclosing completion-task wall/thread-CPU durations include rendering after the Native callback.",
+	"limit": "Does not reproduce or explain the earlier untraced238ms hosted first-turn frame. No claim of hosted delivery or hardware presentation.",
+	"rows": [
+		{
+			"variant": "control-before",
+			"fixture": "125-leaf-drag",
+			"metrics": {
+				"responseMs": [64.8, 43.2, 64.7, 55.7, 75.5, 58],
+				"responseP95Ms": 75.5,
+				"responseMaxMs": 75.5,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 64.8,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 75.5,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 43.615,
+					"cpuMs": 43.56,
+					"callbackMs": 11.203,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.047,
+							"cpuMs": 9.047
+						},
+						"Layout": {
+							"wallMs": 2.156,
+							"cpuMs": 2.156
+						},
+						"PrePaint": {
+							"wallMs": 6.548,
+							"cpuMs": 6.55
+						},
+						"Paint": {
+							"wallMs": 19.173,
+							"cpuMs": 19.157
+						},
+						"Layerize": {
+							"wallMs": 3.802,
+							"cpuMs": 3.802
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 36.444,
+					"cpuMs": 36.384,
+					"callbackMs": 6.703,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.072,
+							"cpuMs": 2.074
+						},
+						"Layout": {
+							"wallMs": 5.091,
+							"cpuMs": 5.093
+						},
+						"PrePaint": {
+							"wallMs": 9.254,
+							"cpuMs": 9.255
+						},
+						"Paint": {
+							"wallMs": 18.286,
+							"cpuMs": 18.27
+						},
+						"Layerize": {
+							"wallMs": 4.415,
+							"cpuMs": 4.416
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 36.237,
+					"cpuMs": 36.209,
+					"callbackMs": 7.356,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.577,
+							"cpuMs": 8.578
+						},
+						"Layout": {
+							"wallMs": 2.365,
+							"cpuMs": 2.366
+						},
+						"PrePaint": {
+							"wallMs": 5.81,
+							"cpuMs": 5.811
+						},
+						"Paint": {
+							"wallMs": 16.792,
+							"cpuMs": 16.77
+						},
+						"Layerize": {
+							"wallMs": 3.941,
+							"cpuMs": 3.942
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 36.133,
+					"cpuMs": 36.105,
+					"callbackMs": 6.53,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.135,
+							"cpuMs": 10.136
+						},
+						"Layout": {
+							"wallMs": 1.337,
+							"cpuMs": 1.338
+						},
+						"PrePaint": {
+							"wallMs": 5.35,
+							"cpuMs": 5.35
+						},
+						"Paint": {
+							"wallMs": 18.438,
+							"cpuMs": 18.422
+						},
+						"Layerize": {
+							"wallMs": 3.684,
+							"cpuMs": 3.684
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 34.739,
+					"cpuMs": 34.706,
+					"callbackMs": 5.944,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.452,
+							"cpuMs": 8.453
+						},
+						"Layout": {
+							"wallMs": 4.257,
+							"cpuMs": 4.258
+						},
+						"PrePaint": {
+							"wallMs": 4.928,
+							"cpuMs": 4.929
+						},
+						"Paint": {
+							"wallMs": 11.238,
+							"cpuMs": 11.214
+						},
+						"Layerize": {
+							"wallMs": 3.416,
+							"cpuMs": 3.417
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 35.185,
+					"cpuMs": 35.155,
+					"callbackMs": 6.515,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.515,
+							"cpuMs": 9.519
+						},
+						"Layout": {
+							"wallMs": 2.269,
+							"cpuMs": 2.27
+						},
+						"PrePaint": {
+							"wallMs": 5.303,
+							"cpuMs": 5.304
+						},
+						"Paint": {
+							"wallMs": 16.055,
+							"cpuMs": 16.032
+						},
+						"Layerize": {
+							"wallMs": 3.685,
+							"cpuMs": 3.686
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 222.119,
+			"totalCompletionWallMs": 222.353,
+			"raw": {
+				"chapter": 125,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.009342,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1106.2999999970198,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1141.699999988079,
+							"responseFrame": 1171.0999999940395,
+							"settled": 1627.2999999970198,
+							"frameStart": 0,
+							"frameEnd": 26
+						},
+						{
+							"at": 1643.5,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 1652.3999999910593,
+							"responseFrame": 1686.699999988079,
+							"settled": 2130.0999999940395,
+							"frameStart": 28,
+							"frameEnd": 52
+						},
+						{
+							"at": 2244.3999999910593,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 2279.199999988079,
+							"responseFrame": 2309.0999999940395,
+							"settled": 2737.699999988079,
+							"frameStart": 60,
+							"frameEnd": 85
+						},
+						{
+							"at": 2763.5999999940395,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 2798.199999988079,
+							"responseFrame": 2819.2999999970198,
+							"settled": 3291.5,
+							"frameStart": 87,
+							"frameEnd": 111
+						},
+						{
+							"at": 3410.3999999910593,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 3451.199999988079,
+							"responseFrame": 3485.8999999910593,
+							"settled": 3918.699999988079,
+							"frameStart": 118,
+							"frameEnd": 143
+						},
+						{
+							"at": 3935.2999999970198,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 3965,
+							"responseFrame": 3993.2999999970198,
+							"settled": 4453.199999988079,
+							"frameStart": 145,
+							"frameEnd": 169
+						}
+					],
+					"frames": [
+						16.699999999999818, 16.600000000000136, 33.299999999999955, 16.700000000000045,
+						33.399999999999864, 33.30000000000018, 16.699999999999818, 16.700000000000045, 16.5,
+						16.799999999999955, 16.600000000000136, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.59999999999991, 16.799999999999955, 16.600000000000136,
+						16.700000000000045, 16.699999999999818, 16.600000000000136, 16.700000000000045,
+						16.699999999999818, 16.600000000000136, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 33.399999999999864, 16.600000000000136, 16.59999999999991,
+						33.40000000000009, 33.399999999999864, 16.600000000000136, 33.399999999999864,
+						16.600000000000136, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.59999999999991, 16.799999999999955, 16.600000000000136, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.799999999999955, 16.5,
+						16.800000000000182, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.699999999999818, 33.30000000000018, 33.30000000000018,
+						16.699999999999818, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						16.699999999999818, 16.600000000000364, 16.799999999999727, 16.59999999999991,
+						33.30000000000018, 16.59999999999991, 33.40000000000009, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						16.59999999999991, 16.800000000000182, 16.59999999999991, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 33.19999999999982,
+						16.700000000000273, 33.29999999999973, 16.700000000000273, 16.699999999999818,
+						33.30000000000018, 33.399999999999636, 16.600000000000364, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.800000000000182, 16.59999999999991, 50, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.59999999999991, 16.699999999999818,
+						33.30000000000018, 33.40000000000009, 33.29999999999973, 16.700000000000273,
+						33.399999999999636, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 33.29999999999973, 33.40000000000009, 16.59999999999991,
+						16.700000000000273, 33.29999999999973, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 33.30000000000018, 33.40000000000009, 16.59999999999991,
+						33.40000000000009, 16.599999999999454, 33.30000000000018, 16.699999999999818,
+						16.700000000000728, 16.599999999999454, 16.699999999999818, 16.700000000000728,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.599999999999454,
+						16.699999999999818, 16.700000000000728, 16.699999999999818, 16.599999999999454,
+						16.700000000000728, 16.699999999999818, 33.30000000000018, 33.399999999999636,
+						33.30000000000018, 16.599999999999454, 16.700000000000728, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.599999999999454, 16.699999999999818,
+						16.700000000000728, 16.699999999999818
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "control-before",
+			"fixture": "125-pinned-toolbar",
+			"metrics": {
+				"responseMs": [32.1, 33.5, 35.1, 25.6, 23.8, 35.1],
+				"responseP95Ms": 35.1,
+				"responseMaxMs": 35.1,
+				"frameGapMaxMs": 33.5,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 32.1,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 35.1,
+					"frameGapMaxMs": 33.5,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 39.785,
+					"cpuMs": 39.745,
+					"callbackMs": 9.417,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.121,
+							"cpuMs": 8.122
+						},
+						"Layout": {
+							"wallMs": 1.668,
+							"cpuMs": 1.669
+						},
+						"PrePaint": {
+							"wallMs": 6.925,
+							"cpuMs": 6.925
+						},
+						"Paint": {
+							"wallMs": 15.626,
+							"cpuMs": 15.602
+						},
+						"Layerize": {
+							"wallMs": 4.275,
+							"cpuMs": 4.276
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 33.206,
+					"cpuMs": 33.176,
+					"callbackMs": 5.986,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 6.734,
+							"cpuMs": 6.735
+						},
+						"Layout": {
+							"wallMs": 1.996,
+							"cpuMs": 1.997
+						},
+						"PrePaint": {
+							"wallMs": 5.747,
+							"cpuMs": 5.748
+						},
+						"Paint": {
+							"wallMs": 12.146,
+							"cpuMs": 12.125
+						},
+						"Layerize": {
+							"wallMs": 4.296,
+							"cpuMs": 4.298
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 19.664,
+					"cpuMs": 19.64,
+					"callbackMs": 5.772,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 1.359,
+							"cpuMs": 1.359
+						},
+						"Layout": {
+							"wallMs": 2.68,
+							"cpuMs": 2.68
+						},
+						"PrePaint": {
+							"wallMs": 2.09,
+							"cpuMs": 2.091
+						},
+						"Paint": {
+							"wallMs": 2.601,
+							"cpuMs": 2.593
+						},
+						"Layerize": {
+							"wallMs": 3.42,
+							"cpuMs": 3.421
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 37.398,
+					"cpuMs": 37.371,
+					"callbackMs": 5.992,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 11.293,
+							"cpuMs": 11.294
+						},
+						"Layout": {
+							"wallMs": 2.011,
+							"cpuMs": 2.012
+						},
+						"PrePaint": {
+							"wallMs": 5.311,
+							"cpuMs": 5.312
+						},
+						"Paint": {
+							"wallMs": 14.895,
+							"cpuMs": 14.88
+						},
+						"Layerize": {
+							"wallMs": 4,
+							"cpuMs": 4
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 39.656,
+					"cpuMs": 39.626,
+					"callbackMs": 5.662,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 11.546,
+							"cpuMs": 11.547
+						},
+						"Layout": {
+							"wallMs": 3.612,
+							"cpuMs": 3.612
+						},
+						"PrePaint": {
+							"wallMs": 5.815,
+							"cpuMs": 5.815
+						},
+						"Paint": {
+							"wallMs": 11.961,
+							"cpuMs": 11.938
+						},
+						"Layerize": {
+							"wallMs": 4.331,
+							"cpuMs": 4.332
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 36.918,
+					"cpuMs": 36.891,
+					"callbackMs": 6.713,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.869,
+							"cpuMs": 10.87
+						},
+						"Layout": {
+							"wallMs": 1.666,
+							"cpuMs": 1.666
+						},
+						"PrePaint": {
+							"wallMs": 5.102,
+							"cpuMs": 5.116
+						},
+						"Paint": {
+							"wallMs": 16.886,
+							"cpuMs": 16.861
+						},
+						"Layerize": {
+							"wallMs": 4.408,
+							"cpuMs": 4.408
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 206.44899999999998,
+			"totalCompletionWallMs": 206.627,
+			"raw": {
+				"chapter": 125,
+				"mode": "pinned",
+				"gesture": "toolbar",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.009342,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1016.9000000059605,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1033.5999999940395,
+							"responseFrame": 1049,
+							"settled": 1879.9000000059605,
+							"frameStart": 0,
+							"frameEnd": 43
+						},
+						{
+							"at": 1899.4000000059605,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 1917.9000000059605,
+							"responseFrame": 1932.9000000059605,
+							"settled": 2753.5999999940395,
+							"frameStart": 45,
+							"frameEnd": 87
+						},
+						{
+							"at": 2864.4000000059605,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 2879.7999999970198,
+							"responseFrame": 2899.5,
+							"settled": 3704,
+							"frameStart": 95,
+							"frameEnd": 139
+						},
+						{
+							"at": 3739.7999999970198,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 3756.5999999940395,
+							"responseFrame": 3765.4000000059605,
+							"settled": 4615.20000000298,
+							"frameStart": 142,
+							"frameEnd": 181
+						},
+						{
+							"at": 4744.70000000298,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 4756,
+							"responseFrame": 4768.5,
+							"settled": 5612.5999999940395,
+							"frameStart": 189,
+							"frameEnd": 233
+						},
+						{
+							"at": 5647.20000000298,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 5663.79999999702,
+							"responseFrame": 5682.29999999702,
+							"settled": 6516.4000000059605,
+							"frameStart": 236,
+							"frameEnd": 275
+						}
+					],
+					"frames": [
+						16.600000000000023, 33.30000000000007, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.699999999999818, 33.30000000000018,
+						33.299999999999955, 16.59999999999991, 16.799999999999955, 16.600000000000136,
+						33.399999999999864, 16.600000000000136, 16.700000000000045, 16.59999999999991,
+						33.40000000000009, 16.699999999999818, 16.600000000000136, 16.700000000000045,
+						33.299999999999955, 16.700000000000045, 16.699999999999818, 33.200000000000045,
+						16.799999999999955, 16.600000000000136, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.59999999999991,
+						16.800000000000182, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 33.299999999999955,
+						16.700000000000045, 16.700000000000045, 33.299999999999955, 16.59999999999991,
+						16.700000000000045, 33.40000000000009, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 16.600000000000136, 33.399999999999636, 16.600000000000364,
+						33.29999999999973, 33.40000000000009, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.700000000000273,
+						33.29999999999973, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.59999999999991, 33.5,
+						16.59999999999991, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 33.29999999999973, 16.700000000000273, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.59999999999991,
+						33.40000000000009, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.59999999999991, 33.40000000000009, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 33.399999999999636, 16.600000000000364, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.800000000000182, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						16.59999999999991, 16.700000000000273, 16.799999999999727, 16.600000000000364,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.59999999999991, 33.40000000000009, 33.40000000000009,
+						16.59999999999991, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.59999999999991, 33.40000000000009, 16.700000000000273,
+						33.29999999999973, 16.59999999999991, 33.400000000000546, 16.599999999999454,
+						33.400000000000546, 33.29999999999927, 16.700000000000728, 16.599999999999454,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.700000000000728,
+						16.599999999999454, 16.699999999999818, 16.600000000000364, 16.800000000000182,
+						16.599999999999454, 16.700000000000728, 33.29999999999927, 16.700000000000728,
+						16.599999999999454, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						33.400000000000546, 33.29999999999927, 16.700000000000728, 16.699999999999818,
+						16.599999999999454, 16.700000000000728, 16.599999999999454, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.700000000000728, 16.699999999999818, 33.19999999999982,
+						16.800000000000182, 16.599999999999454, 16.600000000000364, 33.399999999999636,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.700000000000728, 16.599999999999454, 16.600000000000364, 16.800000000000182,
+						16.599999999999454, 16.600000000000364, 16.800000000000182, 16.599999999999454,
+						16.699999999999818, 16.700000000000728, 16.599999999999454, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.700000000000728, 16.599999999999454,
+						33.30000000000018, 16.699999999999818, 33.400000000000546, 16.599999999999454,
+						16.699999999999818, 16.600000000000364, 33.399999999999636, 16.600000000000364,
+						33.399999999999636, 16.600000000000364, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.699999999999818,
+						33.30000000000018, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 33.30000000000018, 33.30000000000018,
+						33.30000000000018, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.599999999999454, 16.800000000000182, 16.600000000000364,
+						16.699999999999818, 16.600000000000364
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "control-before",
+			"fixture": "300-leaf-drag",
+			"metrics": {
+				"responseMs": [87.7, 42.1, 60.3, 44.8, 37.5, 69.4],
+				"responseP95Ms": 87.7,
+				"responseMaxMs": 87.7,
+				"frameGapMaxMs": 66.8,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 87.7,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 69.4,
+					"frameGapMaxMs": 66.8,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 47,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 37.793,
+					"cpuMs": 37.762,
+					"callbackMs": 10.077,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 5.865,
+							"cpuMs": 5.866
+						},
+						"Layout": {
+							"wallMs": 2.241,
+							"cpuMs": 2.242
+						},
+						"PrePaint": {
+							"wallMs": 5.964,
+							"cpuMs": 5.964
+						},
+						"Paint": {
+							"wallMs": 17.538,
+							"cpuMs": 17.518
+						},
+						"Layerize": {
+							"wallMs": 3.991,
+							"cpuMs": 3.992
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 33.405,
+					"cpuMs": 33.374,
+					"callbackMs": 6.611,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.011,
+							"cpuMs": 8.012
+						},
+						"Layout": {
+							"wallMs": 1.366,
+							"cpuMs": 1.367
+						},
+						"PrePaint": {
+							"wallMs": 4.942,
+							"cpuMs": 4.942
+						},
+						"Paint": {
+							"wallMs": 13.877,
+							"cpuMs": 13.859
+						},
+						"Layerize": {
+							"wallMs": 3.439,
+							"cpuMs": 3.44
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 35.351,
+					"cpuMs": 35.323,
+					"callbackMs": 7.519,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.774,
+							"cpuMs": 8.775
+						},
+						"Layout": {
+							"wallMs": 2.123,
+							"cpuMs": 2.123
+						},
+						"PrePaint": {
+							"wallMs": 4.795,
+							"cpuMs": 4.795
+						},
+						"Paint": {
+							"wallMs": 13.196,
+							"cpuMs": 13.176
+						},
+						"Layerize": {
+							"wallMs": 3.804,
+							"cpuMs": 3.804
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 26.687,
+					"cpuMs": 26.658,
+					"callbackMs": 7.745,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.747,
+							"cpuMs": 8.748
+						},
+						"Layout": {
+							"wallMs": 1.79,
+							"cpuMs": 1.79
+						},
+						"PrePaint": {
+							"wallMs": 3.51,
+							"cpuMs": 3.511
+						},
+						"Paint": {
+							"wallMs": 3.642,
+							"cpuMs": 3.621
+						},
+						"Layerize": {
+							"wallMs": 0.898,
+							"cpuMs": 0.898
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 33.946,
+					"cpuMs": 33.921,
+					"callbackMs": 6.905,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.84,
+							"cpuMs": 8.841
+						},
+						"Layout": {
+							"wallMs": 1.906,
+							"cpuMs": 1.907
+						},
+						"PrePaint": {
+							"wallMs": 4.422,
+							"cpuMs": 4.422
+						},
+						"Paint": {
+							"wallMs": 11.514,
+							"cpuMs": 11.497
+						},
+						"Layerize": {
+							"wallMs": 3.454,
+							"cpuMs": 3.456
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 35.929,
+					"cpuMs": 35.9,
+					"callbackMs": 7.768,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.213,
+							"cpuMs": 9.214
+						},
+						"Layout": {
+							"wallMs": 1.877,
+							"cpuMs": 1.878
+						},
+						"PrePaint": {
+							"wallMs": 4.813,
+							"cpuMs": 4.813
+						},
+						"Paint": {
+							"wallMs": 15.538,
+							"cpuMs": 15.515
+						},
+						"Layerize": {
+							"wallMs": 4.215,
+							"cpuMs": 4.215
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 202.93800000000002,
+			"totalCompletionWallMs": 203.11100000000002,
+			"raw": {
+				"chapter": 300,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.009342,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1027.5,
+							"trusted": true,
+							"chapter": 300,
+							"firstMotion": 1099.699999988079,
+							"responseFrame": 1115.199999988079,
+							"settled": 1545,
+							"frameStart": 0,
+							"frameEnd": 24
+						},
+						{
+							"at": 1561.5999999940395,
+							"trusted": true,
+							"chapter": 301,
+							"firstMotion": 1574.2999999970198,
+							"responseFrame": 1603.699999988079,
+							"settled": 2041,
+							"frameStart": 26,
+							"frameEnd": 50
+						},
+						{
+							"at": 2151.2999999970198,
+							"trusted": true,
+							"chapter": 302,
+							"firstMotion": 2184.2999999970198,
+							"responseFrame": 2211.5999999940395,
+							"settled": 2642.699999988079,
+							"frameStart": 56,
+							"frameEnd": 81
+						},
+						{
+							"at": 2665,
+							"trusted": true,
+							"chapter": 303,
+							"firstMotion": 2696.199999988079,
+							"responseFrame": 2709.7999999970198,
+							"settled": 3165.0999999940395,
+							"frameStart": 83,
+							"frameEnd": 106
+						},
+						{
+							"at": 3282.199999988079,
+							"trusted": true,
+							"chapter": 304,
+							"firstMotion": 3301.5999999940395,
+							"responseFrame": 3319.699999988079,
+							"settled": 3764.699999988079,
+							"frameStart": 112,
+							"frameEnd": 134
+						},
+						{
+							"at": 3784.7999999970198,
+							"trusted": true,
+							"chapter": 305,
+							"firstMotion": 3830.5999999940395,
+							"responseFrame": 3854.199999988079,
+							"settled": 4326.699999988079,
+							"frameStart": 136,
+							"frameEnd": 159
+						}
+					],
+					"frames": [
+						33.36800000000005, 16.59999999999991, 33.40000000000009, 33.40000000000009,
+						33.19999999999982, 16.700000000000045, 33.40000000000009, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.700000000000045, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.600000000000136, 16.699999999999818, 16.700000000000045, 16.700000000000045,
+						33.299999999999955, 16.600000000000136, 16.699999999999818, 33.40000000000009,
+						33.299999999999955, 16.600000000000136, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.700000000000045, 16.600000000000136, 16.699999999999818,
+						16.700000000000045, 16.600000000000136, 16.699999999999818, 16.600000000000136,
+						16.799999999999955, 16.59999999999991, 16.700000000000045, 16.600000000000136,
+						16.799999999999955, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.600000000000136, 33.399999999999864, 16.600000000000136,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.700000000000273,
+						33.29999999999973, 16.700000000000273, 16.699999999999818, 33.30000000000018,
+						16.59999999999991, 33.40000000000009, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.59999999999991,
+						16.700000000000273, 33.29999999999973, 16.700000000000273, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 33.40000000000009, 16.699999999999818,
+						33.30000000000018, 16.59999999999991, 33.29999999999973, 16.700000000000273,
+						33.29999999999973, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 33.40000000000009,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 33.19999999999982,
+						66.80000000000018, 16.59999999999991, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 33.30000000000018, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 33.40000000000009, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 33.30000000000018, 33.29999999999973,
+						16.700000000000273, 16.59999999999991, 33.40000000000009, 33.29999999999973,
+						16.700000000000273, 33.29999999999973, 16.700000000000273, 33.29999999999973,
+						16.700000000000273, 33.19999999999982, 16.700000000000273, 16.699999999999818,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.699999999999818, 16.700000000000728, 16.5, 33.399999999999636, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 33.399999999999636, 33.30000000000018, 50,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.699999999999818,
+						16.700000000000728, 16.599999999999454, 16.600000000000364, 16.699999999999818,
+						16.699999999999818
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "candidate",
+			"fixture": "125-leaf-drag",
+			"metrics": {
+				"responseMs": [72.5, 45.4, 71.3, 50.4, 41.3, 90],
+				"responseP95Ms": 90,
+				"responseMaxMs": 90,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 72.5,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 90,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": true,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 41.664,
+					"cpuMs": 41.643,
+					"callbackMs": 10.497,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.251,
+							"cpuMs": 8.251
+						},
+						"Layout": {
+							"wallMs": 2.213,
+							"cpuMs": 2.215
+						},
+						"PrePaint": {
+							"wallMs": 7.288,
+							"cpuMs": 7.288
+						},
+						"Paint": {
+							"wallMs": 12.375,
+							"cpuMs": 12.367
+						},
+						"Layerize": {
+							"wallMs": 4.188,
+							"cpuMs": 4.188
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 35.119,
+					"cpuMs": 35.033,
+					"callbackMs": 7.635,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 3.086,
+							"cpuMs": 3.089
+						},
+						"Layout": {
+							"wallMs": 3.615,
+							"cpuMs": 3.615
+						},
+						"PrePaint": {
+							"wallMs": 7.158,
+							"cpuMs": 7.16
+						},
+						"Paint": {
+							"wallMs": 15.295,
+							"cpuMs": 15.283
+						},
+						"Layerize": {
+							"wallMs": 4.264,
+							"cpuMs": 4.265
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 22.351,
+					"cpuMs": 22.332,
+					"callbackMs": 7.193,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.99,
+							"cpuMs": 2.99
+						},
+						"Layout": {
+							"wallMs": 1.042,
+							"cpuMs": 1.042
+						},
+						"PrePaint": {
+							"wallMs": 1.867,
+							"cpuMs": 1.868
+						},
+						"Paint": {
+							"wallMs": 0.793,
+							"cpuMs": 0.791
+						},
+						"Layerize": {
+							"wallMs": 4.973,
+							"cpuMs": 4.974
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 20.93,
+					"cpuMs": 20.832,
+					"callbackMs": 8.099,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.422,
+							"cpuMs": 2.426
+						},
+						"Layout": {
+							"wallMs": 0.415,
+							"cpuMs": 0.416
+						},
+						"PrePaint": {
+							"wallMs": 1.375,
+							"cpuMs": 1.377
+						},
+						"Paint": {
+							"wallMs": 3.658,
+							"cpuMs": 3.65
+						},
+						"Layerize": {
+							"wallMs": 4.848,
+							"cpuMs": 4.848
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 37.434,
+					"cpuMs": 37.409,
+					"callbackMs": 6.978,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.884,
+							"cpuMs": 8.885
+						},
+						"Layout": {
+							"wallMs": 4.437,
+							"cpuMs": 4.438
+						},
+						"PrePaint": {
+							"wallMs": 4.685,
+							"cpuMs": 4.687
+						},
+						"Paint": {
+							"wallMs": 6.811,
+							"cpuMs": 6.803
+						},
+						"Layerize": {
+							"wallMs": 3.735,
+							"cpuMs": 3.735
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 29.873,
+					"cpuMs": 29.849,
+					"callbackMs": 5.355,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 7.766,
+							"cpuMs": 7.767
+						},
+						"Layout": {
+							"wallMs": 1.66,
+							"cpuMs": 1.661
+						},
+						"PrePaint": {
+							"wallMs": 1.32,
+							"cpuMs": 1.321
+						},
+						"Paint": {
+							"wallMs": 12.495,
+							"cpuMs": 12.486
+						},
+						"Layerize": {
+							"wallMs": 3.718,
+							"cpuMs": 3.719
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 187.09799999999998,
+			"totalCompletionWallMs": 187.37099999999998,
+			"raw": {
+				"chapter": 125,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010169,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1105.5999999940395,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1162.7999999970198,
+							"responseFrame": 1178.0999999940395,
+							"settled": 1625.7999999970198,
+							"frameStart": 0,
+							"frameEnd": 25
+						},
+						{
+							"at": 1642.5999999940395,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 1656.2999999970198,
+							"responseFrame": 1688,
+							"settled": 2130.2999999970198,
+							"frameStart": 27,
+							"frameEnd": 51
+						},
+						{
+							"at": 2245.199999988079,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 2265,
+							"responseFrame": 2316.5,
+							"settled": 2705.7999999970198,
+							"frameStart": 59,
+							"frameEnd": 82
+						},
+						{
+							"at": 2726.3999999910593,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 2749.8999999910593,
+							"responseFrame": 2776.7999999970198,
+							"settled": 3203.5,
+							"frameStart": 84,
+							"frameEnd": 107
+						},
+						{
+							"at": 3311.7999999970198,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 3329.7999999970198,
+							"responseFrame": 3353.0999999940395,
+							"settled": 3812.0999999940395,
+							"frameStart": 113,
+							"frameEnd": 136
+						},
+						{
+							"at": 3836.3999999910593,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 3897.3999999910593,
+							"responseFrame": 3926.3999999910593,
+							"settled": 4381,
+							"frameStart": 138,
+							"frameEnd": 161
+						}
+					],
+					"frames": [
+						16.700000000000045, 33.299999999999955, 50, 16.700000000000045, 33.299999999999955,
+						16.700000000000045, 16.700000000000045, 33.299999999999955, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.600000000000136,
+						16.699999999999818, 16.700000000000045, 16.700000000000045, 16.59999999999991,
+						33.30000000000018, 16.699999999999818, 16.700000000000045, 33.299999999999955,
+						33.30000000000018, 16.699999999999818, 16.700000000000045, 33.299999999999955,
+						16.700000000000045, 16.700000000000045, 16.5, 16.799999999999955, 16.600000000000136,
+						16.59999999999991, 16.799999999999955, 16.600000000000136, 16.699999999999818,
+						16.700000000000045, 16.600000000000136, 16.699999999999818, 16.600000000000136,
+						16.700000000000045, 16.699999999999818, 16.700000000000045, 16.600000000000136,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.59999999999991, 16.800000000000182, 16.5, 16.699999999999818,
+						16.700000000000273, 33.40000000000009, 33.19999999999982, 33.40000000000009,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.59999999999991, 16.600000000000364, 16.799999999999727, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						33.29999999999973, 33.30000000000018, 16.800000000000182, 33.29999999999973,
+						16.59999999999991, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.700000000000273,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.600000000000364,
+						16.699999999999818, 50.09999999999991, 16.59999999999991, 33.40000000000009,
+						16.59999999999991, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						33.40000000000009, 16.59999999999991, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 16.5, 16.700000000000273, 16.699999999999818,
+						33.40000000000009, 16.59999999999991, 16.699999999999818, 16.600000000000364,
+						33.399999999999636, 33.30000000000018, 50, 16.59999999999991, 16.700000000000273,
+						33.399999999999636, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						33.30000000000018, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.600000000000364, 33.399999999999636,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.599999999999454, 16.700000000000728, 16.699999999999818,
+						16.599999999999454
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "candidate",
+			"fixture": "125-pinned-toolbar",
+			"metrics": {
+				"responseMs": [42.7, 31.8, 36.8, 26, 43.2, 23],
+				"responseP95Ms": 43.2,
+				"responseMaxMs": 43.2,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 42.7,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 43.2,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": true,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 42.478,
+					"cpuMs": 42.454,
+					"callbackMs": 9.138,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.554,
+							"cpuMs": 9.555
+						},
+						"Layout": {
+							"wallMs": 1.603,
+							"cpuMs": 1.603
+						},
+						"PrePaint": {
+							"wallMs": 7.281,
+							"cpuMs": 7.281
+						},
+						"Paint": {
+							"wallMs": 15.938,
+							"cpuMs": 15.929
+						},
+						"Layerize": {
+							"wallMs": 4.737,
+							"cpuMs": 4.738
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 36.055,
+					"cpuMs": 36.03,
+					"callbackMs": 7.406,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 6.779,
+							"cpuMs": 6.78
+						},
+						"Layout": {
+							"wallMs": 0.401,
+							"cpuMs": 0.402
+						},
+						"PrePaint": {
+							"wallMs": 8.215,
+							"cpuMs": 8.216
+						},
+						"Paint": {
+							"wallMs": 12.373,
+							"cpuMs": 12.365
+						},
+						"Layerize": {
+							"wallMs": 5.007,
+							"cpuMs": 5.008
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 20.535,
+					"cpuMs": 20.512,
+					"callbackMs": 6.416,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.183,
+							"cpuMs": 2.184
+						},
+						"Layout": {
+							"wallMs": 1.581,
+							"cpuMs": 1.581
+						},
+						"PrePaint": {
+							"wallMs": 2.837,
+							"cpuMs": 2.838
+						},
+						"Paint": {
+							"wallMs": 2.713,
+							"cpuMs": 2.712
+						},
+						"Layerize": {
+							"wallMs": 4.098,
+							"cpuMs": 4.099
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 37.648,
+					"cpuMs": 37.625,
+					"callbackMs": 6.053,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.57,
+							"cpuMs": 9.571
+						},
+						"Layout": {
+							"wallMs": 2.024,
+							"cpuMs": 2.024
+						},
+						"PrePaint": {
+							"wallMs": 5.373,
+							"cpuMs": 5.373
+						},
+						"Paint": {
+							"wallMs": 14.331,
+							"cpuMs": 14.322
+						},
+						"Layerize": {
+							"wallMs": 4.647,
+							"cpuMs": 4.649
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 36.905,
+					"cpuMs": 36.882,
+					"callbackMs": 5.751,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.24,
+							"cpuMs": 9.242
+						},
+						"Layout": {
+							"wallMs": 3.524,
+							"cpuMs": 3.525
+						},
+						"PrePaint": {
+							"wallMs": 5.349,
+							"cpuMs": 5.349
+						},
+						"Paint": {
+							"wallMs": 7.795,
+							"cpuMs": 7.787
+						},
+						"Layerize": {
+							"wallMs": 4.938,
+							"cpuMs": 4.938
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 27.9,
+					"cpuMs": 27.874,
+					"callbackMs": 6.348,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 1.927,
+							"cpuMs": 1.929
+						},
+						"Layout": {
+							"wallMs": 0.435,
+							"cpuMs": 0.435
+						},
+						"PrePaint": {
+							"wallMs": 6.654,
+							"cpuMs": 6.653
+						},
+						"Paint": {
+							"wallMs": 15.047,
+							"cpuMs": 15.04
+						},
+						"Layerize": {
+							"wallMs": 4.78,
+							"cpuMs": 4.781
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 201.377,
+			"totalCompletionWallMs": 201.52100000000002,
+			"raw": {
+				"chapter": 125,
+				"mode": "pinned",
+				"gesture": "toolbar",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010169,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1108.5,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1125.6000000089407,
+							"responseFrame": 1151.2000000029802,
+							"settled": 1971.7000000029802,
+							"frameStart": 0,
+							"frameEnd": 42
+						},
+						{
+							"at": 1991.6000000089407,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 2008,
+							"responseFrame": 2023.4000000059605,
+							"settled": 2855.2000000029802,
+							"frameStart": 44,
+							"frameEnd": 86
+						},
+						{
+							"at": 2973.5,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 2988.1000000089407,
+							"responseFrame": 3010.300000011921,
+							"settled": 3813.800000011921,
+							"frameStart": 94,
+							"frameEnd": 137
+						},
+						{
+							"at": 3850.7000000029802,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 3867.4000000059605,
+							"responseFrame": 3876.7000000029802,
+							"settled": 4724.4000000059605,
+							"frameStart": 140,
+							"frameEnd": 178
+						},
+						{
+							"at": 4854,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 4872.600000008941,
+							"responseFrame": 4897.20000000298,
+							"settled": 5714.300000011921,
+							"frameStart": 187,
+							"frameEnd": 229
+						},
+						{
+							"at": 5752.800000011921,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 5767.9000000059605,
+							"responseFrame": 5775.800000011921,
+							"settled": 6621.800000011921,
+							"frameStart": 232,
+							"frameEnd": 271
+						}
+					],
+					"frames": [
+						16.700000000000045, 16.700000000000045, 33.299999999999955, 16.59999999999991,
+						16.700000000000045, 33.40000000000009, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 33.299999999999955, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 33.299999999999955, 16.600000000000136, 16.799999999999955,
+						33.299999999999955, 16.700000000000045, 16.59999999999991, 33.40000000000009,
+						16.59999999999991, 16.700000000000045, 33.299999999999955, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.600000000000136, 16.699999999999818, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.600000000000136, 16.699999999999818,
+						16.700000000000045, 16.700000000000045, 33.299999999999955, 16.700000000000045,
+						16.59999999999991, 33.40000000000009, 16.59999999999991, 16.700000000000273,
+						33.29999999999973, 16.700000000000273, 33.29999999999973, 16.700000000000273,
+						33.399999999999636, 16.600000000000364, 16.59999999999991, 33.29999999999973,
+						16.700000000000273, 16.699999999999818, 16.700000000000273, 33.29999999999973,
+						16.59999999999991, 16.700000000000273, 33.40000000000009, 16.59999999999991,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.800000000000182,
+						16.59999999999991, 16.59999999999991, 33.30000000000018, 33.40000000000009,
+						16.699999999999818, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 50, 16.800000000000182,
+						33.30000000000018, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 33.40000000000009, 16.59999999999991, 16.59999999999991,
+						16.800000000000182, 33.19999999999982, 16.699999999999818, 16.700000000000273,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.600000000000364,
+						16.799999999999727, 16.59999999999991, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 33.30000000000018, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 33.40000000000009, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.400000000000546,
+						16.599999999999454, 33.30000000000018, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 33.30000000000018, 16.600000000000364,
+						16.799999999999272, 33.30000000000018, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.699999999999818, 33.30000000000018,
+						16.600000000000364, 16.699999999999818, 33.399999999999636, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.600000000000364,
+						16.799999999999272, 16.600000000000364, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.599999999999454,
+						16.800000000000182, 16.600000000000364, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 33.30000000000018, 16.599999999999454,
+						33.400000000000546, 16.599999999999454, 33.400000000000546, 16.599999999999454,
+						33.400000000000546, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.599999999999454, 33.400000000000546, 16.599999999999454,
+						33.400000000000546, 16.599999999999454, 33.400000000000546, 33.30000000000018,
+						16.699999999999818, 16.599999999999454, 33.400000000000546, 16.599999999999454,
+						16.700000000000728, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.599999999999454, 16.700000000000728, 16.599999999999454,
+						16.699999999999818, 16.700000000000728, 16.599999999999454, 16.699999999999818,
+						16.700000000000728, 16.699999999999818, 33.30000000000018, 33.29999999999927,
+						33.400000000000546, 16.699999999999818, 16.600000000000364, 16.599999999999454,
+						16.699999999999818, 16.700000000000728, 16.699999999999818, 16.599999999999454,
+						16.700000000000728, 16.599999999999454
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "candidate",
+			"fixture": "300-leaf-drag",
+			"metrics": {
+				"responseMs": [63.9, 47.3, 45.3, 58, 40.9, 75.5],
+				"responseP95Ms": 75.5,
+				"responseMaxMs": 75.5,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 63.9,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 50
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 75.5,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": true,
+				"wrapped": 47,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 37.867,
+					"cpuMs": 37.843,
+					"callbackMs": 10.152,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 7.805,
+							"cpuMs": 7.806
+						},
+						"Layout": {
+							"wallMs": 2.248,
+							"cpuMs": 2.248
+						},
+						"PrePaint": {
+							"wallMs": 5.921,
+							"cpuMs": 5.922
+						},
+						"Paint": {
+							"wallMs": 13.981,
+							"cpuMs": 13.972
+						},
+						"Layerize": {
+							"wallMs": 3.645,
+							"cpuMs": 3.646
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 37.714,
+					"cpuMs": 37.693,
+					"callbackMs": 6.601,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.426,
+							"cpuMs": 8.427
+						},
+						"Layout": {
+							"wallMs": 2.042,
+							"cpuMs": 2.043
+						},
+						"PrePaint": {
+							"wallMs": 5.129,
+							"cpuMs": 5.13
+						},
+						"Paint": {
+							"wallMs": 17.546,
+							"cpuMs": 17.541
+						},
+						"Layerize": {
+							"wallMs": 4.431,
+							"cpuMs": 4.431
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 25.07,
+					"cpuMs": 25.006,
+					"callbackMs": 6.613,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 1.922,
+							"cpuMs": 1.924
+						},
+						"Layout": {
+							"wallMs": 0.405,
+							"cpuMs": 0.406
+						},
+						"PrePaint": {
+							"wallMs": 4.804,
+							"cpuMs": 4.805
+						},
+						"Paint": {
+							"wallMs": 14.757,
+							"cpuMs": 14.748
+						},
+						"Layerize": {
+							"wallMs": 3.977,
+							"cpuMs": 3.978
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 33.952,
+					"cpuMs": 33.917,
+					"callbackMs": 7.357,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.105,
+							"cpuMs": 8.106
+						},
+						"Layout": {
+							"wallMs": 1.186,
+							"cpuMs": 1.186
+						},
+						"PrePaint": {
+							"wallMs": 4.873,
+							"cpuMs": 4.875
+						},
+						"Paint": {
+							"wallMs": 13.819,
+							"cpuMs": 13.811
+						},
+						"Layerize": {
+							"wallMs": 3.93,
+							"cpuMs": 3.931
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 31.984,
+					"cpuMs": 31.92,
+					"callbackMs": 6.089,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.68,
+							"cpuMs": 8.681
+						},
+						"Layout": {
+							"wallMs": 1.972,
+							"cpuMs": 1.973
+						},
+						"PrePaint": {
+							"wallMs": 5.096,
+							"cpuMs": 5.097
+						},
+						"Paint": {
+							"wallMs": 10.441,
+							"cpuMs": 10.42
+						},
+						"Layerize": {
+							"wallMs": 3.407,
+							"cpuMs": 3.408
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 35.746,
+					"cpuMs": 36.577,
+					"callbackMs": 6.709,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.417,
+							"cpuMs": 10.419
+						},
+						"Layout": {
+							"wallMs": 2.288,
+							"cpuMs": 2.288
+						},
+						"PrePaint": {
+							"wallMs": 4.662,
+							"cpuMs": 4.662
+						},
+						"Paint": {
+							"wallMs": 17.835,
+							"cpuMs": 17.826
+						},
+						"Layerize": {
+							"wallMs": 3.278,
+							"cpuMs": 3.279
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 202.95600000000002,
+			"totalCompletionWallMs": 202.333,
+			"raw": {
+				"chapter": 300,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010169,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1061.6000000089407,
+							"trusted": true,
+							"chapter": 300,
+							"firstMotion": 1093.7000000029802,
+							"responseFrame": 1125.5,
+							"settled": 1568.2000000029802,
+							"frameStart": 0,
+							"frameEnd": 24
+						},
+						{
+							"at": 1584.5,
+							"trusted": true,
+							"chapter": 301,
+							"firstMotion": 1602.2999999970198,
+							"responseFrame": 1631.7999999970198,
+							"settled": 2081,
+							"frameStart": 26,
+							"frameEnd": 50
+						},
+						{
+							"at": 2199.6000000089407,
+							"trusted": true,
+							"chapter": 302,
+							"firstMotion": 2218.2000000029802,
+							"responseFrame": 2244.9000000059605,
+							"settled": 2663.7000000029802,
+							"frameStart": 59,
+							"frameEnd": 82
+						},
+						{
+							"at": 2683.9000000059605,
+							"trusted": true,
+							"chapter": 303,
+							"firstMotion": 2717.7000000029802,
+							"responseFrame": 2741.9000000059605,
+							"settled": 3190.7000000029802,
+							"frameStart": 84,
+							"frameEnd": 106
+						},
+						{
+							"at": 3300,
+							"trusted": true,
+							"chapter": 304,
+							"firstMotion": 3318.7999999970198,
+							"responseFrame": 3340.9000000059605,
+							"settled": 3783.4000000059605,
+							"frameStart": 112,
+							"frameEnd": 134
+						},
+						{
+							"at": 3801.6000000089407,
+							"trusted": true,
+							"chapter": 305,
+							"firstMotion": 3851.7000000029802,
+							"responseFrame": 3877.1000000089407,
+							"settled": 4352.5,
+							"frameStart": 136,
+							"frameEnd": 159
+						}
+					],
+					"frames": [
+						16.634000000000015, 50, 16.700000000000045, 16.699999999999818, 50, 16.600000000000136,
+						16.59999999999991, 16.799999999999955, 16.700000000000045, 16.600000000000136,
+						16.699999999999818, 16.700000000000045, 16.600000000000136, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 16.699999999999818, 16.600000000000136, 16.700000000000045,
+						16.699999999999818, 16.600000000000136, 33.399999999999864, 33.30000000000018,
+						16.699999999999818, 16.600000000000136, 33.299999999999955, 33.40000000000009,
+						16.59999999999991, 16.700000000000045, 33.399999999999864, 16.600000000000136,
+						16.59999999999991, 16.700000000000045, 16.700000000000045, 16.700000000000045,
+						16.699999999999818, 16.600000000000136, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.700000000000045,
+						33.29999999999973, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 33.399999999999636,
+						33.30000000000018, 16.699999999999818, 16.600000000000364, 33.399999999999636,
+						16.600000000000364, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.699999999999818, 16.5, 16.700000000000273, 16.699999999999818,
+						16.699999999999818, 16.700000000000273, 33.19999999999982, 16.700000000000273,
+						33.399999999999636, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.59999999999991, 33.40000000000009, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 33.29999999999973,
+						33.40000000000009, 50, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 33.399999999999636, 16.600000000000364,
+						33.29999999999973, 16.700000000000273, 33.29999999999973, 16.700000000000273,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 33.399999999999636, 16.600000000000364,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 33.29999999999973, 16.700000000000273,
+						33.29999999999973, 33.40000000000009, 16.59999999999991, 33.30000000000018,
+						33.29999999999973, 16.800000000000182, 33.30000000000018, 33.29999999999973,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 33.40000000000009, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.599999999999454, 16.700000000000728, 16.699999999999818,
+						16.599999999999454, 16.700000000000728, 33.399999999999636, 33.30000000000018,
+						33.30000000000018, 50, 16.699999999999818, 16.599999999999454, 16.700000000000728,
+						16.699999999999818, 16.599999999999454, 16.700000000000728, 16.699999999999818,
+						16.599999999999454
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "control-after",
+			"fixture": "125-leaf-drag",
+			"metrics": {
+				"responseMs": [79.4, 55, 45.1, 45.2, 54.4, 49.7],
+				"responseP95Ms": 79.4,
+				"responseMaxMs": 79.4,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 79.4,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 55,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 41.782,
+					"cpuMs": 41.738,
+					"callbackMs": 9.537,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.515,
+							"cpuMs": 9.516
+						},
+						"Layout": {
+							"wallMs": 1.62,
+							"cpuMs": 1.621
+						},
+						"PrePaint": {
+							"wallMs": 6.178,
+							"cpuMs": 6.179
+						},
+						"Paint": {
+							"wallMs": 16.191,
+							"cpuMs": 16.172
+						},
+						"Layerize": {
+							"wallMs": 3.863,
+							"cpuMs": 3.863
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 36.463,
+					"cpuMs": 36.437,
+					"callbackMs": 6.854,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.216,
+							"cpuMs": 8.217
+						},
+						"Layout": {
+							"wallMs": 1.606,
+							"cpuMs": 1.607
+						},
+						"PrePaint": {
+							"wallMs": 5.843,
+							"cpuMs": 5.844
+						},
+						"Paint": {
+							"wallMs": 16.068,
+							"cpuMs": 16.055
+						},
+						"Layerize": {
+							"wallMs": 4.111,
+							"cpuMs": 4.112
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 39.23,
+					"cpuMs": 39.193,
+					"callbackMs": 7.245,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.447,
+							"cpuMs": 10.449
+						},
+						"Layout": {
+							"wallMs": 2.034,
+							"cpuMs": 2.035
+						},
+						"PrePaint": {
+							"wallMs": 7.405,
+							"cpuMs": 7.407
+						},
+						"Paint": {
+							"wallMs": 14.634,
+							"cpuMs": 14.587
+						},
+						"Layerize": {
+							"wallMs": 3.692,
+							"cpuMs": 3.692
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 39.071,
+					"cpuMs": 39.043,
+					"callbackMs": 7.259,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.117,
+							"cpuMs": 10.119
+						},
+						"Layout": {
+							"wallMs": 1.39,
+							"cpuMs": 1.389
+						},
+						"PrePaint": {
+							"wallMs": 7.974,
+							"cpuMs": 7.975
+						},
+						"Paint": {
+							"wallMs": 15.965,
+							"cpuMs": 15.95
+						},
+						"Layerize": {
+							"wallMs": 3.884,
+							"cpuMs": 3.884
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 19.672,
+					"cpuMs": 19.647,
+					"callbackMs": 5.771,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.324,
+							"cpuMs": 2.326
+						},
+						"Layout": {
+							"wallMs": 1.083,
+							"cpuMs": 1.084
+						},
+						"PrePaint": {
+							"wallMs": 2.537,
+							"cpuMs": 2.538
+						},
+						"Paint": {
+							"wallMs": 3.74,
+							"cpuMs": 3.734
+						},
+						"Layerize": {
+							"wallMs": 3.746,
+							"cpuMs": 3.747
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 36.445,
+					"cpuMs": 36.231,
+					"callbackMs": 7.369,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.907,
+							"cpuMs": 9.907
+						},
+						"Layout": {
+							"wallMs": 1.279,
+							"cpuMs": 1.279
+						},
+						"PrePaint": {
+							"wallMs": 5.97,
+							"cpuMs": 5.97
+						},
+						"Paint": {
+							"wallMs": 13.449,
+							"cpuMs": 13.43
+						},
+						"Layerize": {
+							"wallMs": 3.958,
+							"cpuMs": 3.959
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 212.289,
+			"totalCompletionWallMs": 212.66299999999998,
+			"raw": {
+				"chapter": 125,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010601,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1114.4000000059605,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1163.0999999940395,
+							"responseFrame": 1193.7999999970198,
+							"settled": 1644.5999999940395,
+							"frameStart": 0,
+							"frameEnd": 25
+						},
+						{
+							"at": 1659.7000000029802,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 1681.0999999940395,
+							"responseFrame": 1714.7000000029802,
+							"settled": 2159.7000000029802,
+							"frameStart": 27,
+							"frameEnd": 51
+						},
+						{
+							"at": 2277.7999999970198,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 2295.9000000059605,
+							"responseFrame": 2322.9000000059605,
+							"settled": 2773.4000000059605,
+							"frameStart": 60,
+							"frameEnd": 85
+						},
+						{
+							"at": 2795.4000000059605,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 2815.9000000059605,
+							"responseFrame": 2840.5999999940395,
+							"settled": 3303.2000000029802,
+							"frameStart": 87,
+							"frameEnd": 110
+						},
+						{
+							"at": 3442.4000000059605,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 3466.2999999970198,
+							"responseFrame": 3496.7999999970198,
+							"settled": 3919.2000000029802,
+							"frameStart": 119,
+							"frameEnd": 143
+						},
+						{
+							"at": 3936.7999999970198,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 3962.7000000029802,
+							"responseFrame": 3986.5,
+							"settled": 4444.4000000059605,
+							"frameStart": 145,
+							"frameEnd": 167
+						}
+					],
+					"frames": [
+						16.59999999999991, 33.40000000000009, 33.299999999999955, 33.299999999999955,
+						33.40000000000009, 16.59999999999991, 16.700000000000045, 33.299999999999955,
+						16.600000000000136, 16.699999999999818, 16.700000000000045, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.600000000000136, 16.799999999999955, 16.59999999999991,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.600000000000136,
+						16.699999999999818, 33.30000000000018, 16.799999999999955, 16.5, 16.700000000000045,
+						33.399999999999864, 16.700000000000045, 33.299999999999955, 16.600000000000136,
+						16.699999999999818, 33.40000000000009, 16.59999999999991, 16.700000000000045,
+						16.700000000000045, 16.59999999999991, 16.700000000000045, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.600000000000136, 16.699999999999818, 16.700000000000273,
+						33.29999999999973, 16.59999999999991, 33.40000000000009, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 33.19999999999982, 16.800000000000182, 33.29999999999973,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 16.59999999999991, 16.800000000000182, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.59999999999991, 16.800000000000182, 16.59999999999991, 16.700000000000273,
+						16.59999999999991, 16.59999999999991, 16.800000000000182, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 33.40000000000009, 33.19999999999982, 16.800000000000182,
+						33.19999999999982, 33.40000000000009, 16.59999999999991, 16.800000000000182,
+						16.59999999999991, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.700000000000273, 33.19999999999982, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 33.40000000000009, 33.29999999999973, 33.40000000000009,
+						16.59999999999991, 16.600000000000364, 16.799999999999727, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 33.40000000000009,
+						16.59999999999991, 33.30000000000018, 33.40000000000009, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.600000000000364, 16.799999999999727,
+						16.59999999999991, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 33.399999999999636,
+						33.30000000000018, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 33.30000000000018, 50, 33.399999999999636,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.699999999999818,
+						16.600000000000364
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": [
+						{
+							"name": "long-animation-frame",
+							"entryType": "long-animation-frame",
+							"startTime": 1125.4000000059605,
+							"duration": 51.599999994039536,
+							"navigationId": 2344,
+							"paintTime": 1177,
+							"presentationTime": 1220,
+							"renderStart": 1163,
+							"styleAndLayoutStart": 1163.7000000029802,
+							"firstUIEventTimestamp": 1124.5999999940395,
+							"blockingDuration": 0,
+							"scripts": [
+								{
+									"name": "script",
+									"entryType": "script",
+									"startTime": 1147.7999999970198,
+									"duration": 14,
+									"navigationId": 2344,
+									"invoker": "DOMWindow.onpointermove",
+									"invokerType": "event-listener",
+									"windowAttribution": "self",
+									"executionStart": 1147.7999999970198,
+									"forcedStyleAndLayoutDuration": 0,
+									"pauseDuration": 0,
+									"sourceURL": "http://127.0.0.1:3001/_next/static/chunks/0qckd970f6ln4.js",
+									"sourceFunctionName": "",
+									"sourceCharPosition": 2812
+								}
+							]
+						}
+					]
+				}
+			}
+		},
+		{
+			"variant": "control-after",
+			"fixture": "125-pinned-toolbar",
+			"metrics": {
+				"responseMs": [34.9, 31.3, 34.1, 28.2, 42.2, 27.4],
+				"responseP95Ms": 42.2,
+				"responseMaxMs": 42.2,
+				"frameGapMaxMs": 50,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 34.9,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.4
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 42.2,
+					"frameGapMaxMs": 50,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 0,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 0
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 36,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1138
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 42.017,
+					"cpuMs": 41.977,
+					"callbackMs": 10.562,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 5.622,
+							"cpuMs": 5.624
+						},
+						"Layout": {
+							"wallMs": 0.488,
+							"cpuMs": 0.488
+						},
+						"PrePaint": {
+							"wallMs": 9.42,
+							"cpuMs": 9.421
+						},
+						"Paint": {
+							"wallMs": 20.528,
+							"cpuMs": 20.509
+						},
+						"Layerize": {
+							"wallMs": 4.788,
+							"cpuMs": 4.789
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 38.03,
+					"cpuMs": 37.993,
+					"callbackMs": 8.399,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 5.577,
+							"cpuMs": 5.571
+						},
+						"Layout": {
+							"wallMs": 3.457,
+							"cpuMs": 3.457
+						},
+						"PrePaint": {
+							"wallMs": 6.531,
+							"cpuMs": 6.531
+						},
+						"Paint": {
+							"wallMs": 12.672,
+							"cpuMs": 12.65
+						},
+						"Layerize": {
+							"wallMs": 5.979,
+							"cpuMs": 5.98
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 38.694,
+					"cpuMs": 38.664,
+					"callbackMs": 7.442,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.467,
+							"cpuMs": 10.468
+						},
+						"Layout": {
+							"wallMs": 1.703,
+							"cpuMs": 1.704
+						},
+						"PrePaint": {
+							"wallMs": 6.036,
+							"cpuMs": 6.037
+						},
+						"Paint": {
+							"wallMs": 15.128,
+							"cpuMs": 15.105
+						},
+						"Layerize": {
+							"wallMs": 4.571,
+							"cpuMs": 4.572
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 39.082,
+					"cpuMs": 39.053,
+					"callbackMs": 7.59,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.146,
+							"cpuMs": 10.146
+						},
+						"Layout": {
+							"wallMs": 1.615,
+							"cpuMs": 1.616
+						},
+						"PrePaint": {
+							"wallMs": 5.996,
+							"cpuMs": 5.997
+						},
+						"Paint": {
+							"wallMs": 16.339,
+							"cpuMs": 16.32
+						},
+						"Layerize": {
+							"wallMs": 5.326,
+							"cpuMs": 5.328
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 22.357,
+					"cpuMs": 22.325,
+					"callbackMs": 6.369,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 2.993,
+							"cpuMs": 2.993
+						},
+						"Layout": {
+							"wallMs": 0.377,
+							"cpuMs": 0.377
+						},
+						"PrePaint": {
+							"wallMs": 3.071,
+							"cpuMs": 3.071
+						},
+						"Paint": {
+							"wallMs": 3.891,
+							"cpuMs": 3.884
+						},
+						"Layerize": {
+							"wallMs": 3.728,
+							"cpuMs": 3.73
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 38.192,
+					"cpuMs": 38.136,
+					"callbackMs": 7.274,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 10.571,
+							"cpuMs": 10.571
+						},
+						"Layout": {
+							"wallMs": 1.319,
+							"cpuMs": 1.32
+						},
+						"PrePaint": {
+							"wallMs": 5.742,
+							"cpuMs": 5.742
+						},
+						"Paint": {
+							"wallMs": 13.754,
+							"cpuMs": 13.721
+						},
+						"Layerize": {
+							"wallMs": 4.452,
+							"cpuMs": 4.452
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 218.148,
+			"totalCompletionWallMs": 218.372,
+			"raw": {
+				"chapter": 125,
+				"mode": "pinned",
+				"gesture": "toolbar",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010601,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1104.6000000089407,
+							"trusted": true,
+							"chapter": 125,
+							"firstMotion": 1123.300000011921,
+							"responseFrame": 1139.5,
+							"settled": 1981.2000000029802,
+							"frameStart": 0,
+							"frameEnd": 42
+						},
+						{
+							"at": 2002.4000000059605,
+							"trusted": true,
+							"chapter": 126,
+							"firstMotion": 2018.5,
+							"responseFrame": 2033.7000000029802,
+							"settled": 2870.2000000029802,
+							"frameStart": 44,
+							"frameEnd": 86
+						},
+						{
+							"at": 2991,
+							"trusted": true,
+							"chapter": 127,
+							"firstMotion": 3003.4000000059605,
+							"responseFrame": 3025.1000000089407,
+							"settled": 3848.800000011921,
+							"frameStart": 95,
+							"frameEnd": 136
+						},
+						{
+							"at": 3887.4000000059605,
+							"trusted": true,
+							"chapter": 128,
+							"firstMotion": 3905.5,
+							"responseFrame": 3915.6000000089407,
+							"settled": 4769,
+							"frameStart": 139,
+							"frameEnd": 176
+						},
+						{
+							"at": 4906.20000000298,
+							"trusted": true,
+							"chapter": 129,
+							"firstMotion": 4920.600000008941,
+							"responseFrame": 4948.4000000059605,
+							"settled": 5749.5,
+							"frameStart": 185,
+							"frameEnd": 227
+						},
+						{
+							"at": 5783.5,
+							"trusted": true,
+							"chapter": 130,
+							"firstMotion": 5802.300000011921,
+							"responseFrame": 5810.9000000059605,
+							"settled": 6673.4000000059605,
+							"frameStart": 230,
+							"frameEnd": 268
+						}
+					],
+					"frames": [
+						33.299999999999955, 33.40000000000009, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 33.299999999999955, 33.40000000000009, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.699999999999818, 33.30000000000018,
+						16.59999999999991, 33.40000000000009, 16.699999999999818, 16.600000000000136,
+						33.399999999999864, 16.600000000000136, 16.59999999999991, 16.700000000000045,
+						33.40000000000009, 33.299999999999955, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.59999999999991,
+						16.800000000000182, 16.59999999999991, 16.700000000000045, 16.59999999999991,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.59999999999991, 16.700000000000045, 16.799999999999955, 16.600000000000136,
+						16.59999999999991, 16.700000000000045, 33.40000000000009, 33.19999999999982,
+						16.700000000000045, 16.700000000000045, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 33.30000000000018, 16.59999999999991, 16.800000000000182,
+						16.59999999999991, 33.30000000000018, 33.399999999999636, 16.700000000000273,
+						16.59999999999991, 16.59999999999991, 33.30000000000018, 16.699999999999818,
+						16.800000000000182, 33.19999999999982, 16.700000000000273, 33.399999999999636,
+						16.600000000000364, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.59999999999991, 16.799999999999727, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 33.30000000000018, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 33.30000000000018, 16.59999999999991, 16.699999999999818,
+						33.40000000000009, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.59999999999991, 33.40000000000009,
+						16.59999999999991, 16.700000000000273, 33.29999999999973, 16.700000000000273,
+						16.699999999999818, 33.30000000000018, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 33.19999999999982, 16.700000000000273, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						33.30000000000018, 16.699999999999818, 16.700000000000273, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 33.29999999999973, 33.40000000000009,
+						16.700000000000273, 33.29999999999973, 16.59999999999991, 33.30000000000018,
+						16.699999999999818, 33.400000000000546, 16.699999999999818, 33.30000000000018,
+						16.599999999999454, 33.400000000000546, 16.699999999999818, 33.30000000000018,
+						33.29999999999927, 16.600000000000364, 33.399999999999636, 16.700000000000728,
+						33.29999999999927, 16.600000000000364, 16.699999999999818, 33.30000000000018,
+						16.800000000000182, 16.599999999999454, 16.700000000000728, 33.29999999999927,
+						16.600000000000364, 16.800000000000182, 16.599999999999454, 16.700000000000728,
+						16.699999999999818, 16.599999999999454, 16.600000000000364, 16.800000000000182,
+						33.30000000000018, 33.29999999999927, 33.30000000000018, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.699999999999818, 16.700000000000728, 33.19999999999982,
+						33.399999999999636, 33.400000000000546, 16.599999999999454, 16.699999999999818,
+						16.700000000000728, 16.599999999999454, 33.400000000000546, 16.599999999999454,
+						16.699999999999818, 16.600000000000364, 33.30000000000018, 16.699999999999818,
+						16.699999999999818, 16.699999999999818, 33.30000000000018, 16.600000000000364,
+						16.699999999999818, 33.399999999999636, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.600000000000364, 16.799999999999272,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.700000000000728,
+						16.599999999999454, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.800000000000182, 16.599999999999454, 16.699999999999818, 16.700000000000728,
+						16.599999999999454, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 33.30000000000018, 33.30000000000018, 16.600000000000364,
+						33.399999999999636, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.600000000000364, 33.399999999999636, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 33.30000000000018, 16.699999999999818, 16.699999999999818,
+						33.30000000000018, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.599999999999454, 16.700000000000728, 50,
+						33.399999999999636, 33.30000000000018, 33.399999999999636, 16.600000000000364,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 16.699999999999818
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": []
+				}
+			}
+		},
+		{
+			"variant": "control-after",
+			"fixture": "300-leaf-drag",
+			"metrics": {
+				"responseMs": [103.4, 48.5, 42.7, 47.4, 41.2, 72.7],
+				"responseP95Ms": 103.4,
+				"responseMaxMs": 103.4,
+				"frameGapMaxMs": 50.1,
+				"frameGapP95Ms": 33.4,
+				"firstTurn": {
+					"responseP95Ms": 103.4,
+					"frameGapMaxMs": 33.4,
+					"frameGapP95Ms": 33.3
+				},
+				"consecutiveTurns": {
+					"responseP95Ms": 72.7,
+					"frameGapMaxMs": 50.1,
+					"frameGapP95Ms": 33.4
+				}
+			},
+			"blocking": {
+				"blockingDurationMaxMs": 2.4,
+				"firstTurn": {
+					"blockingDurationMaxMs": 0
+				},
+				"consecutiveTurns": {
+					"blockingDurationMaxMs": 2.4
+				}
+			},
+			"failures": [],
+			"hint": {
+				"kind": "Private runtime diagnostic only, unchanged Native111 before/after wrapper except zero paper rotateY removal in candidate; no acceptance claim",
+				"candidate": false,
+				"wrapped": 47,
+				"before": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"after": [
+					{
+						"x": 745.015625,
+						"y": 168.171875,
+						"width": 450.15625,
+						"height": 1874
+					}
+				],
+				"transforms": [
+					{
+						"inline": "translateX(0px) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, 0, 0)"
+					},
+					{
+						"inline": "translateX(-100%) rotateY(0deg) scaleX(1)",
+						"computed": "matrix(1, 0, 0, 1, -490.156, 0)"
+					}
+				]
+			},
+			"completions": [
+				{
+					"turn": 1,
+					"wallMs": 38.224,
+					"cpuMs": 38.132,
+					"callbackMs": 11.291,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.159,
+							"cpuMs": 8.159
+						},
+						"Layout": {
+							"wallMs": 1.63,
+							"cpuMs": 1.63
+						},
+						"PrePaint": {
+							"wallMs": 5.275,
+							"cpuMs": 5.275
+						},
+						"Paint": {
+							"wallMs": 14.944,
+							"cpuMs": 14.922
+						},
+						"Layerize": {
+							"wallMs": 3.023,
+							"cpuMs": 3.024
+						}
+					}
+				},
+				{
+					"turn": 2,
+					"wallMs": 35.524,
+					"cpuMs": 35.491,
+					"callbackMs": 6.821,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.014,
+							"cpuMs": 8.015
+						},
+						"Layout": {
+							"wallMs": 1.557,
+							"cpuMs": 1.558
+						},
+						"PrePaint": {
+							"wallMs": 5.016,
+							"cpuMs": 5.017
+						},
+						"Paint": {
+							"wallMs": 16.62,
+							"cpuMs": 16.598
+						},
+						"Layerize": {
+							"wallMs": 3.638,
+							"cpuMs": 3.639
+						}
+					}
+				},
+				{
+					"turn": 3,
+					"wallMs": 33.637,
+					"cpuMs": 33.543,
+					"callbackMs": 7.322,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 5.691,
+							"cpuMs": 5.692
+						},
+						"Layout": {
+							"wallMs": 2.112,
+							"cpuMs": 2.113
+						},
+						"PrePaint": {
+							"wallMs": 4.992,
+							"cpuMs": 4.992
+						},
+						"Paint": {
+							"wallMs": 14.124,
+							"cpuMs": 14.099
+						},
+						"Layerize": {
+							"wallMs": 4.144,
+							"cpuMs": 4.145
+						}
+					}
+				},
+				{
+					"turn": 4,
+					"wallMs": 37.298,
+					"cpuMs": 37.268,
+					"callbackMs": 7.43,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.49,
+							"cpuMs": 8.491
+						},
+						"Layout": {
+							"wallMs": 1.651,
+							"cpuMs": 1.651
+						},
+						"PrePaint": {
+							"wallMs": 4.884,
+							"cpuMs": 4.886
+						},
+						"Paint": {
+							"wallMs": 15.574,
+							"cpuMs": 15.555
+						},
+						"Layerize": {
+							"wallMs": 4.036,
+							"cpuMs": 4.037
+						}
+					}
+				},
+				{
+					"turn": 5,
+					"wallMs": 34.615,
+					"cpuMs": 34.586,
+					"callbackMs": 8.423,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 8.269,
+							"cpuMs": 8.271
+						},
+						"Layout": {
+							"wallMs": 1.964,
+							"cpuMs": 1.965
+						},
+						"PrePaint": {
+							"wallMs": 4.785,
+							"cpuMs": 4.786
+						},
+						"Paint": {
+							"wallMs": 11.459,
+							"cpuMs": 11.438
+						},
+						"Layerize": {
+							"wallMs": 4.146,
+							"cpuMs": 4.148
+						}
+					}
+				},
+				{
+					"turn": 6,
+					"wallMs": 43.52,
+					"cpuMs": 43.484,
+					"callbackMs": 7.571,
+					"work": {
+						"UpdateLayoutTree": {
+							"wallMs": 9.46,
+							"cpuMs": 9.462
+						},
+						"Layout": {
+							"wallMs": 2.309,
+							"cpuMs": 2.31
+						},
+						"PrePaint": {
+							"wallMs": 5.454,
+							"cpuMs": 5.456
+						},
+						"Paint": {
+							"wallMs": 23.539,
+							"cpuMs": 23.519
+						},
+						"Layerize": {
+							"wallMs": 4.727,
+							"cpuMs": 4.729
+						}
+					}
+				}
+			],
+			"totalCompletionCpuMs": 222.504,
+			"totalCompletionWallMs": 222.818,
+			"raw": {
+				"chapter": 300,
+				"mode": "leaf",
+				"gesture": "drag",
+				"cpuRate": 4,
+				"browser": "156.0.8078.4",
+				"headless": true,
+				"gpu": {
+					"devices": [
+						{
+							"vendorId": 65535,
+							"deviceId": 65535,
+							"vendorString": "Google Inc. (Google)",
+							"deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+							"driverVendor": "SwANGLE",
+							"driverVersion": "5.0.0"
+						}
+					],
+					"auxAttributes": {
+						"amdSwitchable": false,
+						"canSupportThreadedTextureMailbox": false,
+						"directRenderingVersion": "",
+						"displayType": "ANGLE_SWIFTSHADER",
+						"glExtensions": "GL_AMD_performance_monitor GL_ANGLE_base_vertex_base_instance_shader_builtin GL_ANGLE_blob_cache GL_ANGLE_client_arrays GL_ANGLE_clip_cull_distance GL_ANGLE_compressed_texture_etc GL_ANGLE_copy_texture_3d GL_ANGLE_depth_texture GL_ANGLE_framebuffer_blit GL_ANGLE_framebuffer_multisample GL_ANGLE_get_image GL_ANGLE_get_serialized_context_string GL_ANGLE_get_tex_level_parameter GL_ANGLE_instanced_arrays GL_ANGLE_memory_object_flags GL_ANGLE_memory_size GL_ANGLE_multi_draw GL_ANGLE_pack_reverse_row_order GL_ANGLE_polygon_mode GL_ANGLE_program_binary_readiness_query GL_ANGLE_program_cache_control GL_ANGLE_read_only_depth_stencil_feedback_loops GL_ANGLE_relaxed_vertex_attribute_type GL_ANGLE_renderability_validation GL_ANGLE_request_extension GL_ANGLE_rgbx_internal_format GL_ANGLE_robust_client_memory GL_ANGLE_robust_fragment_shader_output GL_ANGLE_robust_resource_initialization GL_ANGLE_shader_pixel_local_storage GL_ANGLE_shader_pixel_local_storage_coherent GL_ANGLE_stencil_texturing GL_ANGLE_texture_compression_dxt3 GL_ANGLE_texture_compression_dxt5 GL_ANGLE_texture_multisample GL_ANGLE_texture_usage GL_ANGLE_translated_shader_source GL_ANGLE_vulkan_image GL_ANGLE_yuv_internal_format GL_APPLE_clip_distance GL_ARM_rgba8 GL_ARM_shader_framebuffer_fetch GL_CHROMIUM_bind_generates_resource GL_CHROMIUM_bind_uniform_location GL_CHROMIUM_copy_compressed_texture GL_CHROMIUM_copy_texture GL_CHROMIUM_lose_context GL_EXT_EGL_image_array GL_EXT_EGL_image_external_wrap_modes GL_EXT_EGL_image_storage GL_EXT_base_instance GL_EXT_blend_minmax GL_EXT_buffer_storage GL_EXT_clear_texture GL_EXT_clip_control GL_EXT_clip_cull_distance GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_compressed_ETC1_RGB8_sub_texture GL_EXT_conservative_depth GL_EXT_copy_image GL_EXT_debug_label GL_EXT_debug_marker GL_EXT_depth_clamp GL_EXT_discard_framebuffer GL_EXT_disjoint_timer_query GL_EXT_draw_buffers GL_EXT_draw_buffers_indexed GL_EXT_draw_elements_base_vertex GL_EXT_float_blend GL_EXT_frag_depth GL_EXT_instanced_arrays GL_EXT_map_buffer_range GL_EXT_memory_object GL_EXT_memory_object_fd GL_EXT_occlusion_query_boolean GL_EXT_polygon_offset_clamp GL_EXT_read_format_bgra GL_EXT_robustness GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_semaphore GL_EXT_semaphore_fd GL_EXT_separate_shader_objects GL_EXT_shader_framebuffer_fetch GL_EXT_shader_framebuffer_fetch_non_coherent GL_EXT_shader_non_constant_global_initializers GL_EXT_shader_texture_lod GL_EXT_shadow_samplers GL_EXT_texture_border_clamp GL_EXT_texture_compression_bptc GL_EXT_texture_compression_dxt1 GL_EXT_texture_compression_rgtc GL_EXT_texture_compression_s3tc_srgb GL_EXT_texture_filter_anisotropic GL_EXT_texture_format_BGRA8888 GL_EXT_texture_lod_bias GL_EXT_texture_mirror_clamp_to_edge GL_EXT_texture_rg GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_EXT_texture_sRGB_decode GL_EXT_texture_shadow_lod GL_EXT_texture_storage GL_EXT_texture_type_2_10_10_10_REV GL_EXT_unpack_subimage GL_KHR_blend_equation_advanced GL_KHR_debug GL_KHR_robust_buffer_access_behavior GL_KHR_robustness GL_KHR_texture_compression_astc_ldr GL_NV_fence GL_NV_framebuffer_blit GL_NV_pack_subimage GL_NV_pixel_buffer_object GL_NV_polygon_mode GL_NV_read_depth GL_NV_read_depth_stencil GL_NV_read_stencil GL_NV_shader_noperspective_interpolation GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_compressed_ETC1_RGB8_texture GL_OES_compressed_paletted_texture GL_OES_copy_image GL_OES_depth24 GL_OES_depth32 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_draw_buffers_indexed GL_OES_draw_elements_base_vertex GL_OES_element_index_uint GL_OES_fbo_render_mipmap GL_OES_get_program_binary GL_OES_mapbuffer GL_OES_packed_depth_stencil GL_OES_required_internalformat GL_OES_rgb8_rgba8 GL_OES_sample_shading GL_OES_sample_variables GL_OES_shader_multisample_interpolation GL_OES_standard_derivatives GL_OES_surfaceless_context GL_OES_texture_3D GL_OES_texture_border_clamp GL_OES_texture_float GL_OES_texture_float_linear GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_texture_npot GL_OES_texture_stencil8 GL_OES_texture_storage_multisample_2d_array GL_OES_vertex_array_object GL_OES_vertex_half_float GL_OES_vertex_type_10_10_10_2 GL_OVR_multiview GL_OVR_multiview2 GL_QCOM_texture_lod_bias ",
+						"glImplementationParts": "(gl=egl-angle,angle=swiftshader)",
+						"glRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+						"glResetNotificationStrategy": 33362,
+						"glVendor": "Google Inc. (Google)",
+						"glVersion": "OpenGL ES 3.0 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"glWsExtensions": "EGL_EXT_create_context_robustness EGL_ANGLE_surface_orientation EGL_KHR_create_context EGL_KHR_image EGL_KHR_image_base EGL_EXT_image_gl_colorspace EGL_KHR_gl_colorspace EGL_KHR_gl_texture_2D_image EGL_KHR_gl_texture_cubemap_image EGL_KHR_gl_renderbuffer_image EGL_KHR_get_all_proc_addresses EGL_KHR_fence_sync EGL_KHR_wait_sync EGL_ANGLE_create_context_webgl_compatibility EGL_CHROMIUM_create_context_bind_generates_resource EGL_KHR_swap_buffers_with_damage EGL_EXT_pixel_format_float EGL_KHR_surfaceless_context EGL_ANGLE_display_texture_share_group EGL_ANGLE_display_semaphore_share_group EGL_ANGLE_create_context_client_arrays EGL_ANGLE_program_cache_control EGL_ANGLE_robust_resource_initialization EGL_ANGLE_create_context_extensions_enabled EGL_ANDROID_blob_cache EGL_ANDROID_recordable EGL_ANGLE_create_context_backwards_compatible EGL_KHR_no_config_context EGL_IMG_context_priority EGL_KHR_create_context_no_error EGL_KHR_reusable_sync EGL_EXT_buffer_age EGL_ANGLE_create_surface_swap_interval EGL_ANGLE_vulkan_image EGL_KHR_partial_update EGL_ANGLE_global_fence_sync EGL_ANGLE_memory_usage_report ",
+						"glWsVendor": "Google Inc. (Google)",
+						"glWsVersion": "1.5 (ANGLE 2.1.28967 git hash: dfeede58b618)",
+						"hardwareSupportsVulkan": false,
+						"inProcessGpu": false,
+						"initializationTime": 0.010601,
+						"isAsan": false,
+						"isClangCoverage": false,
+						"jpegDecodeAcceleratorSupported": false,
+						"maxMsaaSamples": "4",
+						"optimus": false,
+						"passthroughCmdDecoder": true,
+						"pixelShaderVersion": "3.00",
+						"processCrashCount": 0,
+						"sandboxed": false,
+						"skiaBackendType": "None",
+						"subpixelFontRendering": true,
+						"targetCpuBits": 64,
+						"vertexShaderVersion": "3.00",
+						"visibilityCallbackCallCount": 0
+					},
+					"featureStatus": {
+						"2d_canvas": "unavailable_software",
+						"direct_rendering_display_compositor": "disabled_off_ok",
+						"gpu_compositing": "disabled_software",
+						"multiple_raster_threads": "enabled_on",
+						"opengl": "disabled_off",
+						"rasterization": "disabled_software",
+						"raw_draw": "disabled_off_ok",
+						"skia_graphite": "disabled_off",
+						"trees_in_viz": "disabled_off",
+						"video_decode": "disabled_software",
+						"video_encode": "disabled_software",
+						"vulkan": "disabled_off",
+						"webgl": "unavailable_software",
+						"webgpu": "unavailable_software",
+						"webgpu_on_vk_via_gl_interop": "disabled_off",
+						"webnn": "unavailable_software"
+					},
+					"driverBugWorkarounds": [],
+					"videoDecoding": [],
+					"videoEncoding": []
+				},
+				"renderingProfile": "software-work",
+				"limits": {
+					"responseP95Ms": 200,
+					"frameGapMaxMs": 100,
+					"frameGapP95Ms": 50
+				},
+				"blockingLimitMs": 50,
+				"samples": {
+					"inputs": [
+						{
+							"at": 1070.1000000089407,
+							"trusted": true,
+							"chapter": 300,
+							"firstMotion": 1155.2000000029802,
+							"responseFrame": 1173.5,
+							"settled": 1621.4000000059605,
+							"frameStart": 0,
+							"frameEnd": 26
+						},
+						{
+							"at": 1641.9000000059605,
+							"trusted": true,
+							"chapter": 301,
+							"firstMotion": 1659.1000000089407,
+							"responseFrame": 1690.4000000059605,
+							"settled": 2136.1000000089407,
+							"frameStart": 28,
+							"frameEnd": 52
+						},
+						{
+							"at": 2257.2000000029802,
+							"trusted": true,
+							"chapter": 302,
+							"firstMotion": 2273.9000000059605,
+							"responseFrame": 2299.9000000059605,
+							"settled": 2745.4000000059605,
+							"frameStart": 61,
+							"frameEnd": 86
+						},
+						{
+							"at": 2767.5,
+							"trusted": true,
+							"chapter": 303,
+							"firstMotion": 2790.9000000059605,
+							"responseFrame": 2814.9000000059605,
+							"settled": 3267.4000000059605,
+							"frameStart": 88,
+							"frameEnd": 111
+						},
+						{
+							"at": 3371.9000000059605,
+							"trusted": true,
+							"chapter": 304,
+							"firstMotion": 3391.4000000059605,
+							"responseFrame": 3413.1000000089407,
+							"settled": 3862.4000000059605,
+							"frameStart": 117,
+							"frameEnd": 139
+						},
+						{
+							"at": 3890.1000000089407,
+							"trusted": true,
+							"chapter": 305,
+							"firstMotion": 3937.1000000089407,
+							"responseFrame": 3962.7999999970198,
+							"settled": 4437.29999999702,
+							"frameStart": 141,
+							"frameEnd": 162
+						}
+					],
+					"frames": [
+						33.2679999999998, 16.700000000000045, 16.700000000000045, 33.299999999999955,
+						33.299999999999955, 33.40000000000009, 16.59999999999991, 16.700000000000045,
+						33.299999999999955, 16.600000000000136, 16.700000000000045, 16.799999999999955, 16.5,
+						16.799999999999955, 16.59999999999991, 16.700000000000045, 16.600000000000136,
+						16.699999999999818, 16.600000000000136, 16.700000000000045, 16.699999999999818,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.600000000000136, 33.399999999999864, 33.40000000000009, 16.59999999999991,
+						33.299999999999955, 16.600000000000136, 33.399999999999864, 16.700000000000045,
+						16.600000000000136, 33.399999999999864, 16.600000000000136, 16.699999999999818,
+						16.700000000000045, 16.700000000000045, 16.59999999999991, 16.700000000000045,
+						16.600000000000136, 16.699999999999818, 16.600000000000136, 16.799999999999955,
+						16.59999999999991, 16.600000000000136, 16.799999999999955, 16.59999999999991,
+						16.59999999999991, 16.700000000000273, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.700000000000273, 16.59999999999991, 16.699999999999818, 16.59999999999991,
+						16.700000000000273, 16.699999999999818, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.59999999999991, 16.800000000000182,
+						16.59999999999991, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						16.59999999999991, 16.800000000000182, 16.59999999999991, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.59999999999991, 16.699999999999818, 16.800000000000182, 16.5, 16.699999999999818,
+						16.700000000000273, 33.40000000000009, 16.59999999999991, 16.59999999999991,
+						16.699999999999818, 33.40000000000009, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.59999999999991, 16.700000000000273,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.59999999999991,
+						33.40000000000009, 16.59999999999991, 16.699999999999818, 16.700000000000273,
+						16.699999999999818, 16.59999999999991, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 33.30000000000018, 33.40000000000009, 50, 16.59999999999991,
+						16.699999999999818, 16.700000000000273, 16.59999999999991, 16.699999999999818,
+						33.40000000000009, 16.59999999999991, 33.30000000000018, 16.699999999999818,
+						33.30000000000018, 16.699999999999818, 16.700000000000273, 16.699999999999818,
+						16.59999999999991, 16.600000000000364, 16.699999999999818, 33.30000000000018,
+						16.699999999999818, 16.699999999999818, 16.600000000000364, 16.699999999999818,
+						16.699999999999818, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						33.40000000000009, 50, 16.5, 16.800000000000182, 33.19999999999982, 33.40000000000009,
+						16.699999999999818, 33.30000000000018, 33.40000000000009, 16.59999999999991,
+						33.399999999999636, 16.600000000000364, 16.699999999999818, 16.699999999999818,
+						16.600000000000364, 33.399999999999636, 16.600000000000364, 16.699999999999818,
+						16.600000000000364, 33.30000000000018, 16.699999999999818, 16.699999999999818,
+						33.30000000000018, 33.399999999999636, 49.900000000000546, 50.099999999999454,
+						33.30000000000018, 16.699999999999818, 16.699999999999818, 16.600000000000364,
+						16.699999999999818, 16.600000000000364, 16.699999999999818
+					],
+					"visibility": {
+						"started": "visible",
+						"stopped": "visible",
+						"startedFocused": true,
+						"stoppedFocused": true,
+						"changes": []
+					},
+					"repeatedFrameTimestamps": [],
+					"longAnimationFramesSupported": true,
+					"longAnimationFrames": [
+						{
+							"name": "long-animation-frame",
+							"entryType": "long-animation-frame",
+							"startTime": 4453.100000008941,
+							"duration": 53.599999994039536,
+							"navigationId": 8927,
+							"paintTime": 4506.70000000298,
+							"presentationTime": 4536,
+							"renderStart": 4458.4000000059605,
+							"styleAndLayoutStart": 4458.5,
+							"firstUIEventTimestamp": 0,
+							"blockingDuration": 2.4,
+							"scripts": []
+						}
+					]
+				}
+			}
+		}
+	],
+	"appearance": {
+		"poses": 24,
+		"changedPixels": 0,
+		"restCharacterComparisons": 8,
+		"maxCharacterMovement": 0,
+		"fontsAndColorsUnchanged": true,
+		"proof": [
+			{
+				"chapter": 125,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 3243
+			},
+			{
+				"chapter": 125,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 125,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 125,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 3243
+			},
+			{
+				"chapter": 125,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 125,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 125,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 3243
+			},
+			{
+				"chapter": 125,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 125,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 5319
+			},
+			{
+				"chapter": 300,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 5319
+			},
+			{
+				"chapter": 300,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "pinned",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 5319
+			},
+			{
+				"chapter": 300,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 300,
+				"mode": "hidden",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 7729
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "light",
+				"pose": "angled",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "dark",
+				"pose": "rest",
+				"changedPixels": 0,
+				"maxDelta": 0,
+				"characters": 7729
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "dark",
+				"pose": "straight",
+				"changedPixels": 0
+			},
+			{
+				"chapter": 288,
+				"mode": "leaf",
+				"colorScheme": "dark",
+				"pose": "angled",
+				"changedPixels": 0
+			}
+		]
+	}
+}

@@ -401,7 +401,11 @@ export class Leaf {
 			const scaleX = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
 			const origin = isOdd ? (isLTR ? "left" : "right") : isLTR ? "right" : "left";
 
-			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+			// Moving paper already returned through the 2D crease path above.
+			// Its flat endpoints need no Y rotation: retain the same plane without
+			// switching to a 3D transform as the turn settles. Covers keep rotating.
+			const rotation = paperSize ? "" : `rotateY(${rotateY})`;
+			page.style.transform = `translateX(${translateX})${rotation}scaleX(${scaleX})`;
 			page.style.transformOrigin = origin;
 			page.style.zIndex = this.getSurfaceZIndex(page, clampedPosition, index, false);
 

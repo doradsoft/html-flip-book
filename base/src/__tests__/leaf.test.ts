@@ -673,8 +673,38 @@ describe("Leaf", () => {
 			expect(mockPage1.style.clipPath).toBe("");
 			expect(mockPage2.style.clipPath).toBe("");
 			expect(mockPage1.classList.contains("page--folded")).toBe(false);
-			expect(mockPage2.style.transform).toContain("rotateY(0deg)");
+			expect(mockPage2.style.transform).not.toContain("rotateY");
 		});
+
+		it.each([
+			[true, 0],
+			[true, 1],
+			[false, 0],
+			[false, 1],
+		] as const)(
+			"settles paper in the same flat plane for isLTR=%s endpoint=%s",
+			(isLTR, endpoint) => {
+				const leaf = createPaperLeaf(isLTR);
+				leaf.applyTransform(0.4);
+				leaf.applyTransform(endpoint);
+
+				for (const [side, page] of [mockPage1, mockPage2].entries()) {
+					expect(page.style.transform).not.toMatch(/rotateY|matrix3d/);
+					expect(page.style.transform).toContain(
+						`translateX(${side === 0 ? (isLTR ? "100%" : "-100%") : "0px"})`,
+					);
+					expect(page.style.transform).toContain(`scaleX(${side === endpoint ? 1 : -1})`);
+					expect(page.style.clipPath).toBe("");
+					expect(page.classList.contains("page--folded")).toBe(false);
+				}
+
+				// Rigid covers still use the original 3D path, including at rest.
+				mockPage1.dataset.isCoverPage = "1";
+				leaf.applyTransform(endpoint);
+				expect(mockPage1.style.transform).toContain("rotateY(0deg)");
+				expect(mockPage2.style.transform).toContain("rotateY(0deg)");
+			},
+		);
 
 		it.each([0, 1])(
 			"does not report stale manual settlement after an instant endpoint %s assignment",
@@ -860,7 +890,7 @@ describe("Leaf", () => {
 				expect(page?.classList.contains("page--folded")).toBe(false);
 				expect(page?.style.clipPath).toBe("");
 				expect(page?.style.getPropertyValue("--fold-shading")).toBe("");
-				expect(page?.style.transform).toContain("rotateY(0deg)");
+				expect(page?.style.transform).not.toContain("rotateY");
 			}
 		});
 
@@ -1174,10 +1204,10 @@ describe("Leaf", () => {
 
 					expect(stack(leaf)).toEqual(endpoint === 0 ? [6, 5] : [4, 5]);
 					expect(leaf.pages[0].style.transform).toBe(
-						`translateX(${isLTR ? "100%" : "-100%"})rotateY(0deg)scaleX(${endpoint === 0 ? 1 : -1})`,
+						`translateX(${isLTR ? "100%" : "-100%"})${cover ? "rotateY(0deg)" : ""}scaleX(${endpoint === 0 ? 1 : -1})`,
 					);
 					expect(leaf.pages[1]?.style.transform).toBe(
-						`translateX(0px)rotateY(0deg)scaleX(${endpoint === 0 ? -1 : 1})`,
+						`translateX(0px)${cover ? "rotateY(0deg)" : ""}scaleX(${endpoint === 0 ? -1 : 1})`,
 					);
 				}
 			}
