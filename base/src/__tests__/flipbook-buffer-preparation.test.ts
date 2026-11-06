@@ -42,11 +42,12 @@ describe("covered page preparation", () => {
 		vi.unstubAllGlobals();
 	});
 
-	function open(direction: "ltr" | "rtl" = "ltr", leavesBuffer = 1) {
+	function open(direction: "ltr" | "rtl" = "ltr", leavesBuffer = 1, keepPageContentLayout = false) {
 		book = new FlipBook({
 			pagesCount: pages.length,
 			initialTurnedLeaves: [0, 1, 2, 3, 4, 5, 6],
 			leavesBuffer,
+			keepPageContentLayout,
 			coverPageIndices: "auto",
 			enableHistory: false,
 			direction,
@@ -114,6 +115,38 @@ describe("covered page preparation", () => {
 				expect(visibility(index)).toBe("visible");
 				expect(pages[index].style.display).not.toBe("none");
 			}
+		},
+	);
+
+	it.each([
+		["ltr", 0],
+		["rtl", 0],
+		["ltr", 1],
+		["rtl", 1],
+	] as const)(
+		"reveals the whole paper underneath a retained backward turn for %s with buffer %s",
+		(direction, leavesBuffer) => {
+			const reader = open(direction, leavesBuffer, true);
+			const underlay = pages[11];
+			const pane = underlay.firstElementChild as HTMLElement;
+			// The preceding paper is outside the ordinary paper buffer at rest.
+			expect(underlay.style.opacity).toBe("0");
+			const engine = getFlipBookInternals(reader);
+			const start = direction === "ltr" ? 100 : 700;
+			const move = direction === "ltr" ? 200 : 600;
+			engine.onDragStart({ center: { x: start } });
+			engine.onDragUpdate({ center: { x: move } });
+			// Revealing only the pane is insufficient when its paper is transparent.
+			for (const element of [underlay, pane]) {
+				expect(element.style.opacity).not.toBe("0");
+				expect(element.style.display).not.toBe("none");
+				expect(element.style.contentVisibility).not.toBe("hidden");
+				expect(element.classList.contains("flipbook-layout-dormant")).toBe(false);
+				expect(element.hasAttribute("inert")).toBe(false);
+				expect(element.hasAttribute("aria-hidden")).toBe(false);
+			}
+			// Distant content stays dormant; the fix exposes only the required paper.
+			expect(pages[7].style.opacity).toBe("0");
 		},
 	);
 
