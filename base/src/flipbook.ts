@@ -1038,8 +1038,13 @@ class FlipBook {
 			// turning page vanish and reappear (the flicker of issue #167).
 			const isFlipping = this.activeFlips.has(i) || leaf.isFlipping;
 
-			// Cover leaves are always visible; other leaves follow the buffer range.
-			const visible = isCoverLeaf || isWithinBuffer || isFlipping;
+			// A backward fold can expose the preceding leaf beyond the paper buffer.
+			// Its pane is already required below; restore the opaque paper as well so
+			// an unmasked text pane cannot remain inside a transparent ancestor.
+			const isRequiredPaper =
+				this.keepPageContentLayout &&
+				(requiredContent.has(i * 2) || requiredContent.has(i * 2 + 1));
+			const visible = isCoverLeaf || isWithinBuffer || isFlipping || isRequiredPaper;
 			const retainLayout =
 				this.keepPageContentLayout &&
 				(isCoverLeaf || isFlipping || Math.abs(i - currentLeafIndex) <= contentBuffer);
