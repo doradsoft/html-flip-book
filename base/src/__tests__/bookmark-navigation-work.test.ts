@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type BookmarkContext, BookmarkLayer } from "../bookmarks";
 
 function navigationStackReads(count: number, attachment: "leaf" | "pinned"): number {
@@ -53,6 +53,67 @@ function navigationStackReads(count: number, attachment: "leaf" | "pinned"): num
 }
 
 describe("bookmark navigation work", () => {
+	it.each(["leaf", "pinned"] as const)(
+		"does not recheck unchanged tab attributes during %s navigation",
+		(attachment) => {
+			const host = document.createElement("div");
+			document.body.append(host);
+			const context: BookmarkContext = {
+				currentPageIndex: 3,
+				currentLeafIndex: 1,
+				direction: "ltr",
+			};
+			const bookmarks = Array.from({ length: 96 }, (_, index) => ({
+				id: `chapter-${index}`,
+				pageIndex: index * 2 + 2,
+				label: `Chapter ${index}`,
+			}));
+			const layer = new BookmarkLayer(
+				host,
+				() => context,
+				() => {},
+				196,
+			);
+			try {
+				layer.setProvider({ getBookmarks: () => bookmarks, attachment });
+				layer.layout({ left: 100, top: 40, width: 600, height: 500 }, 900);
+				const reads = new Set<Element>();
+				const getAttribute = Element.prototype.getAttribute;
+				const spy = vi.spyOn(Element.prototype, "getAttribute").mockImplementation(function (name) {
+					if (name === "aria-label") reads.add(this);
+					return getAttribute.call(this, name);
+				});
+				try {
+					context.currentPageIndex = 5;
+					context.currentLeafIndex = 2;
+					layer.refreshForNavigation();
+					expect(reads.size).toBeLessThanOrEqual(2);
+					expect(
+						host.querySelector('[data-bookmark-id="chapter-2"]')?.getAttribute("aria-current"),
+					).toBe("page");
+					bookmarks[20] = { ...bookmarks[20], label: "Changed chapter" };
+					layer.refreshForNavigation();
+					expect(
+						host.querySelector('[data-bookmark-id="chapter-20"]')?.getAttribute("aria-label"),
+					).toBe("Changed chapter");
+					const tab = host.querySelector<HTMLButtonElement>('[data-bookmark-id="chapter-20"]');
+					expect(tab?.textContent).toBe("Changed chapter");
+					// Explicit refresh reconciles consumer edits and mouse-mode state.
+					tab?.setAttribute("aria-label", "External edit");
+					const content = tab?.querySelector<HTMLElement>(".flipbook-bookmark__content");
+					if (content) content.inert = false;
+					layer.refresh();
+					expect(tab?.getAttribute("aria-label")).toBe("Changed chapter");
+					expect(content?.inert).toBe(true);
+				} finally {
+					spy.mockRestore();
+				}
+			} finally {
+				layer.destroy();
+				host.remove();
+			}
+		},
+	);
 	it.each(["reorder", "remove"] as const)(
 		"keeps a complete relayout when navigation must %s tabs",
 		(change) => {

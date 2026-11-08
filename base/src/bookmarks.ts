@@ -85,6 +85,8 @@ interface BookmarkItem {
 	expanded: HTMLSpanElement;
 	expandedRenderer: BookmarkProvider["renderExpandedBookmark"];
 	edge: Edge;
+	presentationKey?: string;
+	mouseMode?: MouseMode;
 	click: (event: MouseEvent) => void;
 }
 
@@ -174,6 +176,7 @@ export class BookmarkLayer {
 		writeInert(item.content, this.mouseMode === "turn");
 		writeInert(item.reverse, this.mouseMode === "turn");
 		writeInert(item.expanded, this.mouseMode === "turn");
+		item.mouseMode = this.mouseMode;
 	}
 
 	/** Re-read provider data after navigation or a consumer configuration update. */
@@ -260,43 +263,68 @@ export class BookmarkLayer {
 	): void {
 		const previousEdge = this.items.get(leaf.id)?.edge;
 		const item = this.getItem(leaf, context, this.provider?.renderBookmark);
+		if (!stackItems) this.applyMouseMode(item);
 		const leafIndex = this.getLeafIndex(item.bookmark);
 		const leafItems = this.itemsByLeaf.get(leafIndex) ?? [];
 		leafItems.push(item);
 		this.itemsByLeaf.set(leafIndex, leafItems);
 		const bookmark = item.bookmark;
-		writeAttribute(item.button, "class", `flipbook-bookmark ${bookmark.className ?? ""}`.trim());
-		writeAttribute(item.button, "data-page-index", String(bookmark.pageIndex));
-		writeAttribute(item.button, "data-bookmark-id", bookmark.id);
-		writeAttribute(
-			item.button,
-			"data-spread-index",
-			String(Math.floor((bookmark.pageIndex + 1) / 2)),
-		);
-		writeAttribute(item.button, "data-face", this.isTurned(bookmark, context) ? "1" : "0");
-		writeAttribute(item.button, "aria-label", bookmark.label);
-		writeAttribute(item.button, "dir", context.direction);
 		item.edge = this.getEdge(bookmark, context, slot, count);
-		if (item.edge !== previousEdge) stackItems?.add(leaf.id);
-		const fixedSide = item.edge === "left" || item.edge === "right";
-		writeHidden(
-			item.button,
-			this.provider?.attachment !== "pinned" &&
-				fixedSide &&
-				item.edge !== this.getLeafSide(bookmark, context),
-		);
-		writeHidden(item.slot, Boolean(item.button.hidden));
-		writeAttribute(item.button, "data-edge", item.edge);
-		writeAttribute(item.button, "data-orientation", this.provider?.orientation ?? "perpendicular");
-		writeAttribute(item.slot, "data-edge", item.edge);
-		writeAttribute(item.slot, "data-orientation", this.provider?.orientation ?? "perpendicular");
-		if (!fixedSide) this.clearStackSlot(item.slot);
-		writeAttribute(item.button, "data-leaf-index", String(this.getLeafIndex(bookmark)));
-		writeStyle(item.button, "--bookmark-slot", String(slot + 1));
-		writeStyle(item.slot, "--bookmark-slot", String(slot + 1));
+		const turned = this.isTurned(bookmark, context);
 		const current =
 			Math.floor((bookmark.pageIndex + 1) / 2) === Math.floor((context.currentPageIndex + 1) / 2);
-		writeAttribute(item.button, "aria-current", current ? "page" : null);
+		const presentationKey = JSON.stringify([
+			bookmark.id,
+			bookmark.pageIndex,
+			bookmark.label,
+			bookmark.className,
+			context.direction,
+			item.edge,
+			turned,
+			current,
+			slot,
+			this.provider?.attachment,
+			this.provider?.orientation,
+		]);
+		// Navigation still reads the provider and computes every face/edge, but only
+		// changed presentations need DOM comparisons. An explicit refresh always
+		// reconciles the DOM, including consumer edits to library-owned attributes.
+		if (!stackItems || item.presentationKey !== presentationKey) {
+			writeAttribute(item.button, "class", `flipbook-bookmark ${bookmark.className ?? ""}`.trim());
+			writeAttribute(item.button, "data-page-index", String(bookmark.pageIndex));
+			writeAttribute(item.button, "data-bookmark-id", bookmark.id);
+			writeAttribute(
+				item.button,
+				"data-spread-index",
+				String(Math.floor((bookmark.pageIndex + 1) / 2)),
+			);
+			writeAttribute(item.button, "data-face", turned ? "1" : "0");
+			writeAttribute(item.button, "aria-label", bookmark.label);
+			writeAttribute(item.button, "dir", context.direction);
+			if (item.edge !== previousEdge) stackItems?.add(leaf.id);
+			const fixedSide = item.edge === "left" || item.edge === "right";
+			writeHidden(
+				item.button,
+				this.provider?.attachment !== "pinned" &&
+					fixedSide &&
+					item.edge !== this.getLeafSide(bookmark, context),
+			);
+			writeHidden(item.slot, Boolean(item.button.hidden));
+			writeAttribute(item.button, "data-edge", item.edge);
+			writeAttribute(
+				item.button,
+				"data-orientation",
+				this.provider?.orientation ?? "perpendicular",
+			);
+			writeAttribute(item.slot, "data-edge", item.edge);
+			writeAttribute(item.slot, "data-orientation", this.provider?.orientation ?? "perpendicular");
+			if (!fixedSide) this.clearStackSlot(item.slot);
+			writeAttribute(item.button, "data-leaf-index", String(this.getLeafIndex(bookmark)));
+			writeStyle(item.button, "--bookmark-slot", String(slot + 1));
+			writeStyle(item.slot, "--bookmark-slot", String(slot + 1));
+			writeAttribute(item.button, "aria-current", current ? "page" : null);
+			item.presentationKey = presentationKey;
+		}
 		const rail = this.getItemRail(item.edge, bookmark, context);
 		if (rail) {
 			const previous = placements.get(rail);
@@ -726,7 +754,7 @@ export class BookmarkLayer {
 			item.expanded.dataset.label = bookmark.label;
 		} else if (!expandedRenderer && item.expanded.hasChildNodes()) item.expanded.replaceChildren();
 		item.expandedRenderer = expandedRenderer;
-		this.applyMouseMode(item);
+		if (item.mouseMode !== this.mouseMode) this.applyMouseMode(item);
 		return item;
 	}
 
