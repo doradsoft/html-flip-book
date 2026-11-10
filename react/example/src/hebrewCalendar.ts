@@ -112,6 +112,19 @@ function isGregLeapYear(year: number): boolean {
 	return !(year % 4) && (!!(year % 100) || !(year % 400));
 }
 
+/**
+ * The four dechiyah postponement rules push Rosh Hashanah one day later.
+ * `weekday` is day % 7 of the molad-anchored calendar (0 = Sunday).
+ */
+function isPostponedDay(day: number, parts: number, year: number): boolean {
+	const weekday = day % 7;
+	return (
+		parts >= 19440 ||
+		(weekday === 2 && parts >= 9924 && !isLeapYear(year)) ||
+		(weekday === 1 && parts >= 16789 && isLeapYear(year - 1))
+	);
+}
+
 /** Days elapsed since epoch to Rosh Hashanah (1 Tishrei) of Hebrew `year`. */
 function elapsedDays0(year: number): number {
 	const prevYear = year - 1;
@@ -131,11 +144,7 @@ function elapsedDays0(year: number): number {
 	let altDay = day;
 
 	// The four postponement rules (dechiyot).
-	if (
-		parts >= 19440 ||
-		(day % 7 === 2 && parts >= 9924 && !isLeapYear(year)) ||
-		(day % 7 === 1 && parts >= 16789 && isLeapYear(prevYear))
-	) {
+	if (isPostponedDay(day, parts, year)) {
 		altDay++;
 	}
 
@@ -323,33 +332,24 @@ export function hebrewYearShort(hebrewYear: number): number {
 	return hebrewYear % 100;
 }
 
+/** Festival/fast-day rules: inclusive Hebrew day-of-month range per month. */
+const HOLIDAY_RULES: readonly { month: number; min: number; max: number; label: string }[] = [
+	{ month: HEBREW_MONTH.TISHREI, min: 1, max: 2, label: "ראש השנה" },
+	{ month: HEBREW_MONTH.TISHREI, min: 10, max: 10, label: "יום כיפור" },
+	{ month: HEBREW_MONTH.TISHREI, min: 15, max: 21, label: "סוכות" },
+	{ month: HEBREW_MONTH.TISHREI, min: 22, max: 22, label: "שמיני עצרת" },
+	{ month: HEBREW_MONTH.NISAN, min: 15, max: 21, label: "פסח" },
+	{ month: HEBREW_MONTH.NISAN, min: 22, max: 22, label: "שביעי של פסח" },
+	{ month: HEBREW_MONTH.SIVAN, min: 6, max: 7, label: "שבועות" },
+	{ month: HEBREW_MONTH.TAMUZ, min: 17, max: 17, label: "תענית" },
+	{ month: HEBREW_MONTH.AV, min: 9, max: 9, label: "תענית" },
+];
+
 /**
  * Short Hebrew label for a major festival / fast day, or null.
  * Day numbers are 1-based Hebrew day-of-month; month is Nisan-based.
  */
 export function holidayLabel(month: number, day: number): string | null {
-	const M = HEBREW_MONTH;
-	switch (month) {
-		case M.TISHREI:
-			if (day === 1 || day === 2) return "ראש השנה";
-			if (day === 10) return "יום כיפור";
-			if (day >= 15 && day <= 21) return "סוכות";
-			if (day === 22) return "שמיני עצרת";
-			return null;
-		case M.NISAN:
-			if (day >= 15 && day <= 21) return "פסח";
-			if (day === 22) return "שביעי של פסח";
-			return null;
-		case M.SIVAN:
-			if (day === 6 || day === 7) return "שבועות";
-			return null;
-		case M.TAMUZ:
-			if (day === 17) return "תענית";
-			return null;
-		case M.AV:
-			if (day === 9) return "תענית";
-			return null;
-		default:
-			return null;
-	}
+	const rule = HOLIDAY_RULES.find((r) => r.month === month && day >= r.min && day <= r.max);
+	return rule?.label ?? null;
 }

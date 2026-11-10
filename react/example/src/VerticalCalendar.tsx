@@ -114,6 +114,70 @@ const TitlePage = () => (
 	</div>
 );
 
+interface GridCell {
+	key: string;
+	day: HebrewDay | null;
+}
+
+function CellBody({
+	day,
+	page,
+	holiday,
+}: {
+	day: HebrewDay;
+	page: HebrewMonthPage;
+	holiday: string | null;
+}) {
+	return (
+		<span className="cal-cell__body">
+			<span className="cal-cell__he" aria-hidden="true">
+				{toLetters(day.hebrewDay)}
+			</span>
+			<span className="cal-cell__ge" aria-hidden="true">
+				{day.gregorian.getDate()}
+			</span>
+			<span className="cal-cell__label">{holiday ?? (day.hed === 1 ? "ראש חודש" : "")}</span>
+			<span className="cal-cell__sr">
+				{day.gregorian.toDateString()} — {page.monthNameHe} {toLetters(day.hebrewDay)}{" "}
+				{page.monthNameEn}
+			</span>
+		</span>
+	);
+}
+
+function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: HebrewMonthPage }) {
+	const day = cell.day;
+	if (!day) {
+		return <td className="cal-cell cal-cell--blank" />;
+	}
+	const holiday = holidayLabel(day.hem, day.hed);
+	const today = isToday(day);
+	const cls = [
+		"cal-cell",
+		col === 6 ? "cal-cell--shabbat" : "",
+		today ? "cal-cell--today" : "",
+		holiday ? "cal-cell--holiday" : "",
+	].join(" ");
+	const body = <CellBody day={day} page={page} holiday={holiday} />;
+	// One clickable date proves links don't turn the page.
+	if (today || holiday === "פסח") {
+		return (
+			<td className={cls}>
+				<a
+					className="cal-cell__link"
+					href={`https://www.hebcal.com/converter?gy=${day.gregorian.getFullYear()}&gm=${day.gregorian.getMonth() + 1}&gd=${day.gregorian.getDate()}&g2h=1`}
+					target="_blank"
+					rel="noreferrer"
+					data-flipbook-no-flip
+				>
+					{body}
+				</a>
+			</td>
+		);
+	}
+	return <td className={cls}>{body}</td>;
+}
+
 function MonthPage({ year, month }: { year: number; month: number }) {
 	const page = useMemo(() => buildHebrewMonthPage(year, month), [year, month]);
 	const hebrewYearLabel = String(hebrewYearShort(year)).padStart(2, "0");
@@ -122,7 +186,7 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 	const grid = useMemo(() => {
 		const flat = [...page.days];
 		while (flat.length % 7 !== 0) flat.push(null);
-		const rows: { key: string; cells: { key: string; day: HebrewDay | null }[] }[] = [];
+		const rows: { key: string; cells: GridCell[] }[] = [];
 		for (let w = 0; w * 7 < flat.length; w += 1) {
 			const slice = flat.slice(w * 7, w * 7 + 7);
 			const firstDay = slice.find((d): d is HebrewDay => d !== null);
@@ -171,59 +235,9 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 					<tbody>
 						{grid.map((row) => (
 							<tr key={row.key} className="cal-grid__row">
-								{row.cells.map((cell, col) => {
-									const day = cell.day;
-									if (!day) {
-										return <td key={cell.key} className="cal-cell cal-cell--blank" />;
-									}
-									const holiday = holidayLabel(day.hem, day.hed);
-									const today = isToday(day);
-									const roshChodesh = day.hed === 1;
-									const cls = [
-										"cal-cell",
-										col === 6 ? "cal-cell--shabbat" : "",
-										today ? "cal-cell--today" : "",
-										holiday ? "cal-cell--holiday" : "",
-									].join(" ");
-									const body = (
-										<span className="cal-cell__body">
-											<span className="cal-cell__he" aria-hidden="true">
-												{toLetters(day.hebrewDay)}
-											</span>
-											<span className="cal-cell__ge" aria-hidden="true">
-												{day.gregorian.getDate()}
-											</span>
-											<span className="cal-cell__label">
-												{holiday ?? (roshChodesh ? "ראש חודש" : "")}
-											</span>
-											<span className="cal-cell__sr">
-												{day.gregorian.toDateString()} — {page.monthNameHe}{" "}
-												{toLetters(day.hebrewDay)} {page.monthNameEn}
-											</span>
-										</span>
-									);
-									// One clickable date proves links don't turn the page.
-									if (today || holiday === "פסח") {
-										return (
-											<td key={cell.key} className={cls}>
-												<a
-													className="cal-cell__link"
-													href={`https://www.hebcal.com/converter?gy=${day.gregorian.getFullYear()}&gm=${day.gregorian.getMonth() + 1}&gd=${day.gregorian.getDate()}&g2h=1`}
-													target="_blank"
-													rel="noreferrer"
-													data-flipbook-no-flip
-												>
-													{body}
-												</a>
-											</td>
-										);
-									}
-									return (
-										<td key={cell.key} className={cls}>
-											{body}
-										</td>
-									);
-								})}
+								{row.cells.map((cell, col) => (
+									<MonthCell key={cell.key} cell={cell} col={col} page={page} />
+								))}
 							</tr>
 						))}
 					</tbody>
