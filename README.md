@@ -50,12 +50,12 @@ npm install html-flip-book-react
 
 ### Examples
 
-- [Live Demo](https://doradsoft.github.io/html-flip-book/) — English (LTR) and Hebrew (RTL) books
+- [Live Demo](https://doradsoft.github.io/html-flip-book/) — English (LTR), Hebrew (RTL) books, and a top-bound vertical spiral calendar
 
 ## Roadmap
 
 - [ ] Curl animation / animated page edges
-- [ ] Vertical flip direction
+- [x] Vertical flip direction (`flipAxis: "vertical"` — top-bound spiral calendar mode; see the Vertical → Spiral Calendar demo)
 - [ ] Vue component
 - [ ] Angular component
 

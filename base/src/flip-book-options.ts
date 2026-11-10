@@ -66,6 +66,22 @@ export interface FlipBookOptions {
 	coverAspectRatio?: AspectRatio;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left). Default: 'ltr' */
 	direction?: "rtl" | "ltr";
+	/**
+	 * Physical flip axis. 'horizontal' (default) turns pages sideways around a
+	 * vertical spine like a book; 'vertical' turns sheets upward over a top
+	 * binding like a spiral-bound calendar or notepad. Independent of
+	 * `direction`, which only controls text/reading direction.
+	 * Default: 'horizontal'.
+	 */
+	flipAxis?: "horizontal" | "vertical";
+	/**
+	 * Thickness in pixels of the top binding/spiral strip drawn across the
+	 * binding seam when `flipAxis` is 'vertical' (exposed to styling as the
+	 * `--flipbook-binding-size` custom property). The live sheet stack occupies
+	 * the lower half of the book and turned sheets collect in the upper half.
+	 * Ignored for 'horizontal'. Default: 64.
+	 */
+	bindingSize?: number;
 	/** Initial mouse interaction mode. Default: 'turn'. */
 	mouseMode?: MouseMode;
 	/** Padding around the book */

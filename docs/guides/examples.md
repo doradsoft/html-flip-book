@@ -81,6 +81,42 @@ function HebrewBook() {
 2. Reverse toolbar button order (Next before Prev)
 3. Add `dir="rtl"` to content for proper text alignment
 
+## Vertical spiral calendar (top-bound)
+
+`flipAxis="vertical"` turns sheets **upward over a top binding** instead of
+around a side spine — the model for desk/wall calendars. Page content stays
+upright; `direction` still controls reading/text direction independently, so an
+RTL Hebrew calendar works unchanged.
+
+```tsx
+<FlipBook
+  ref={flipBookRef}
+  pages={monthPages}
+  className="calendar-book"
+  flipAxis="vertical"
+  bindingSize={72}   // px reserved for the spiral strip at the binding seam
+  direction="rtl"   // Hebrew calendar content
+/>
+```
+
+- The book splits vertically at the binding: the **lower half** is the live
+  sheet stack, the **upper half** collects turned sheets.
+- A decorative coil is drawn across the seam via `.flipbook--vertical::before`
+  (positioned with `--flipbook-binding-y` / `--flipbook-binding-size`); hide or
+  restyle it with CSS.
+- **Gesture policy:** vertical turns start only at the sheet's **lower free
+  edge** (bottom ~22%). Drags elsewhere keep native scrolling and content
+  interaction; links/buttons can opt out entirely with
+  `data-flipbook-no-flip`. Keyboard (`ArrowLeft`/`ArrowRight`, mirrored for RTL)
+  and toolbar buttons provide the same navigation without gestures.
+- `bindingSize` is ignored when `flipAxis` is `"horizontal"` (the default).
+
+**Live demo:** the gallery's **Vertical → Spiral Calendar** item
+(`/?example=vertical-calendar`) renders a combined Hebrew/Gregorian calendar —
+each sheet is one Hebrew month with Hebrew day numerals and the matching
+Gregorian dates in the same grid, month names for both calendars, two-digit
+years, Adar I/II leap-year sheets, and clickable date links.
+
 ## Hold hotkeys and toggle actions
 
 `MouseModeButton` uses `toggleTextSelectionCommand`. Turn selection on, then hold
