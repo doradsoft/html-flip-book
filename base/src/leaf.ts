@@ -73,6 +73,13 @@ export class Leaf {
 
 	/** Track the lifted corner in page coordinates, including movement beyond the page edges. */
 	setManualFold(point: Point): void {
+		// Vertical sheets flip as a rigid body around the top binding; the fold
+		// crease model is horizontal-only, so map the held corner's height to a
+		// flip position instead.
+		if (this.bookProperties.flipAxis === "vertical") {
+			this.setManualPosition(Math.max(0, Math.min(1, 1 - point.y)));
+			return;
+		}
 		const size = this.getPaperSize();
 		if (!size) {
 			this.setManualPosition(Number.isFinite(point.x) ? (1 - point.x) / 2 : this.flipPosition);
@@ -107,6 +114,7 @@ export class Leaf {
 		isFlipped: boolean,
 		private readonly bookProperties: {
 			isLTR: boolean;
+			flipAxis: "horizontal" | "vertical";
 			pagesCount: number;
 			leavesCount: number;
 			pageShadow: boolean;
@@ -265,7 +273,11 @@ export class Leaf {
 				y: this.foldOrigin < 0.5 ? 0 : 1,
 			};
 			const distance = Math.abs(flipPosition - currentFlipPosition);
-			const duration = ((distance * 180) / velocity) * 1000; // duration in milliseconds
+			const reducedMotion =
+				typeof window !== "undefined" &&
+				typeof window.matchMedia === "function" &&
+				window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			const duration = reducedMotion ? 0 : ((distance * 180) / velocity) * 1000; // duration in milliseconds
 
 			const start = performance.now();
 			const step = (timestamp: number) => {
@@ -276,7 +288,7 @@ export class Leaf {
 					return;
 				}
 
-				const progress = Math.min(elapsed / duration, 1);
+				const progress = duration === 0 ? 1 : Math.min(elapsed / duration, 1);
 				const easedProgress = easePageTurn(progress);
 				const newPosition =
 					currentFlipPosition + easedProgress * (flipPosition - currentFlipPosition);
@@ -324,6 +336,7 @@ export class Leaf {
 	applyTransform(position: number): void {
 		const clampedPosition = Math.max(0, Math.min(1, position));
 		const { pageShadow } = this.bookProperties;
+		const isVertical = this.bookProperties.flipAxis === "vertical";
 		const previewPosition =
 			clampedPosition === 0
 				? this.hoverShadow * 0.22
@@ -341,7 +354,7 @@ export class Leaf {
 					page.classList.toggle("page--paper", paperShading);
 			}
 		}
-		if (paperSize && this.manualFoldPoint) {
+		if (!isVertical && paperSize && this.manualFoldPoint) {
 			const fold = computePageFoldFromPoint(
 				width,
 				height,
@@ -355,7 +368,7 @@ export class Leaf {
 				return;
 			}
 		}
-		const usePaperFold = paperSize && previewPosition > 0 && previewPosition < 1;
+		const usePaperFold = !isVertical && paperSize && previewPosition > 0 && previewPosition < 1;
 		if (usePaperFold) {
 			this.applyPaperFold(width, height, previewPosition, undefined, clampedPosition === 1);
 			return;
@@ -381,32 +394,54 @@ export class Leaf {
 			page.style.removeProperty("--fold-shading");
 
 			const isOdd = (index % 2) + 1 === 1;
-			const degrees = isOdd
-				? isLTR
+			let transform: string;
+			let origin: string;
+			let edge: string;
+			if (isVertical) {
+				// Top-bound axis: the sheet hangs below the binding and flips up
+				// over it. Both faces pivot on the top edge; the back face rests
+				// one sheet-height above the binding (hidden until turned).
+				const degrees = isOdd
 					? clampedPosition > 0.5
 						? 180 - clampedPosition * 180
 						: -clampedPosition * 180
-					: clampedPosition > 0.5
-						? -(180 - clampedPosition * 180)
-						: clampedPosition * 180
-				: isLTR
-					? clampedPosition < 0.5
-						? -clampedPosition * 180
-						: 180 - clampedPosition * 180
 					: clampedPosition < 0.5
-						? clampedPosition * 180
-						: -(180 - clampedPosition * 180);
-			const rotateY = `${degrees}deg`;
-			const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : "0px"}`;
-			const scaleX = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
-			const origin = isOdd ? (isLTR ? "left" : "right") : isLTR ? "right" : "left";
+						? -clampedPosition * 180
+						: 180 - clampedPosition * 180;
+				const translateY = isOdd ? "0px" : "-100%";
+				const scaleY = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
+				transform = `translateY(${translateY}) rotateX(${degrees}deg) scaleY(${scaleY})`;
+				origin = "top";
+				edge = "bottom";
+			} else {
+				const degrees = isOdd
+					? isLTR
+						? clampedPosition > 0.5
+							? 180 - clampedPosition * 180
+							: -clampedPosition * 180
+						: clampedPosition > 0.5
+							? -(180 - clampedPosition * 180)
+							: clampedPosition * 180
+					: isLTR
+						? clampedPosition < 0.5
+							? -clampedPosition * 180
+							: 180 - clampedPosition * 180
+						: clampedPosition < 0.5
+							? clampedPosition * 180
+							: -(180 - clampedPosition * 180);
+				const rotateY = `${degrees}deg`;
+				const translateX = `${isOdd ? (isLTR ? "100%" : "-100%") : "0px"}`;
+				const scaleX = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
+				origin = isOdd ? (isLTR ? "left" : "right") : isLTR ? "right" : "left";
+				transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+				edge = origin === "left" ? "right" : "left";
+			}
 
-			page.style.transform = `translateX(${translateX})rotateY(${rotateY})scaleX(${scaleX})`;
+			page.style.transform = transform;
 			page.style.transformOrigin = origin;
 			page.style.zIndex = this.getSurfaceZIndex(page, clampedPosition, index, false);
 
 			if (pageShadow) {
-				const edge = origin === "left" ? "right" : "left";
 				page.style.setProperty("--inner-shadow-shadow", shadowStrength.toFixed(3));
 				page.style.setProperty("--inner-shadow-highlight", highlightStrength.toFixed(3));
 				page.style.setProperty("--inner-shadow-edge", edge);

@@ -7,6 +7,7 @@ import type { EnBookConfig } from "./EnBook";
 import EnBook from "./EnBook";
 import type { HeBookConfig } from "./HeBook";
 import HeBook from "./HeBook";
+import VerticalCalendar from "./VerticalCalendar";
 
 export type ExampleId =
 	| "ltr-bookmarks"
@@ -28,9 +29,10 @@ export type ExampleId =
 	| "rtl-initial-position"
 	| "rtl-no-snapshot"
 	| "rtl-hold-hotkeys"
-	| "rtl-comprehensive";
+	| "rtl-comprehensive"
+	| "vertical-calendar";
 
-const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
+const EXAMPLES: { section: "LTR" | "RTL" | "Vertical"; id: ExampleId; label: string }[] = [
 	{ section: "LTR", id: "ltr-bookmarks", label: "Bookmarks" },
 	{ section: "LTR", id: "ltr-no-shadow", label: "No shadow" },
 	{ section: "LTR", id: "ltr-buffer", label: "Buffer" },
@@ -51,6 +53,7 @@ const EXAMPLES: { section: "LTR" | "RTL"; id: ExampleId; label: string }[] = [
 	{ section: "RTL", id: "rtl-no-snapshot", label: "No snapshot" },
 	{ section: "RTL", id: "rtl-hold-hotkeys", label: "Hold hotkeys" },
 	{ section: "RTL", id: "rtl-comprehensive", label: "Comprehensive" },
+	{ section: "Vertical", id: "vertical-calendar", label: "Spiral Calendar" },
 ];
 
 function getEnBookConfig(id: ExampleId): EnBookConfig | undefined {
@@ -165,8 +168,10 @@ export const App: FC = () => {
 
 	const ltrExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "LTR"), []);
 	const rtlExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "RTL"), []);
+	const verticalExamples = useMemo(() => EXAMPLES.filter((e) => e.section === "Vertical"), []);
 
 	const isLtr = selectedId.startsWith("ltr-");
+	const isVertical = selectedId.startsWith("vertical-");
 	const isBookmarkExample = selectedId.endsWith("-bookmarks");
 
 	return (
@@ -208,6 +213,22 @@ export const App: FC = () => {
 							))}
 						</ul>
 					</div>
+					<div className="examples-nav-section">
+						<div className="examples-nav-section-title">Vertical</div>
+						<ul className="examples-nav-list">
+							{verticalExamples.map(({ id, label }) => (
+								<li key={id}>
+									<button
+										type="button"
+										className={`examples-nav-item ${selectedId === id ? "active" : ""}`}
+										onClick={() => setSelectedId(id)}
+									>
+										{label}
+									</button>
+								</li>
+							))}
+						</ul>
+					</div>
 				</nav>
 				<section className="example-container" aria-live="polite">
 					{(selectedId.endsWith("-hold-hotkeys") || selectedId.endsWith("-comprehensive")) && (
@@ -224,6 +245,10 @@ export const App: FC = () => {
 								isLtr ? getEnBookConfig("ltr-comprehensive") : getHeBookConfig("rtl-comprehensive")
 							}
 						/>
+					) : isVertical ? (
+						<div className="cal-book-container" key={selectedId}>
+							<VerticalCalendar />
+						</div>
 					) : isLtr ? (
 						<div className="en-book-container" key={selectedId}>
 							<EnBook config={getEnBookConfig(selectedId)} />

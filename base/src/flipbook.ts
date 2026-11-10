@@ -83,6 +83,8 @@ class FlipBook {
 		height: 3.15,
 	};
 	private readonly direction: "rtl" | "ltr" = "ltr";
+	private readonly flipAxis: "horizontal" | "vertical" = "horizontal";
+	private readonly bindingSize: number = 64;
 	private mouseMode: MouseMode = "turn";
 	private readonly fastDeltaThreshold: number = DEFAULT_FAST_DELTA;
 	private readonly initialTurnedLeaves: Set<number> = new Set();
@@ -131,6 +133,7 @@ class FlipBook {
 	// flipping state - supports concurrent page flipping
 	private activeFlips: Map<number, FlipState> = new Map();
 	private pendingFlipStartingPos = 0;
+	private pendingFlipStartingClientX: number | undefined;
 	private pendingFlipStartingY: number | undefined;
 	private pendingFlipDirection: FlipDirection = FlipDirection.None;
 	private isDragging = false;
@@ -160,11 +163,36 @@ class FlipBook {
 	private debugTimer: ReturnType<typeof setInterval> | undefined;
 	private debugBar: HTMLElement | undefined;
 	private spineX = 0;
+	/** Layout-space Y of the top binding line for flipAxis 'vertical'. */
+	private bindingY = 0;
+	/**
+	 * Whether the in-progress pointer gesture started inside the vertical turn
+	 * affordance (the sheet's lower free edge). Undefined until a press records
+	 * it; mouse and touch both populate it before Hammer pan events arrive.
+	 */
+	private turnZoneGesture: boolean | undefined;
 
 	private static readonly NO_FLIP_SELECTOR = "[data-flipbook-no-flip]";
 
+	/** Fraction of a sheet's height at its lower free edge that starts a turn. */
+	private static readonly VERTICAL_TURN_EDGE_RATIO = 0.22;
+
 	private isInsideNoFlipZone(el: EventTarget | null): boolean {
 		return el instanceof Element && el.closest(FlipBook.NO_FLIP_SELECTOR) != null;
+	}
+
+	/**
+	 * Vertical turns are deliberately grabbed at the sheet's lower free edge so
+	 * ordinary vertical scrolling and content interaction elsewhere are
+	 * preserved. Returns true when the point sits in that affordance zone.
+	 */
+	private isPointInTurnZone(clientY: number, target: EventTarget | null): boolean {
+		if (!(target instanceof Element)) return false;
+		const page = target.closest(".page");
+		if (!(page instanceof HTMLElement)) return false;
+		const rect = page.getBoundingClientRect();
+		if (rect.height <= 0) return false;
+		return clientY >= rect.bottom - rect.height * FlipBook.VERTICAL_TURN_EDGE_RATIO;
 	}
 
 	private getSemanticForPage(pageIndex: number): FlipPageSemantic | undefined {
@@ -262,6 +290,10 @@ class FlipBook {
 		return this.direction === "ltr";
 	}
 
+	private get isVertical(): boolean {
+		return this.flipAxis === "vertical";
+	}
+
 	private get currentOrTurningLeaves(): [Leaf | undefined, Leaf | undefined] {
 		let secondLeafIndex = -1;
 		for (let i = this.leaves.length - 1; i >= 0; i--) {
@@ -283,6 +315,11 @@ class FlipBook {
 		this.leafAspectRatio = options.leafAspectRatio || this.leafAspectRatio;
 		this.coverAspectRatio = options.coverAspectRatio || this.coverAspectRatio;
 		this.direction = options.direction || this.direction;
+		this.flipAxis = options.flipAxis || this.flipAxis;
+		this.bindingSize =
+			options.bindingSize !== undefined && Number.isFinite(options.bindingSize)
+				? Math.max(0, options.bindingSize)
+				: this.bindingSize;
 		this.mouseMode = options.mouseMode ?? "turn";
 		this.fastDeltaThreshold = options.fastDeltaThreshold ?? this.fastDeltaThreshold;
 		this.initialTurnedLeaves = new Set(options.initialTurnedLeaves ?? []);
@@ -415,6 +452,9 @@ class FlipBook {
 		this._suppressNextClick = false;
 		if (event.type === "mousedown" || (event as PointerEvent).pointerType === "mouse") {
 			this.gestureStartedInNoFlipZone = this.isInsideNoFlipZone(event.target);
+			if (this.isVertical) {
+				this.turnZoneGesture = this.isPointInTurnZone((event as MouseEvent).clientY, event.target);
+			}
 			if (this.gestureStartedInNoFlipZone) this.clearHoverShadow();
 			if (
 				this.mouseMode === "turn" &&
@@ -590,13 +630,28 @@ class FlipBook {
 		const availableWidth = Math.max(0, bookWidth - insets.left - insets.right);
 		const availableHeight = Math.max(0, this.bookElement.clientHeight - insets.top - insets.bottom);
 		this.spineX = insets.left + availableWidth / 2;
-		const maxCoverSize = new Size(availableWidth / 2, availableHeight);
+		const isVertical = this.isVertical;
+		// Vertical books split the column at the top binding: the lower half is
+		// the live sheet stack hanging from the spiral, the upper half is the
+		// clearance the turned sheets collect into. The spiral strip itself is a
+		// decorative overlay straddling the seam (bindingSize thick), so each
+		// stack gets half the available height.
+		const sheetHeight = isVertical ? availableHeight / 2 : availableHeight;
+		this.bindingY = isVertical ? insets.top + sheetHeight : insets.top + this.bindingSize;
+		const maxCoverSize = isVertical
+			? new Size(availableWidth, sheetHeight)
+			: new Size(availableWidth / 2, availableHeight);
 		const coverSize = maxCoverSize.aspectRatioFit(this.coverAspectRatio);
 		const leafSize = new Size(
 			(coverSize.width * this.leafAspectRatio.width) / this.coverAspectRatio.width,
 			(coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height,
 		);
 		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
+		this.bookElement.style.setProperty(
+			"--flipbook-binding-size",
+			isVertical ? `${this.bindingSize}px` : "0px",
+		);
+		this.bookElement.style.setProperty("--flipbook-binding-y", `${this.bindingY}px`);
 
 		const containerWidth = availableWidth;
 		const containerHeight = availableHeight;
@@ -607,9 +662,16 @@ class FlipBook {
 
 			pageElement.style.width = `${pageSize.width}px`;
 			pageElement.style.height = `${pageSize.height}px`;
-			pageElement.style[this.isLTR ? "left" : "right"] =
-				`${(this.isLTR ? insets.left : insets.right) + (containerWidth - 2 * pageSize.width) / 2}px`;
-			pageElement.style.top = `${insets.top + (containerHeight - pageSize.height) / 2}px`;
+			if (isVertical) {
+				pageElement.style.left = `${insets.left + (containerWidth - pageSize.width) / 2}px`;
+				// Sheets hang from the binding: their top edge sits on the binding
+				// line so the spiral visually grips them.
+				pageElement.style.top = `${this.bindingY}px`;
+			} else {
+				pageElement.style[this.isLTR ? "left" : "right"] =
+					`${(this.isLTR ? insets.left : insets.right) + (containerWidth - 2 * pageSize.width) / 2}px`;
+				pageElement.style.top = `${insets.top + (containerHeight - pageSize.height) / 2}px`;
+			}
 		}
 		const outerSize =
 			this.getBookmarkProvider()?.attachment === "pinned" &&
@@ -619,9 +681,9 @@ class FlipBook {
 		if (this.bookmarksEnabled)
 			this.bookmarkLayer?.layout(
 				{
-					left: insets.left + (containerWidth - 2 * outerSize.width) / 2,
-					top: insets.top + (containerHeight - outerSize.height) / 2,
-					width: 2 * outerSize.width,
+					left: insets.left + (containerWidth - (isVertical ? 1 : 2) * outerSize.width) / 2,
+					top: isVertical ? this.bindingY : insets.top + (containerHeight - outerSize.height) / 2,
+					width: (isVertical ? 1 : 2) * outerSize.width,
 					height: outerSize.height,
 				},
 				bookWidth,
@@ -689,6 +751,7 @@ class FlipBook {
 		if (!this.bookElement.classList.contains("flipbook")) {
 			this.bookElement.classList.add("flipbook");
 		}
+		this.bookElement.classList.toggle("flipbook--vertical", this.isVertical);
 		if (!this.pageShadow) {
 			this.bookElement.classList.add("flipbook--no-page-shadow");
 		}
@@ -823,6 +886,7 @@ class FlipBook {
 					isInitiallyTurned,
 					{
 						isLTR: this.isLTR,
+						flipAxis: this.flipAxis,
 						leavesCount: leavesCount,
 						pagesCount: this.pagesCount,
 						pageShadow: this.pageShadow,
@@ -1386,9 +1450,12 @@ class FlipBook {
 				this.touchDirectionLock = dx >= dy ? "horizontal" : "vertical";
 			}
 		}
-		// Reject pan events that belong to a touch gesture locked to vertical
-		// (i.e. the user is scrolling, not flipping).
-		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
+		// Reject pan events that belong to a touch gesture locked to the
+		// non-flip axis (i.e. the user is scrolling, not flipping).
+		const scrollLocked = this.isVertical
+			? this.touchDirectionLock === "horizontal"
+			: this.touchDirectionLock === "vertical";
+		if (scrollLocked && event.pointerType !== "mouse") {
 			return;
 		}
 		// Do not start flip when gesture begins inside a no-flip zone (e.g. horizontal carousel)
@@ -1399,17 +1466,35 @@ class FlipBook {
 			this.gestureStartedInNoFlipZone = true;
 			return;
 		}
+		// Vertical turns only start inside the lower-edge affordance; gestures
+		// elsewhere preserve native scrolling and content interaction. Press
+		// handlers record the zone eagerly; fall back to the pan position for
+		// gestures that bypass them (synthetic or bookmark-adjacent input).
+		if (this.isVertical && !fromBookmark) {
+			if (this.turnZoneGesture === undefined) {
+				this.turnZoneGesture = this.isPointInTurnZone(
+					Number.isFinite(event.center.y) ? event.center.y : 0,
+					event.srcEvent?.target ?? null,
+				);
+			}
+			if (this.turnZoneGesture === false) return;
+		}
 		// Allow starting a new flip even if others are in auto-flip mode
 		// Only block if we already have a manual flip in progress
 		if (this.currentManualFlip) {
 			this.pendingFlipDirection = FlipDirection.None;
 			this.pendingFlipStartingPos = 0;
+			this.pendingFlipStartingClientX = undefined;
 			this.pendingFlipStartingY = undefined;
 			return;
 		}
 		this.isDragging = true;
-		this.pendingFlipStartingPos =
-			event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0);
+		this.pendingFlipStartingPos = this.isVertical
+			? event.center.y - (Number.isFinite(event.deltaY) ? event.deltaY : 0)
+			: event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0);
+		this.pendingFlipStartingClientX = Number.isFinite(event.center.x)
+			? event.center.x - (Number.isFinite(event.deltaX) ? event.deltaX : 0)
+			: undefined;
 		this.pendingFlipStartingY = Number.isFinite(event.center.y)
 			? event.center.y - (Number.isFinite(event.deltaY) ? event.deltaY : 0)
 			: undefined;
@@ -1461,8 +1546,12 @@ class FlipBook {
 
 	private onDragUpdate(event: HammerInput, fromBookmark = false) {
 		if (this.gestureStartedInNoFlipZone) return;
-		// Reject pan events that belong to a touch gesture locked to vertical.
-		if (this.touchDirectionLock === "vertical" && event.pointerType !== "mouse") {
+		// Reject pan events that belong to a touch gesture locked to the
+		// non-flip axis (scrolling, not flipping).
+		const scrollLocked = this.isVertical
+			? this.touchDirectionLock === "horizontal"
+			: this.touchDirectionLock === "vertical";
+		if (scrollLocked && event.pointerType !== "mouse") {
 			return;
 		}
 
@@ -1475,24 +1564,36 @@ class FlipBook {
 		)
 			return;
 
-		const currentPos = event.center.x;
+		const currentPos = this.isVertical ? event.center.y : event.center.x;
 		if (!this.bookElement) return;
 		// The established gesture uses the paper's explicit layout dimensions.
 		// Reading host geometry after every fold write forces synchronous layout.
-		const bookWidth = flipState ? undefined : this.bookElement.clientWidth;
-		if (bookWidth === 0) return;
+		const bookSize = flipState
+			? undefined
+			: this.isVertical
+				? this.bookElement.clientHeight
+				: this.bookElement.clientWidth;
+		if (bookSize === 0) return;
 
-		// Calculate delta
+		// Calculate delta along the flip axis. Vertical forward is an upward
+		// drag, matching horizontal LTR's leftward drag — both read as positive.
 		const startingPos = flipState?.startingPos ?? this.pendingFlipStartingPos;
-		const delta = this.isLTR ? startingPos - currentPos : currentPos - startingPos;
-		const verticalMove =
-			Number.isFinite(event.center.y) && this.pendingFlipStartingY !== undefined
+		const delta = this.isVertical
+			? startingPos - currentPos
+			: this.isLTR
+				? startingPos - currentPos
+				: currentPos - startingPos;
+		const perpendicularMove = this.isVertical
+			? Number.isFinite(event.center.x) && this.pendingFlipStartingClientX !== undefined
+				? event.center.x - this.pendingFlipStartingClientX
+				: 0
+			: Number.isFinite(event.center.y) && this.pendingFlipStartingY !== undefined
 				? event.center.y - this.pendingFlipStartingY
 				: 0;
 		if (
 			!flipState &&
 			delta === 0 &&
-			(!this.isDragging || verticalMove === 0 || event.pointerType === "touch")
+			(!this.isDragging || perpendicularMove === 0 || event.pointerType === "touch")
 		)
 			return;
 
@@ -1502,9 +1603,13 @@ class FlipBook {
 			(this.pendingFlipDirection !== FlipDirection.None
 				? this.pendingFlipDirection
 				: delta === 0
-					? this.isLTR === startingPos >= this.getSpineClientX()
-						? FlipDirection.Forward
-						: FlipDirection.Backward
+					? this.isVertical
+						? startingPos >= this.getBindingClientY()
+							? FlipDirection.Forward
+							: FlipDirection.Backward
+						: this.isLTR === startingPos >= this.getSpineClientX()
+							? FlipDirection.Forward
+							: FlipDirection.Backward
 					: delta > 0
 						? FlipDirection.Forward
 						: FlipDirection.Backward);
@@ -1571,7 +1676,7 @@ class FlipBook {
 		const hasDimensions =
 			Number.isFinite(pageWidth) && pageWidth > 0 && Number.isFinite(pageHeight) && pageHeight > 0;
 		const rigid = flipState.leaf.pages.some((side) => side?.dataset.isCoverPage === "1");
-		if (hasDimensions && !rigid && flipState.leaf.pages[1]) {
+		if (!this.isVertical && hasDimensions && !rigid && flipState.leaf.pages[1]) {
 			const dy =
 				Number.isFinite(event.center.y) && flipState.startingY !== undefined
 					? event.center.y - flipState.startingY
@@ -1581,10 +1686,11 @@ class FlipBook {
 				y: (flipState.cornerY ?? 1) + dy / pageHeight,
 			});
 		} else {
+			const flipLength = this.isVertical ? pageHeight : pageWidth;
 			const travel =
-				Number.isFinite(pageWidth) && pageWidth > 0
-					? pageWidth * 2
-					: (bookWidth ?? this.bookElement.clientWidth);
+				Number.isFinite(flipLength) && flipLength > 0
+					? flipLength * 2
+					: (bookSize ?? this.bookElement.clientWidth);
 			if (travel <= 0) return;
 			const position =
 				flipState.direction === FlipDirection.Forward ? delta / travel : 1 + delta / travel;
@@ -1613,9 +1719,18 @@ class FlipBook {
 		return rect.left + this.spineX * scale;
 	}
 
+	private getBindingClientY(): number {
+		const book = this.bookElement;
+		if (!book) return this.bindingY;
+		const rect = book.getBoundingClientRect();
+		const scale = rect.height > 0 && book.clientHeight > 0 ? rect.height / book.clientHeight : 1;
+		return rect.top + this.bindingY * scale;
+	}
+
 	private onDragEnd(event: HammerInput, cancelled = false) {
 		this.flushPendingManualPose();
 		this.gestureStartedInNoFlipZone = undefined;
+		this.turnZoneGesture = undefined;
 		// Suppress the click that the browser fires after pointerup following a drag.
 		this._suppressNextClick = true;
 
@@ -1623,33 +1738,39 @@ class FlipBook {
 		if (!flipState) {
 			this.pendingFlipDirection = FlipDirection.None;
 			this.pendingFlipStartingPos = 0;
+			this.pendingFlipStartingClientX = undefined;
 			this.pendingFlipStartingY = undefined;
 			this.isDragging = false;
 			this.clearHoverShadow();
 			return;
 		}
 
-		const ppsX = event.velocityX * 1000; // pixels per second
+		const pps = (this.isVertical ? event.velocityY : event.velocityX) * 1000; // pixels per second
+		// Fast-flip velocity toward the flip direction. Vertical forward is an
+		// upward drag (negative velocityY), paralleling horizontal LTR's leftward
+		// drag (negative velocityX); RTL horizontal mirrors the sign instead.
+		const fastForward = this.isVertical
+			? pps < -this.fastDeltaThreshold
+			: this.isLTR
+				? pps < -this.fastDeltaThreshold
+				: pps > this.fastDeltaThreshold;
+		const fastBackward = this.isVertical
+			? pps > this.fastDeltaThreshold
+			: this.isLTR
+				? pps > this.fastDeltaThreshold
+				: pps < -this.fastDeltaThreshold;
 		let flipTo: FlipPosition;
 
 		switch (flipState.direction) {
 			case FlipDirection.Forward:
-				if (
-					!cancelled &&
-					((this.isLTR ? ppsX < -this.fastDeltaThreshold : ppsX > this.fastDeltaThreshold) ||
-						flipState.leaf.flipPosition >= 0.5)
-				) {
+				if (!cancelled && (fastForward || flipState.leaf.flipPosition >= 0.5)) {
 					flipTo = 1;
 				} else {
 					flipTo = 0;
 				}
 				break;
 			case FlipDirection.Backward:
-				if (
-					!cancelled &&
-					((this.isLTR ? ppsX > this.fastDeltaThreshold : ppsX < -this.fastDeltaThreshold) ||
-						flipState.leaf.flipPosition <= 0.5)
-				) {
+				if (!cancelled && (fastBackward || flipState.leaf.flipPosition <= 0.5)) {
 					flipTo = 0;
 				} else {
 					flipTo = 1;
@@ -1661,6 +1782,7 @@ class FlipBook {
 				this.activeFlips.delete(flipState.leaf.index);
 				this.pendingFlipDirection = FlipDirection.None;
 				this.pendingFlipStartingPos = 0;
+				this.pendingFlipStartingClientX = undefined;
 				this.pendingFlipStartingY = undefined;
 				this.isDragging = false;
 				this.scheduleContentPreparation();
@@ -1671,6 +1793,7 @@ class FlipBook {
 		flipState.isDuringAutoFlip = true;
 		this.pendingFlipDirection = FlipDirection.None;
 		this.pendingFlipStartingPos = 0;
+		this.pendingFlipStartingClientX = undefined;
 		this.pendingFlipStartingY = undefined;
 		this.isDragging = false;
 
@@ -1699,6 +1822,9 @@ class FlipBook {
 		this.touchStartingPos = { x: touch.pageX, y: touch.pageY };
 		this.touchStartedInNoFlipZone = this.isInsideNoFlipZone(e.target);
 		this.gestureStartedInNoFlipZone = this.touchStartedInNoFlipZone;
+		this.turnZoneGesture = this.isVertical
+			? this.isPointInTurnZone(touch.clientY, e.target)
+			: undefined;
 		this.touchDirectionLock = "none";
 	};
 
@@ -1726,6 +1852,16 @@ class FlipBook {
 			}
 		}
 
+		if (this.isVertical) {
+			// Turns only start inside the lower-edge affordance; everywhere else
+			// keeps native scrolling. Within the zone a vertical-dominant drag is
+			// the turn gesture, so block the browser's scroll takeover.
+			if (this.turnZoneGesture === false) return;
+			if (this.touchDirectionLock === "vertical") {
+				e.preventDefault();
+			}
+			return;
+		}
 		if (this.touchDirectionLock === "horizontal") {
 			e.preventDefault();
 		}
@@ -1776,6 +1912,40 @@ class FlipBook {
 
 		const x = ((event.clientX - rect.left) * this.bookElement.clientWidth) / rect.width;
 		const y = ((event.clientY - rect.top) * this.bookElement.clientHeight) / rect.height;
+		if (this.isVertical) {
+			// The turn affordance is the sheet's lower free edge: preview a
+			// forward lift while the pointer approaches it from inside.
+			const leaf = this.getNextAvailableLeaf(FlipDirection.Forward);
+			if (!leaf) {
+				this.clearHoverShadow();
+				return;
+			}
+			const page = leaf.pages[0];
+			const width = Number.parseFloat(page.style.width);
+			const height = Number.parseFloat(page.style.height);
+			const top = Number.parseFloat(page.style.top);
+			const left = Number.parseFloat(page.style.left);
+			const distanceFromEdge = top + height - y;
+			const edgeZone = height * EDGE_ZONE_RATIO;
+			const inZone =
+				Number.isFinite(distanceFromEdge) &&
+				distanceFromEdge >= 0 &&
+				distanceFromEdge <= edgeZone &&
+				x >= left &&
+				x <= left + width;
+			if (!inZone) {
+				this.clearHoverShadow();
+				return;
+			}
+			const edgeProgress = 1 - Math.min(1, distanceFromEdge / edgeZone);
+			const hoverStrength = edgeProgress * HOVER_STRENGTH_MAX;
+			this.applyHoverPreview(
+				leaf,
+				hoverStrength,
+				width > 0 ? Math.max(0, Math.min(1, (x - left) / width)) : 0.5,
+			);
+			return;
+		}
 		const spineX = this.spineX;
 		const isRightSide = x >= spineX;
 		const isForward = this.isLTR === isRightSide;

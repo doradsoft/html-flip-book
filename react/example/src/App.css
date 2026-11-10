@@ -628,3 +628,317 @@ header {
 		flex-shrink: 0;
 	}
 }
+
+/* ===== Vertical spiral calendar demo ===== */
+
+.cal-book-container {
+	flex: 1;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	min-width: 0;
+	min-height: 0;
+	width: 100%;
+}
+
+.cal-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	width: 100%;
+	flex: 1;
+	min-height: 0;
+	position: relative;
+}
+
+.cal-book {
+	width: 100%;
+	flex: 1;
+	min-height: 480px;
+	position: relative;
+	box-sizing: border-box;
+}
+
+.cal-wrap:fullscreen,
+.cal-wrap:-webkit-full-screen {
+	width: 100vw;
+	height: 100vh;
+	padding: 0;
+	margin: 0;
+	box-sizing: border-box;
+	align-items: stretch;
+}
+
+.cal-wrap:fullscreen .cal-book,
+.cal-wrap:-webkit-full-screen .cal-book {
+	flex: 1;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+}
+
+.cal-page {
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	padding: 4% 5%;
+	background: #fdfbf4;
+	color: #2b2118;
+	font-family: Tahoma, Arial, "Segoe UI", sans-serif;
+	overflow: hidden;
+}
+
+.cal-page--interior {
+	background: #f4efe2;
+}
+
+/* ---- header: Hebrew month + year | Gregorian range ---- */
+.cal-page__head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+	border-bottom: 2px solid #8b6f47;
+	padding-bottom: 6px;
+	margin-bottom: 8px;
+}
+
+.cal-page__hebrew {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+
+.cal-page__month-he {
+	font-size: 1.7em;
+	font-weight: 700;
+	line-height: 1.1;
+}
+
+.cal-page__year-he {
+	font-size: 0.85em;
+	color: #6d5a3c;
+	letter-spacing: 0.08em;
+}
+
+.cal-page__gregorian {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.cal-page__month-en {
+	font-size: 1.15em;
+	font-weight: 600;
+	font-family: Georgia, "Times New Roman", serif;
+}
+
+.cal-page__greg-range {
+	font-size: 0.8em;
+	color: #6d5a3c;
+}
+
+/* ---- day grid (semantic table) ---- */
+.cal-grid {
+	flex: 1;
+	min-height: 0;
+}
+
+.cal-grid__table {
+	width: 100%;
+	height: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.cal-cell {
+	position: relative;
+	padding: 2px 1px;
+	border: 1px solid #e4dcc8;
+	background: #fffdf7;
+	height: 2.6em;
+	text-align: center;
+	vertical-align: middle;
+	overflow: hidden;
+}
+
+.cal-cell__body {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	height: 100%;
+}
+
+.cal-cell__link {
+	display: block;
+	height: 100%;
+	color: inherit;
+	text-decoration: none;
+}
+
+.cal-cell__link:hover {
+	background: #dce8f4;
+}
+
+.cal-cell--head {
+	font-weight: 700;
+	font-size: 0.8em;
+	color: #5d4b33;
+	background: #efe6d2;
+}
+
+.cal-cell--blank {
+	background: #f6f1e4;
+	border-color: transparent;
+}
+
+.cal-cell--shabbat {
+	background: #f3ead6;
+}
+
+.cal-cell--today {
+	outline: 2px solid #8b2f2f;
+	outline-offset: -2px;
+	background: #fdeee0;
+}
+
+.cal-cell--holiday {
+	background: #eef3fb;
+}
+
+.cal-cell__he {
+	font-size: 1.05em;
+	font-weight: 600;
+	line-height: 1.1;
+}
+
+.cal-cell--shabbat .cal-cell__he {
+	color: #7a3b2e;
+}
+
+.cal-cell__ge {
+	font-size: 0.68em;
+	color: #8a7a5f;
+	font-family: Georgia, serif;
+}
+
+.cal-cell__label {
+	font-size: 0.58em;
+	color: #8b2f2f;
+	line-height: 1.1;
+	white-space: nowrap;
+}
+
+.cal-cell__sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* ---- covers & title ---- */
+.cal-cover {
+	position: relative;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.cal-cover--front {
+	background: linear-gradient(160deg, #2e4a3f 0%, #1f362d 100%);
+	color: #f3ecd9;
+}
+
+.cal-cover--back {
+	background: linear-gradient(160deg, #3a2f26 0%, #241c15 100%);
+}
+
+.cal-cover__content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	text-align: center;
+	padding: 8%;
+}
+
+.cal-cover__content h1 {
+	font-size: 2.4em;
+	margin: 0;
+	font-weight: 700;
+}
+
+.cal-cover__subtitle {
+	font-size: 1.1em;
+	opacity: 0.85;
+	margin: 0;
+}
+
+.cal-cover__years {
+	font-size: 0.95em;
+	letter-spacing: 0.15em;
+	opacity: 0.7;
+	margin: 12px 0 0;
+}
+
+.cal-cover__spiral {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 26px;
+	background: radial-gradient(
+			circle at 50% 50%,
+			#9aa3ad 0 22%,
+			#d5dae1 22% 40%,
+			#6d7681 40% 52%,
+			#eef1f5 52% 68%,
+			transparent 68%
+		)
+		repeat-x;
+	background-size: 26px 100%;
+	opacity: 0.9;
+}
+
+.cal-cover__rings {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 26px;
+	background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
+}
+
+.cal-title {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	gap: 14px;
+}
+
+.cal-title h2 {
+	font-size: 1.6em;
+	margin: 0;
+	color: #4a3a24;
+}
+
+.cal-title p {
+	max-width: 34ch;
+	line-height: 1.7;
+	margin: 0;
+}
+
+.cal-title__note {
+	font-size: 0.85em;
+	color: #6d5a3c;
+}

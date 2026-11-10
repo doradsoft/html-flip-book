@@ -223,7 +223,7 @@ export interface FlipBookHandlers {
  * `handlers`, `bookmarkProvider`, `enableBookmarks`, `pageShadow`, and `downloadConfig`
  * update the mounted engine in place. The remaining options are initialization-only;
  * changing them after mount does not rebuild the engine (`className`, `pageSemantics`,
- * `direction`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`, `keepPageContentLayout`,
+ * `direction`, `flipAxis`, `bindingSize`, `mouseMode`, `initialTurnedLeaves`, `fastDeltaThreshold`, `leavesBuffer`, `keepPageContentLayout`,
  * `coverConfig`, `leafAspectRatio`, `coverAspectRatio`, `historyMapper`, `tocPageIndex`,
  * `snapshotDuringFlip`, `enableHistory`, `enableDownload`).
  */
@@ -242,6 +242,19 @@ export interface FlipBookProps {
 	debug?: boolean;
 	/** Reading direction: 'ltr' (left-to-right) or 'rtl' (right-to-left) */
 	direction?: "rtl" | "ltr";
+	/**
+	 * Physical flip axis. 'horizontal' (default) turns pages sideways around a
+	 * vertical spine; 'vertical' turns sheets upward over a top binding like a
+	 * spiral calendar. Independent of `direction` (text direction).
+	 * Default: 'horizontal'.
+	 */
+	flipAxis?: "horizontal" | "vertical";
+	/**
+	 * Thickness in pixels of the spiral/binding strip drawn across the binding
+	 * seam when `flipAxis` is 'vertical' (the `--flipbook-binding-size` CSS
+	 * custom property). Ignored for 'horizontal'. Default: 64.
+	 */
+	bindingSize?: number;
 	/** Initial mouse interaction mode. Default: 'turn'. */
 	mouseMode?: MouseMode;
 	/** Optional localStorage key used to remember the user's mouse mode. */
@@ -352,6 +365,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 			className,
 			debug = false,
 			direction = "ltr",
+			flipAxis = "horizontal",
+			bindingSize,
 			mouseMode = "turn",
 			mouseModeStorageKey,
 			pageSemantics = undefined,
@@ -558,6 +573,8 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 					enableBookmarks,
 					pagesCount: pages.length,
 					direction: direction,
+					flipAxis: flipAxis,
+					bindingSize: bindingSize,
 					mouseMode,
 					initialTurnedLeaves: initialTurnedLeaves,
 					fastDeltaThreshold: fastDeltaThreshold,
