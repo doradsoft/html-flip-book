@@ -16,7 +16,15 @@ import {
 	PrevButton,
 	Toolbar,
 } from "html-flip-book-react/toolbar";
-import { type ReactElement, useMemo, useRef } from "react";
+import { type ReactElement, useMemo, useRef, useState } from "react";
+import {
+	calendarMonths,
+	calendarSemantics,
+	civilDateId,
+	gregorianRangeLabel,
+	monthLabel,
+	monthPageIndex,
+} from "./calendar-model";
 import { toLetters } from "./gematry";
 import {
 	abs2greg,
@@ -27,51 +35,12 @@ import {
 	hebrew2abs,
 	hebrewYearShort,
 	holidayLabel,
-	tishreiFirstMonths,
 } from "./hebrewCalendar";
 import { TEST_PARAM_INITIAL_TURNED_LEAVES } from "./test-url-params";
 
 /** Fixed fixture years: 5787 is a leap year (Adar I/II) and 5788 crosses the
  *  Tishrei year boundary, satisfying the demo's leap/boundary coverage. */
-const CALENDAR_YEARS = [5787, 5788] as const;
-
-const GREG_MONTHS_EN = [
-	"January",
-	"February",
-	"March",
-	"April",
-	"May",
-	"June",
-	"July",
-	"August",
-	"September",
-	"October",
-	"November",
-	"December",
-];
-
 const WEEKDAY_HE = ["א", "ב", "ג", "ד", "ה", "ו", "ש"] as const;
-
-function gregMonthYear(d: Date): { month: number; year: number } {
-	return { month: d.getMonth(), year: d.getFullYear() };
-}
-
-/** Gregorian month name(s) overlapped by a Hebrew month, e.g. "March–April". */
-function gregorianRangeLabel(page: HebrewMonthPage): string {
-	const firstAbs = hebrew2abs(page.hebrewYear, page.month, 1);
-	const dim = page.days.filter(Boolean).length;
-	const lastAbs = hebrew2abs(page.hebrewYear, page.month, dim);
-	const start = gregMonthYear(abs2greg(firstAbs));
-	const end = gregMonthYear(abs2greg(lastAbs));
-	const two = (y: number) => String(y % 100).padStart(2, "0");
-	if (start.month === end.month && start.year === end.year) {
-		return `${GREG_MONTHS_EN[start.month]} ${two(start.year)}`;
-	}
-	if (start.year === end.year) {
-		return `${GREG_MONTHS_EN[start.month]}–${GREG_MONTHS_EN[end.month]} ${two(start.year)}`;
-	}
-	return `${GREG_MONTHS_EN[start.month]} ${two(start.year)} – ${GREG_MONTHS_EN[end.month]} ${two(end.year)}`;
-}
 
 function isToday(d: { hey: number; hem: number; hed: number }): boolean {
 	const now = new Date();
@@ -84,33 +53,35 @@ function isToday(d: { hey: number; hem: number; hed: number }): boolean {
 }
 
 const FrontCover = () => (
-	<div className="cal-cover cal-cover--front">
-		<div className="cal-cover__rings" aria-hidden="true" />
+	<div className="cal-cover cal-cover--front flipbook-page-bounded">
 		<div className="cal-cover__content">
 			<h1>לוח שנה</h1>
 			<p className="cal-cover__subtitle">עברית · לועזית</p>
-			<p className="cal-cover__years">תשפ״ז – תשפ״ח</p>
+			<p className="cal-cover__years">
+				<span aria-hidden="true">87–88 · 26–28</span>
+				<span className="cal-cell__sr">Hebrew years 5787–5788, Gregorian years 2026–2028</span>
+			</p>
 		</div>
-		<div className="cal-cover__spiral" aria-hidden="true" />
 	</div>
 );
 
 const BackCover = () => (
-	<div className="cal-cover cal-cover--back">
-		<div className="cal-cover__content" />
+	<div className="cal-cover cal-cover--back flipbook-page-bounded">
+		<div className="cal-cover__content">סוף הלוח · End of calendar</div>
 	</div>
 );
 
-const CoverInterior = () => <div className="cal-page cal-page--interior" />;
-
-const TitlePage = () => (
-	<div className="cal-page cal-title">
-		<h2>לוח שנה עברי-לועזי</h2>
-		<p>
-			כל דף מציג חודש עברי עם התאריכים העבריים והלועזיים המקבילים באותו רשת. גררו את הקצה התחתון של
-			הדף <strong>כלפי מעלה</strong> כדי להפוך עמוד, או השתמשו בכפתורי הניווט.
-		</p>
-		<p className="cal-title__note">שנים מוצגות בשתי ספרות: 87 = תשפ״ז, 26 = 2026.</p>
+const CoverInterior = () => (
+	<div className="cal-page cal-page--interior flipbook-page-bounded" aria-hidden="true">
+		<div className="cal-reverse__handle">↓ החודש הקודם · Pull to return</div>
+		<div className="cal-reverse__note" dir="rtl">
+			<span>לוח שנה עברי · Gregorian calendar</span>
+			<p>הרימו את הקצה התחתון כדי להתקדם לחודש הבא.</p>
+			<p lang="en" dir="ltr">
+				Lift the lower edge to turn. Pull this upper edge down to return.
+			</p>
+			<small>↑ / ↓ · Keyboard & buttons</small>
+		</div>
 	</div>
 );
 
@@ -139,7 +110,7 @@ function CellBody({
 			<span className="cal-cell__label">{holiday ?? (day.hed === 1 ? "ראש חודש" : "")}</span>
 			<span className="cal-cell__sr">
 				{day.gregorian.toDateString()} — {page.monthNameHe} {toLetters(day.hebrewDay)}{" "}
-				{page.monthNameEn}
+				{page.monthNameEn} {page.hebrewYear}
 			</span>
 		</span>
 	);
@@ -160,9 +131,9 @@ function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: Heb
 	].join(" ");
 	const body = <CellBody day={day} page={page} holiday={holiday} />;
 	// One clickable date proves links don't turn the page.
-	if (today || holiday === "פסח") {
+	if (today || day.hebrewDay === 1 || holiday === "פסח") {
 		return (
-			<td className={cls}>
+			<td className={cls} data-date={civilDateId(day.gregorian)}>
 				<a
 					className="cal-cell__link"
 					href={`https://www.hebcal.com/converter?gy=${day.gregorian.getFullYear()}&gm=${day.gregorian.getMonth() + 1}&gd=${day.gregorian.getDate()}&g2h=1`}
@@ -175,7 +146,11 @@ function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: Heb
 			</td>
 		);
 	}
-	return <td className={cls}>{body}</td>;
+	return (
+		<td className={cls} data-date={civilDateId(day.gregorian)}>
+			{body}
+		</td>
+	);
 }
 
 function MonthPage({ year, month }: { year: number; month: number }) {
@@ -191,9 +166,9 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 			const slice = flat.slice(w * 7, w * 7 + 7);
 			const firstDay = slice.find((d): d is HebrewDay => d !== null);
 			rows.push({
-				key: firstDay ? firstDay.gregorian.toISOString().slice(0, 10) : `w${w}`,
+				key: firstDay ? civilDateId(firstDay.gregorian) : `w${w}`,
 				cells: slice.map((day, c) => ({
-					key: day ? day.gregorian.toISOString().slice(0, 10) : `x${w}-${c}`,
+					key: day ? civilDateId(day.gregorian) : `x${w}-${c}`,
 					day,
 				})),
 			});
@@ -201,7 +176,12 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 		return rows;
 	}, [page]);
 	return (
-		<div className="cal-page" dir="rtl">
+		<div
+			className="cal-page flipbook-page-bounded"
+			dir="rtl"
+			data-hebrew-year={year}
+			data-hebrew-month={month}
+		>
 			<header className="cal-page__head">
 				<div className="cal-page__hebrew">
 					<span className="cal-page__month-he">{page.monthNameHe}</span>
@@ -243,6 +223,9 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 					</tbody>
 				</table>
 			</div>
+			<div className="cal-page__handle" aria-hidden="true">
+				החודש הבא ↑ · Lift to turn
+			</div>
 		</div>
 	);
 }
@@ -250,6 +233,7 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 const VerticalCalendar = () => {
 	const flipBookRef = useRef<FlipBookHandle>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [currentPage, setCurrentPage] = useState(1);
 
 	// Same test hook the book examples use: ?test-initialTurnedLeaves=0,1,2
 	const initialTurnedLeaves = useMemo(() => {
@@ -259,42 +243,84 @@ const VerticalCalendar = () => {
 					.split(",")
 					.map(Number)
 					.filter((n) => !Number.isNaN(n))
-			: undefined;
+			: [0];
 	}, []);
 
 	const pages = useMemo<ReactElement[]>(() => {
-		const arr: ReactElement[] = [
-			<FrontCover key="fc" />,
-			<CoverInterior key="fci" />,
-			<TitlePage key="title" />,
-		];
-		for (const year of CALENDAR_YEARS) {
-			for (const month of tishreiFirstMonths(year)) {
-				arr.push(<MonthPage key={`${year}-${month}`} year={year} month={month} />);
-			}
+		const arr: ReactElement[] = [<FrontCover key="fc" />, <CoverInterior key="fci" />];
+		for (const { year, month } of calendarMonths) {
+			arr.push(
+				<MonthPage key={`${year}-${month}`} year={year} month={month} />,
+				<CoverInterior key={`${year}-${month}-back`} />,
+			);
 		}
-		arr.push(<CoverInterior key="bci" />, <BackCover key="bc" />);
+		arr[arr.length - 1] = <BackCover key="bc" />;
 		return arr;
 	}, []);
 
 	return (
 		<div ref={containerRef} className="cal-wrap">
+			<div className="cal-intro" dir="rtl">
+				<h2>לוח שנה עברי · Gregorian calendar</h2>
+				<p>הרימו את הקצה התחתון למעלה. לחזרה, הורידו את הקצה העליון של הדף שהתהפך.</p>
+				<p lang="en" dir="ltr">
+					Lift the lower edge to advance; pull the upper free edge down to return. Or use ↑ / ↓ and
+					the buttons.
+				</p>
+				<label>
+					מעבר לחודש{" "}
+					<select
+						data-flipbook-no-flip
+						aria-label="Go to month"
+						value={Math.max(-1, Math.min(calendarMonths.length, Math.floor((currentPage - 1) / 2)))}
+						onChange={(event) =>
+							flipBookRef.current?.jumpToPage(
+								Number(event.target.value) === calendarMonths.length
+									? pages.length - 1
+									: monthPageIndex(Number(event.target.value)),
+							)
+						}
+					>
+						<option value={-1}>כריכה · Cover</option>
+						{calendarMonths.map(({ year, month }, index) => (
+							<option key={`${year}-${month}`} value={index}>
+								{monthLabel(index)}
+							</option>
+						))}
+						<option value={calendarMonths.length}>סיום · End</option>
+					</select>
+				</label>
+			</div>
 			<FlipBook
 				ref={flipBookRef}
 				className="cal-book"
 				flipAxis="vertical"
-				bindingSize={72}
+				bindingSize={20}
 				direction="rtl"
 				pages={pages}
-				leafAspectRatio={{ width: 5, height: 7 }}
-				coverAspectRatio={{ width: 5.4, height: 7.4 }}
+				leafAspectRatio={{ width: 8, height: 5 }}
+				coverAspectRatio={{ width: 8, height: 5 }}
 				leavesBuffer={4}
 				initialTurnedLeaves={initialTurnedLeaves}
+				pageSemantics={calendarSemantics}
+				handlers={{
+					onPageFlipped: ({ pageIndices }) =>
+						setCurrentPage(flipBookRef.current?.getCurrentPageIndex() ?? pageIndices[0]),
+				}}
 				debug={false}
 				enableHistory={false}
 				enableDownload={false}
 			/>
-			<Toolbar flipBookRef={flipBookRef} direction="rtl" fullscreenTargetRef={containerRef}>
+			<Toolbar
+				flipBookRef={flipBookRef}
+				direction="rtl"
+				pageSemantics={calendarSemantics}
+				fullscreenTargetRef={containerRef}
+				commandOptions={{
+					flipNext: { hotkeys: [{ key: "ArrowUp" }, { key: "PageDown" }, { key: " " }] },
+					flipPrev: { hotkeys: [{ key: "ArrowDown" }, { key: "PageUp" }] },
+				}}
+			>
 				<div className="flipbook-toolbar-start">
 					<FullscreenButton />
 					<MouseModeButton />
@@ -302,7 +328,7 @@ const VerticalCalendar = () => {
 				<div className="flipbook-toolbar-nav-cluster">
 					<FirstPageButton />
 					<PrevButton />
-					<PageIndicator />
+					<PageIndicator showTotal={false} editable={false} />
 					<NextButton />
 					<LastPageButton />
 				</div>

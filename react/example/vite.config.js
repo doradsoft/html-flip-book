@@ -59,7 +59,6 @@ export default defineConfig(({ mode }) => {
 				},
 			},
 		},
-		esbuild: { legalComments: "none" },
 		server: {
 			port: 5173,
 			strictPort: true,

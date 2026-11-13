@@ -1,209 +1,245 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures/coverage-test";
 
 const BOOK = ".cal-book.flipbook";
-const PAGE = `${BOOK} .page`;
+const SHEET = `${BOOK} .page.current-page:has([data-hebrew-month])`;
+const month = (page: Page) => page.locator(`${SHEET} [data-hebrew-month]`);
+
+async function box(page: Page, selector = SHEET) {
+	await page.locator(selector).scrollIntoViewIfNeeded();
+	const bounds = await page.locator(selector).boundingBox();
+	if (!bounds) throw new Error(`Missing sheet: ${selector}`);
+	return bounds;
+}
+
+async function drag(page: Page, reverse = false, touch = false) {
+	const index = Number(await page.locator(SHEET).getAttribute("data-page-index"));
+	const sheet = await box(page, reverse ? `${BOOK} .page[data-page-index="${index - 1}"]` : SHEET);
+	const x = sheet.x + sheet.width / 2;
+	const startY = reverse ? sheet.y + 8 : sheet.y + sheet.height - 8;
+	const endY = reverse ? startY + sheet.height * 1.5 : startY - sheet.height * 1.5;
+	if (touch) {
+		const session = await page.context().newCDPSession(page);
+		await session.send("Input.dispatchTouchEvent", {
+			type: "touchStart",
+			touchPoints: [{ x, y: startY }],
+		});
+		for (let step = 1; step <= 12; step++) {
+			await session.send("Input.dispatchTouchEvent", {
+				type: "touchMove",
+				touchPoints: [{ x, y: startY + ((endY - startY) * step) / 12 }],
+			});
+		}
+		await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+		await session.detach();
+	} else {
+		await page.mouse.move(x, startY);
+		await page.mouse.down();
+		await page.mouse.move(x, endY, { steps: 12 });
+		await page.mouse.up();
+	}
+}
 
 test.describe("Vertical spiral calendar", () => {
 	test.beforeEach(async ({ page }) => {
 		await page.goto("/?example=vertical-calendar");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
 	});
 
-	test("renders an upright top-bound book with spiral coil and dual-calendar dates", async ({
+	test("fits an upright month and constrains the binding to the sheets", async ({
+		page,
+	}, testInfo) => {
+		const sheet = await box(page);
+		expect(sheet.width).toBeGreaterThan(testInfo.project.name === "mobile" ? 300 : 340);
+		const metrics = await page.locator(BOOK).evaluate((book) => {
+			const sheet = book.querySelector<HTMLElement>(".page.current-page:has([data-hebrew-month])");
+			if (!sheet) throw new Error("missing month");
+			const coil = getComputedStyle(book, "::before");
+			const scroll = sheet.querySelector<HTMLElement>(".flipbook-page-scrollport");
+			return {
+				coilWidth: Number.parseFloat(coil.width),
+				width: sheet.clientWidth,
+				coilLeft: Number.parseFloat(coil.left),
+				left: Number.parseFloat(sheet.style.left),
+				scrollHeight: scroll?.scrollHeight,
+				height: scroll?.clientHeight,
+				bottom: sheet.querySelector("table")?.getBoundingClientRect().bottom,
+				pageBottom: sheet.getBoundingClientRect().bottom,
+				transform: sheet.style.transform,
+			};
+		});
+		expect(metrics.coilWidth).toBeCloseTo(metrics.width, 0);
+		expect(metrics.coilLeft).toBeCloseTo(metrics.left, 0);
+		expect(metrics.scrollHeight).toBe(metrics.height);
+		expect(metrics.bottom).toBeLessThan(metrics.pageBottom);
+		expect(metrics.transform).toContain("rotateX(0deg)");
+		await expect(month(page).locator(".cal-page__year-he")).toHaveText("87");
+		await expect(month(page).locator(".cal-page__greg-range")).toHaveText("September–October 26");
+		await expect(month(page).getByRole("table")).toHaveAccessibleName("Tishrei 5787");
+		await page.screenshot({
+			path: `docs/images/vertical-calendar/repaired-${testInfo.project.name}.png`,
+			fullPage: true,
+		});
+	});
+
+	for (const input of ["mouse", "touch"]) {
+		test(`advances and returns using real ${input} input on opposite free edges`, async ({
+			page,
+		}) => {
+			await drag(page, false, input === "touch");
+			await expect(month(page)).toHaveAttribute("data-hebrew-month", "8");
+			await drag(page, true, input === "touch");
+			await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
+		});
+	}
+
+	test("preserves content gestures and normal scrolling outside the affordance", async ({
 		page,
 	}) => {
-		// Land inside the month sequence so calendar sheets are mounted.
-		await page.goto("/?example=vertical-calendar&test-initialTurnedLeaves=0,1,2,3");
-		const book = page.locator(BOOK);
-		await expect(book).toBeVisible();
-		await expect(book).toHaveClass(/flipbook--vertical/);
-
-		// The engine draws the coil via ::before at the binding seam.
-		const coil = await book.evaluate((el) => {
-			const cs = getComputedStyle(el, "::before");
-			return { content: cs.content, height: cs.height, zIndex: cs.zIndex };
-		});
-		expect(coil.content).not.toBe("none");
-		expect(Number.parseFloat(coil.height)).toBeGreaterThan(0);
-
-		// Calendar content: Hebrew month name + Gregorian range with 2-digit year.
-		const monthPage = page
-			.locator(".cal-page", { has: page.locator(".cal-page__month-he") })
-			.first();
-		await expect(monthPage.locator(".cal-page__month-he")).not.toBeEmpty();
-		const gregRange = await monthPage.locator(".cal-page__greg-range").textContent();
-		expect(gregRange).toMatch(/\d{2}/);
-
-		// A day cell carries a Hebrew numeral and a Gregorian day-of-month.
-		const dayCell = monthPage.locator(".cal-cell", { has: page.locator(".cal-cell__he") }).nth(8);
-		await expect(dayCell.locator(".cal-cell__he")).not.toBeEmpty();
-		await expect(dayCell.locator(".cal-cell__ge")).not.toBeEmpty();
-	});
-
-	test("dragging the lower edge upward turns the sheet to the next page", async ({ page }) => {
-		const book = page.locator(BOOK);
-		const box = await book.boundingBox();
-		if (!box) throw new Error("book not found");
-		const startX = box.x + box.width / 2;
-		const startY = box.y + box.height * 0.92; // inside the bottom-edge turn zone
-		await page.mouse.move(startX, startY);
+		await page.setViewportSize({ width: 390, height: 500 });
+		const sheet = await box(page);
+		const x = sheet.x + sheet.width / 2;
+		await page.mouse.move(x, sheet.y + sheet.height * 0.5);
 		await page.mouse.down();
-		await page.mouse.move(startX, box.y + box.height * 0.2, { steps: 15 });
+		await page.mouse.move(x, sheet.y - sheet.height * 0.5, { steps: 12 });
 		await page.mouse.up();
-		await page.waitForTimeout(900);
-		// The current-page marker moved off the cover.
-		const currentIndex = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		expect(Number(currentIndex)).toBeGreaterThan(0);
-	});
-
-	test("dragging back down reverses the turn", async ({ page }) => {
-		const book = page.locator(BOOK);
-		const box = await book.boundingBox();
-		if (!box) throw new Error("book not found");
-		const x = box.x + box.width / 2;
-		// Flip forward first.
-		await page.mouse.move(x, box.y + box.height * 0.92);
-		await page.mouse.down();
-		await page.mouse.move(x, box.y + box.height * 0.2, { steps: 15 });
-		await page.mouse.up();
-		await page.waitForTimeout(900);
-		const afterForward = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		// Drag the turned sheet back down.
-		await page.mouse.move(x, box.y + box.height * 0.2);
-		await page.mouse.down();
-		await page.mouse.move(x, box.y + box.height * 0.92, { steps: 15 });
-		await page.mouse.up();
-		await page.waitForTimeout(900);
-		const afterBack = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		expect(Number(afterBack)).toBeLessThan(Number(afterForward));
-	});
-
-	test("gestures starting outside the turn edge do not flip", async ({ page }) => {
-		const book = page.locator(BOOK);
-		const box = await book.boundingBox();
-		if (!box) throw new Error("book not found");
-		const x = box.x + box.width / 2;
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
 		const before = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		// Grab the middle of the sheet (outside the bottom 22% affordance).
-		await page.mouse.move(x, box.y + box.height * 0.45);
-		await page.mouse.down();
-		await page.mouse.move(x, box.y + box.height * 0.1, { steps: 15 });
-		await page.mouse.up();
-		await page.waitForTimeout(700);
-		const after = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		expect(after).toBe(before);
+			.locator(".example-container")
+			.evaluate((element) => element.scrollTop);
+		await page.mouse.move(x, sheet.y + 40);
+		await page.mouse.wheel(0, -300);
+		await expect
+			.poll(() => page.locator(".example-container").evaluate((element) => element.scrollTop))
+			.toBeLessThan(before);
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
 	});
 
-	test("toolbar next/previous buttons turn pages both ways", async ({ page }) => {
-		const before = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
+	test("shows every month once through both Adars and the year boundary", async ({ page }) => {
+		for (const name of ["חשון", "כסלו", "טבת", "שבט", "אדר א׳", "אדר ב׳"]) {
+			await page.locator(".flipbook-toolbar-next").click();
+			await expect(month(page).locator(".cal-page__month-he")).toHaveText(name);
+		}
+		await page.getByRole("combobox", { name: "Go to month" }).selectOption("12");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "6");
 		await page.locator(".flipbook-toolbar-next").click();
-		await page.waitForTimeout(900);
-		const fwd = await page.locator(`${PAGE}.current-page`).first().getAttribute("data-page-index");
-		expect(Number(fwd)).toBeGreaterThan(Number(before));
+		await expect(month(page)).toHaveAttribute("data-hebrew-year", "5788");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
 		await page.locator(".flipbook-toolbar-prev").click();
-		await page.waitForTimeout(900);
-		const back = await page.locator(`${PAGE}.current-page`).first().getAttribute("data-page-index");
-		expect(Number(back)).toBeLessThan(Number(fwd));
+		await expect(month(page)).toHaveAttribute("data-hebrew-year", "5787");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "6");
+		await page.getByRole("combobox", { name: "Go to month" }).selectOption("3");
+		await expect(month(page).locator(".cal-page__greg-range")).toHaveText(
+			"December 26 – January 27",
+		);
 	});
 
-	test("keyboard arrows turn pages as a labelled alternative", async ({ page }) => {
-		const book = page.locator(BOOK);
-		await book.click({ position: { x: 10, y: 10 } });
-		const before = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		// RTL books mirror arrow keys: ArrowLeft advances, ArrowRight goes back.
-		await page.keyboard.press("ArrowLeft");
-		await page.waitForTimeout(900);
-		const fwd = await page.locator(`${PAGE}.current-page`).first().getAttribute("data-page-index");
-		expect(Number(fwd)).toBeGreaterThan(Number(before));
-		await page.keyboard.press("ArrowRight");
-		await page.waitForTimeout(900);
-		const back = await page.locator(`${PAGE}.current-page`).first().getAttribute("data-page-index");
-		expect(Number(back)).toBe(Number(before));
+	test("provides up/down keyboard controls with stable focus and boundary state", async ({
+		page,
+	}) => {
+		await page.locator(".flipbook-toolbar-next").focus();
+		await page.keyboard.press("ArrowUp");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "8");
+		await expect(page.locator(".flipbook-toolbar-next")).toBeFocused();
+		await page.keyboard.press("ArrowDown");
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
+		await page.locator(".flipbook-toolbar-first").click();
+		await expect(page.locator(".flipbook-toolbar-prev")).toBeDisabled();
+		await page.locator(".flipbook-toolbar-last").click();
+		await expect(page.locator(".flipbook-toolbar-next")).toBeDisabled();
+		await expect(page.getByRole("combobox", { name: "Go to month" })).toHaveValue("25");
 	});
 
-	test("clickable date links do not turn the page", async ({ page }) => {
-		// Jump to a month page that contains holiday/today links.
-		await page.goto("/?example=vertical-calendar&test-initialTurnedLeaves=0,1,2,3,4");
-		const link = page.locator(`${PAGE}.current-page a.cal-cell__link`).first();
-		const count = await page.locator(`${PAGE}.current-page a.cal-cell__link`).count();
-		test.skip(count === 0, "no link cells on this page");
-		const before = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
+	test("opens date links without turning and hides covered links", async ({ page }) => {
+		const link = month(page).locator("a.cal-cell__link").first();
+		await expect(link).toBeVisible();
+		expect(await link.getAttribute("href")).toContain("gy=2026&gm=9&gd=12");
+		await page.route("https://www.hebcal.com/**", (route) =>
+			route.fulfill({ body: "Calendar date" }),
+		);
+		const popup = page.waitForEvent("popup");
 		await link.click();
-		await page.waitForTimeout(300);
-		const after = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		expect(after).toBe(before);
+		await (await popup).close();
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
+		expect(
+			await page
+				.locator(`${BOOK} .page:not(.current-page)`)
+				.evaluateAll((pages) =>
+					pages.every(
+						(page) => (page as HTMLElement).inert && page.getAttribute("aria-hidden") === "true",
+					),
+				),
+		).toBe(true);
 	});
 
-	test("leap-year Adar I and Adar II sheets exist in sequence", async ({ page }) => {
-		// Pages 8-9 = Adar I / Adar II of Hebrew year 5787 (leaf 4).
-		await page.goto("/?example=vertical-calendar&test-initialTurnedLeaves=0,1,2,3");
-		const adarI = page.locator(`${PAGE}[data-page-index="8"] .cal-page__month-he`);
-		const adarII = page.locator(`${PAGE}[data-page-index="9"] .cal-page__month-he`);
-		await expect(adarI).toHaveText(/אדר א/);
-		await expect(adarII).toHaveText(/אדר ב/);
-	});
-
-	test("reduced motion completes turns without animated delay", async ({ page }) => {
+	test("settles with reduced motion and refits the complete grid after resize", async ({
+		page,
+	}) => {
 		await page.emulateMedia({ reducedMotion: "reduce" });
-		const book = page.locator(BOOK);
-		const box = await book.boundingBox();
-		if (!box) throw new Error("book not found");
-		const before = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		const x = box.x + box.width / 2;
-		await page.mouse.move(x, box.y + box.height * 0.92);
-		await page.mouse.down();
-		await page.mouse.move(x, box.y + box.height * 0.2, { steps: 10 });
-		await page.mouse.up();
-		// Reduced motion should settle almost immediately.
-		await page.waitForTimeout(250);
-		const after = await page
-			.locator(`${PAGE}.current-page`)
-			.first()
-			.getAttribute("data-page-index");
-		expect(Number(after)).toBeGreaterThan(Number(before));
+		await page.locator(".flipbook-toolbar-next").click();
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "8", { timeout: 500 });
+		await page.setViewportSize({ width: 390, height: 844 });
+		await box(page);
+		expect(
+			await month(page).evaluate((element) => {
+				const scrollport = element.closest(".flipbook-page-scrollport");
+				return (
+					scrollport?.scrollHeight === scrollport?.clientHeight &&
+					element.querySelector("table").getBoundingClientRect().bottom <=
+						element.getBoundingClientRect().bottom
+				);
+			}),
+		).toBe(true);
 	});
 
-	test("book re-lays out on viewport resize", async ({ page }) => {
-		const book = page.locator(BOOK);
-		const before = await book.boundingBox();
-		await page.setViewportSize({ width: 500, height: 800 });
-		const after = await book.boundingBox();
-		expect(after).not.toBeNull();
-		expect(Math.abs((after?.width ?? 0) - (before?.width ?? 0))).toBeGreaterThan(50);
-		// Pages still positioned inside the book.
-		const top = await page
-			.locator(PAGE)
-			.first()
-			.evaluate((el) => el.style.top);
-		expect(top).not.toBe("");
+	test("keeps moving faces coincident and the spiral fixed during a held turn", async ({
+		page,
+	}, testInfo) => {
+		const sheet = await box(page);
+		const coilBefore = await page
+			.locator(BOOK)
+			.evaluate((book) => getComputedStyle(book, "::before").top);
+		const x = sheet.x + sheet.width / 2;
+		await page.mouse.move(x, sheet.y + sheet.height - 5);
+		await page.mouse.down();
+		await page.mouse.move(x, sheet.y + sheet.height * 0.35, { steps: 10 });
+		const a = await page.locator(`${BOOK} .page[data-page-index="2"]`).boundingBox();
+		const b = await page.locator(`${BOOK} .page[data-page-index="3"]`).boundingBox();
+		if (!a || !b) throw new Error("missing moving faces");
+		const host = await page.locator(BOOK).boundingBox();
+		if (!host) throw new Error("missing calendar host");
+		expect(a.x).toBeGreaterThanOrEqual(host.x);
+		expect(a.x + a.width).toBeLessThanOrEqual(host.x + host.width);
+		expect(a.x).toBeCloseTo(b.x, 0);
+		expect(a.y).toBeCloseTo(b.y, 0);
+		expect(a.height).toBeCloseTo(b.height, 0);
+		expect(a.width).toBeCloseTo(b.width, 0);
+		expect(
+			await page.locator(BOOK).evaluate((book) => getComputedStyle(book, "::before").top),
+		).toBe(coilBefore);
+		await page.screenshot({
+			path: `docs/images/vertical-calendar/repaired-mid-turn-${testInfo.project.name}.png`,
+			fullPage: true,
+		});
+		await page.mouse.move(x, sheet.y - sheet.height * 0.3, { steps: 10 });
+		const front = await page.locator(`${BOOK} .page[data-page-index="2"]`).boundingBox();
+		const reverse = await page.locator(`${BOOK} .page[data-page-index="3"]`).boundingBox();
+		if (!front || !reverse) throw new Error("missing reverse face");
+		expect(front.y).toBeCloseTo(reverse.y, 0);
+		expect(front.height).toBeCloseTo(reverse.height, 0);
+		expect(
+			await page.locator(BOOK).evaluate((book) => {
+				const coil = Number(getComputedStyle(book, "::before").zIndex);
+				return [...book.querySelectorAll<HTMLElement>(".page--flipping")].every(
+					(page) => Number(page.style.zIndex) < coil,
+				);
+			}),
+		).toBe(true);
+		await page.screenshot({
+			path: `docs/images/vertical-calendar/repaired-mid-reverse-${testInfo.project.name}.png`,
+			fullPage: true,
+		});
+		await page.mouse.up();
+		await expect(month(page)).toHaveAttribute("data-hebrew-month", "8");
 	});
 });

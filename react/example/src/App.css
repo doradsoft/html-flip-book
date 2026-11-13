@@ -647,19 +647,95 @@ header {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 16px;
+	gap: 8px;
 	width: 100%;
 	flex: 1;
 	min-height: 0;
 	position: relative;
+	max-width: 960px;
+	padding-bottom: 0;
 }
 
 .cal-book {
 	width: 100%;
 	flex: 1;
-	min-height: 480px;
+	height: auto;
+	min-height: 360px;
 	position: relative;
 	box-sizing: border-box;
+}
+
+.cal-intro {
+	text-align: center;
+	font:
+		14px / 1.5 Arial,
+		sans-serif;
+	color: #38483f;
+}
+
+.cal-intro h2 {
+	margin: 0 0 6px;
+	font-size: 20px;
+}
+.cal-intro p {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+.cal-intro select {
+	margin: 8px;
+	padding: 6px 12px;
+	font: inherit;
+}
+.cal-book .page {
+	container-type: inline-size;
+	box-shadow: 0 2px 5px #332b2226;
+}
+.cal-wrap .flipbook-toolbar {
+	flex-shrink: 0;
+}
+
+@media (max-width: 650px) {
+	.app--calendar {
+		height: 100dvh;
+	}
+	.app--calendar > header h1 {
+		margin: 12px;
+		font-size: 22px;
+	}
+	.app--calendar .app-body {
+		flex-direction: column;
+	}
+	.app--calendar .examples-nav {
+		display: flex;
+		width: 100%;
+		max-height: 72px;
+		overflow: auto;
+		padding: 4px 0;
+	}
+	.app--calendar .examples-nav-section {
+		display: flex;
+		margin: 0;
+	}
+	.app--calendar .examples-nav-list {
+		display: flex;
+	}
+	.app--calendar .examples-nav-section-title {
+		padding: 8px;
+		margin: 0;
+	}
+	.app--calendar .examples-nav-item {
+		white-space: nowrap;
+		padding: 8px;
+	}
+	.app--calendar .example-container {
+		padding: 12px 8px;
+	}
+	.cal-intro {
+		font-size: 12px;
+	}
 }
 
 .cal-wrap:fullscreen,
@@ -685,15 +761,38 @@ header {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
-	padding: 4% 5%;
+	padding: 3% 4% 2%;
 	background: #fdfbf4;
 	color: #2b2118;
 	font-family: Tahoma, Arial, "Segoe UI", sans-serif;
 	overflow: hidden;
+	font-size: clamp(10px, 3cqw, 15px);
 }
 
 .cal-page--interior {
 	background: #f4efe2;
+	position: relative;
+	justify-content: center;
+	text-align: center;
+	color: #746950;
+}
+
+.cal-reverse__handle {
+	position: absolute;
+	inset: 8px 0 auto;
+	font-size: 0.75em;
+	cursor: grab;
+}
+.cal-reverse__note {
+	font-size: 0.9em;
+	line-height: 1.5;
+}
+.cal-reverse__note > span {
+	font-size: 1.2em;
+	font-weight: 600;
+}
+.cal-reverse__note p {
+	margin: 0.5em 0;
 }
 
 /* ---- header: Hebrew month + year | Gregorian range ---- */
@@ -701,10 +800,10 @@ header {
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
-	gap: 8px;
+	gap: 6px;
 	border-bottom: 2px solid #8b6f47;
-	padding-bottom: 6px;
-	margin-bottom: 8px;
+	padding-bottom: 4px;
+	margin-bottom: 5px;
 }
 
 .cal-page__hebrew {
@@ -760,15 +859,28 @@ header {
 	padding: 2px 1px;
 	border: 1px solid #e4dcc8;
 	background: #fffdf7;
-	height: 2.6em;
+	height: auto;
 	text-align: center;
 	vertical-align: middle;
 	overflow: hidden;
 }
 
+.cal-page__handle {
+	flex: 0 0 auto;
+	text-align: center;
+	font-size: 0.7em;
+	line-height: 1.6;
+	color: #695b43;
+	cursor: grab;
+}
+.cal-cell__label:empty {
+	display: none;
+}
+
 .cal-cell__body {
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-content: center;
 	align-items: center;
 	justify-content: center;
 	gap: 1px;
@@ -829,6 +941,7 @@ header {
 }
 
 .cal-cell__label {
+	grid-column: 1 / -1;
 	font-size: 0.58em;
 	color: #8b2f2f;
 	line-height: 1.1;

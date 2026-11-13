@@ -171,6 +171,10 @@ class FlipBook {
 	 * it; mouse and touch both populate it before Hammer pan events arrive.
 	 */
 	private turnZoneGesture: boolean | undefined;
+	private readonly verticalAccessibility = new Map<
+		HTMLElement,
+		{ hidden: string | null; inert: boolean }
+	>();
 
 	private static readonly NO_FLIP_SELECTOR = "[data-flipbook-no-flip]";
 
@@ -192,7 +196,28 @@ class FlipBook {
 		if (!(page instanceof HTMLElement)) return false;
 		const rect = page.getBoundingClientRect();
 		if (rect.height <= 0) return false;
-		return clientY >= rect.bottom - rect.height * FlipBook.VERTICAL_TURN_EDGE_RATIO;
+		if (clientY < rect.top || clientY > rect.bottom) return false;
+		const isReverse = Number(page.dataset.pageIndex) % 2 === 1;
+		return isReverse
+			? clientY <= rect.top + rect.height * FlipBook.VERTICAL_TURN_EDGE_RATIO
+			: clientY >= rect.bottom - rect.height * FlipBook.VERTICAL_TURN_EDGE_RATIO;
+	}
+
+	private syncVerticalAccessibility(): void {
+		if (!this.isVertical) return;
+		for (const [index, page] of this.pageElements.entries()) {
+			if (!this.verticalAccessibility.has(page)) {
+				this.verticalAccessibility.set(page, {
+					hidden: page.getAttribute("aria-hidden"),
+					inert: page.inert,
+				});
+			}
+			const exposed =
+				this.currentPageIndex === 0 ? index === 0 : this.prevVisiblePageIndices?.includes(index);
+			const original = this.verticalAccessibility.get(page);
+			page.inert = !exposed || original?.inert === true;
+			page.setAttribute("aria-hidden", exposed ? (original?.hidden ?? "false") : "true");
+		}
 	}
 
 	private getSemanticForPage(pageIndex: number): FlipPageSemantic | undefined {
@@ -218,6 +243,7 @@ class FlipBook {
 	}
 
 	private syncHistoryAndNotifyFlipped(isInitial: boolean): void {
+		this.syncVerticalAccessibility();
 		if (!isInitial && this.bookmarksEnabled && this.bookmarkLayer) {
 			const insets = this.bookmarkLayer.refreshForNavigation();
 			if (Object.values(insets).join() !== this.bookmarkClearance) {
@@ -639,19 +665,36 @@ class FlipBook {
 		const sheetHeight = isVertical ? availableHeight / 2 : availableHeight;
 		this.bindingY = isVertical ? insets.top + sheetHeight : insets.top + this.bindingSize;
 		const maxCoverSize = isVertical
-			? new Size(availableWidth, sheetHeight)
+			? // Perspective enlarges the lifted free edge by at most 8/7. Keep
+				// that projection inside the host on narrow screens, too.
+				new Size(availableWidth * 0.86, sheetHeight)
 			: new Size(availableWidth / 2, availableHeight);
 		const coverSize = maxCoverSize.aspectRatioFit(this.coverAspectRatio);
 		const leafSize = new Size(
 			(coverSize.width * this.leafAspectRatio.width) / this.coverAspectRatio.width,
 			(coverSize.height * this.leafAspectRatio.height) / this.coverAspectRatio.height,
 		);
-		this.bookElement.style.perspective = `${Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
+		this.bookElement.style.perspective = `${isVertical ? coverSize.height * 8 : Math.min(leafSize.width * 2, leafSize.height) * 2}px`;
 		this.bookElement.style.setProperty(
 			"--flipbook-binding-size",
 			isVertical ? `${this.bindingSize}px` : "0px",
 		);
 		this.bookElement.style.setProperty("--flipbook-binding-y", `${this.bindingY}px`);
+		if (isVertical) {
+			this.bookElement.style.setProperty(
+				"--flipbook-binding-z-index",
+				String(this.pagesCount * 4 + 1),
+			);
+			const bindingWidth = this.pageElements.some((page) => page.dataset.isCoverPage === "1")
+				? coverSize.width
+				: leafSize.width;
+			this.bookElement.style.setProperty(
+				"--flipbook-binding-left",
+				`${insets.left + (availableWidth - bindingWidth) / 2}px`,
+			);
+			this.bookElement.style.setProperty("--flipbook-binding-width", `${bindingWidth}px`);
+			this.bookElement.style.perspectiveOrigin = `50% ${this.bindingY}px`;
+		}
 
 		const containerWidth = availableWidth;
 		const containerHeight = availableHeight;
@@ -825,7 +868,7 @@ class FlipBook {
 			this.initialTurnedLeaves.size > 0 ? Math.max(...this.initialTurnedLeaves) : -1;
 
 		if (lastTurnedLeafIndex < 0) {
-			this.prevVisiblePageIndices = 1 < this.pagesCount ? [0, 1] : [0];
+			this.prevVisiblePageIndices = !this.isVertical && 1 < this.pagesCount ? [0, 1] : [0];
 		} else {
 			const firstVisiblePageIndex = lastTurnedLeafIndex * 2 + 1;
 			if (firstVisiblePageIndex >= this.pagesCount) {
@@ -939,7 +982,10 @@ class FlipBook {
 			this.resizeObserver.observe(this.bookElement);
 		}
 
-		this.hammer = new Hammer(this.bookElement, { touchAction: "pan-y" });
+		this.hammer = new Hammer(this.bookElement, {
+			touchAction: this.isVertical ? "auto" : "pan-y",
+			...(this.isVertical ? { inputClass: Hammer.TouchMouseInput } : {}),
+		});
 		// Mouse pulls can move in both axes while touch keeps native vertical scrolling.
 		this.hammer.get("pan").set({ direction: Hammer.DIRECTION_ALL });
 		this.hammer.on("panstart", this.onDragStart.bind(this));
@@ -968,6 +1014,7 @@ class FlipBook {
 		// Apply initial leaves buffer visibility
 		this.updateLeavesBufferVisibility();
 		if (debug) this.fillDebugBar();
+		this.syncVerticalAccessibility();
 
 		// History: adopt the deep-linked page, then initial replaceState and popstate listener
 		if (typeof window !== "undefined" && this.historyMapper) {
@@ -1418,6 +1465,7 @@ class FlipBook {
 			for (let i = rightLeaf.index; i < this.leaves.length; i++) {
 				const leaf = this.leaves[i];
 				if (!this.activeFlips.has(leaf.index) && !leaf.isTurned) {
+					if (this.isVertical && !leaf.pages[1]) return undefined;
 					return leaf;
 				}
 			}
@@ -1557,6 +1605,7 @@ class FlipBook {
 
 		// Get or create the current manual flip state
 		let flipState = this.currentManualFlip;
+		if (this.isVertical && !fromBookmark && !flipState && !this.isDragging) return;
 		if (
 			!fromBookmark &&
 			!flipState &&
@@ -2221,6 +2270,7 @@ class FlipBook {
 	 * @param pageIndex - The target page index (0-based)
 	 */
 	jumpToPage(pageIndex: number): void {
+		const previousPageIndex = this.currentPageIndex;
 		if (pageIndex < 0 || pageIndex >= this.pagesCount) {
 			console.warn(
 				`jumpToPage: Invalid page index ${pageIndex}. Must be between 0 and ${this.pagesCount - 1}.`,
@@ -2271,7 +2321,7 @@ class FlipBook {
 			this.prevVisiblePageIndices = [pageIndex];
 		} else if (lastTurnedLeafIndex < 0) {
 			// No leaves turned: initial spread
-			this.prevVisiblePageIndices = 1 < this.pagesCount ? [0, 1] : [0];
+			this.prevVisiblePageIndices = !this.isVertical && 1 < this.pagesCount ? [0, 1] : [0];
 		} else {
 			const firstVisiblePageIndex = lastTurnedLeafIndex * 2 + 1;
 			this.prevVisiblePageIndices =
@@ -2294,6 +2344,12 @@ class FlipBook {
 		this.updateLeavesBufferVisibility();
 
 		// Notify callback and sync history
+		if (this.isVertical) {
+			this.lastFlipParams = this.buildPageFlipParams(
+				this.currentPageIndex,
+				this.currentPageIndex < previousPageIndex ? "backward" : "forward",
+			);
+		}
 		this.syncHistoryAndNotifyFlipped(false);
 	}
 
@@ -2333,6 +2389,12 @@ class FlipBook {
 		this.preparedContent = new WeakSet();
 		this.bufferContentInitialized = false;
 		this.gestureStartedInNoFlipZone = undefined;
+		for (const [page, original] of this.verticalAccessibility) {
+			page.inert = original.inert;
+			if (original.hidden === null) page.removeAttribute("aria-hidden");
+			else page.setAttribute("aria-hidden", original.hidden);
+		}
+		this.verticalAccessibility.clear();
 		if (this.debugTimer !== undefined) {
 			clearInterval(this.debugTimer);
 			this.debugTimer = undefined;

@@ -175,7 +175,11 @@ export const App: FC = () => {
 	const isBookmarkExample = selectedId.endsWith("-bookmarks");
 
 	return (
-		<div className={isBookmarkExample ? "app app--bookmark-example" : "app"}>
+		<div
+			className={
+				isBookmarkExample ? "app app--bookmark-example" : isVertical ? "app app--calendar" : "app"
+			}
+		>
 			<header>
 				<h1>HTML Flip Book Example</h1>
 			</header>

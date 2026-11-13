@@ -13,14 +13,20 @@
   position: relative;
 }
 
+// An ordinary content swipe must be able to scroll the surrounding document
+// when a sheet's own scrollport has reached its edge.
+.flipbook--vertical .flipbook-page-scrollport {
+  overscroll-behavior: auto;
+}
+
 .flipbook--vertical::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: var(--flipbook-binding-left, 0px);
+  width: var(--flipbook-binding-width, 100%);
   top: calc(var(--flipbook-binding-y, 50%) - var(--flipbook-binding-size, 0px) / 2);
   height: var(--flipbook-binding-size, 0px);
-  z-index: 60;
+  z-index: var(--flipbook-binding-z-index, 60);
   pointer-events: none;
   // Coil: a row of wire rings over a pale comb backing, with soft edge shadows.
   background:
