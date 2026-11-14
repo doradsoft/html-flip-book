@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="30" viewBox="0 0 28 30">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#343b42"/>
+      <stop offset=".35" stop-color="#e9eef2"/>
+      <stop offset=".62" stop-color="#9da8b0"/>
+      <stop offset="1" stop-color="#434b52"/>
+    </linearGradient>
+  </defs>
+  <!-- Original twin-wire artwork: narrow side profiles, not face-on circles. -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M10 27C7 27 7 3 10 3S13 27 10 27M18 27C15 27 15 3 18 3S21 27 18 27" stroke="#1c2229" stroke-opacity=".2" stroke-width="3.8" transform="translate(1 1)"/>
+    <path d="M10 27C7 27 7 3 10 3S13 27 10 27M18 27C15 27 15 3 18 3S21 27 18 27" stroke="url(#metal)" stroke-width="2.3"/>
+    <path d="M9.5 4C7.5 6 7.5 23 9.5 26M17.5 4C15.5 6 15.5 23 17.5 26" stroke="#f8fafb" stroke-opacity=".85" stroke-width=".7"/>
+  </g>
+</svg>

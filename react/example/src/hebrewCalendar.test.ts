@@ -13,8 +13,7 @@ import {
 } from "./hebrewCalendar";
 
 describe("hebrewCalendar", () => {
-	it("matches the @hebcal/hdate reference value for 15 Cheshvan 5769", () => {
-		// Documented example from @hebcal/hdate: hebrew2abs(5769, CHESHVAN, 15) === 733359
+	it("converts 15 Cheshvan 5769 to its civil day and Gregorian date", () => {
 		expect(hebrew2abs(5769, HEBREW_MONTH.CHESHVAN, 15)).toBe(733359);
 		expect(abs2greg(733359)).toEqual(new Date(2008, 10, 13)); // 13 Nov 2008
 	});
@@ -72,5 +71,22 @@ describe("hebrewCalendar", () => {
 		const page = buildHebrewMonthPage(5784, HEBREW_MONTH.NISAN);
 		const pesach = page.days.find((d) => d?.hebrewDay === 15);
 		expect(pesach?.gregorian).toEqual(new Date(2024, 3, 23));
+	});
+
+	it("rejects nonexistent leap months and invalid month days", () => {
+		expect(() => hebrew2abs(5783, HEBREW_MONTH.ADAR_II, 1)).toThrow(RangeError);
+		expect(() => hebrew2abs(5787, HEBREW_MONTH.IYYAR, 30)).toThrow(RangeError);
+		expect(() => hebrew2abs(5787, HEBREW_MONTH.NISAN, 0)).toThrow(RangeError);
+	});
+
+	it("keeps consecutive civil dates across clock changes without elapsed-local-hour arithmetic", () => {
+		for (const date of [new Date(2026, 2, 27), new Date(2026, 9, 25)]) {
+			const fixed = greg2abs(date);
+			const next = abs2greg(fixed + 1);
+			expect(greg2abs(next)).toBe(fixed + 1);
+			expect(abs2greg(fixed)).toEqual(date);
+			const hebrew = abs2hebrew(fixed);
+			expect(hebrew2abs(hebrew.yy, hebrew.mm, hebrew.dd)).toBe(fixed);
+		}
 	});
 });

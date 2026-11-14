@@ -398,21 +398,15 @@ export class Leaf {
 			let origin: string;
 			let edge: string;
 			if (isVertical) {
-				// Top-bound axis: the sheet hangs below the binding and flips up
-				// over it. Both faces pivot on the top edge; the back face rests
-				// one sheet-height above the binding (hidden until turned).
-				const degrees = isOdd
-					? clampedPosition > 0.5
-						? 180 - clampedPosition * 180
-						: -clampedPosition * 180
-					: clampedPosition < 0.5
-						? -clampedPosition * 180
-						: 180 - clampedPosition * 180;
+				// Opposing faces of one sheet share the binding in world space.
+				// Positive rotation lifts the free edge toward the reader. The
+				// reverse uses its bottom edge and faces away until the midpoint;
+				// backface-visibility chooses the face without mirroring content.
+				const degrees = clampedPosition * 180 - (isOdd ? 0 : 180);
 				const translateY = isOdd ? "0px" : "-100%";
-				const scaleY = isOdd ? (clampedPosition > 0.5 ? -1 : 1) : clampedPosition < 0.5 ? -1 : 1;
-				transform = `translateY(${translateY}) rotateX(${degrees}deg) scaleY(${scaleY})`;
-				origin = "top";
-				edge = "bottom";
+				transform = `translateY(${translateY}) rotateX(${degrees}deg)`;
+				origin = isOdd ? "top" : "bottom";
+				edge = isOdd ? "bottom" : "top";
 			} else {
 				const degrees = isOdd
 					? isLTR
