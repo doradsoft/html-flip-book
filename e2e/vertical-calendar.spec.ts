@@ -93,6 +93,56 @@ test.describe("Vertical spiral calendar", () => {
 		});
 	}
 
+	for (const monthIndex of [1, 24]) {
+		test(`keeps the front wire visible throughout a backward turn from month ${monthIndex} with a retained layout`, async ({
+			page,
+		}, testInfo) => {
+			await page.getByRole("combobox", { name: "Go to month" }).selectOption(String(monthIndex));
+			const backIndex = monthIndex * 2 + 1;
+			const sheet = await box(page, `${BOOK} .page[data-page-index="${backIndex}"]`);
+			// A preview can retain a book rendered before the front-layer property
+			// was introduced. Exercise its CSS fallback with the real page stack.
+			await page.locator(BOOK).evaluate((book) => {
+				(book as HTMLElement).style.removeProperty("--flipbook-binding-front-z-index");
+			});
+			const x = sheet.x + sheet.width / 2;
+			const start = sheet.y + 8;
+			await page.mouse.move(x, start);
+			await page.mouse.down();
+			for (const [stage, distance] of [0.6, 1.4].entries()) {
+				await page.mouse.move(x, start + sheet.height * distance, { steps: 10 });
+				const moving = page.locator(`${BOOK} .page--flipping`);
+				await expect(moving).toHaveCount(2);
+				const layers = await page.locator(BOOK).evaluate((book) => ({
+					rear: Number(getComputedStyle(book, "::before").zIndex),
+					front: Number(getComputedStyle(book, "::after").zIndex),
+				}));
+				for (const z of await moving.evaluateAll((faces) =>
+					faces.map((face) => Number((face as HTMLElement).style.zIndex)),
+				)) {
+					expect(z).toBeGreaterThan(layers.rear);
+					expect(z).toBeLessThan(layers.front);
+				}
+				const angle = await page
+					.locator(`${BOOK} .page[data-page-index="${backIndex - 1}"]`)
+					.evaluate((face) =>
+						Number((face as HTMLElement).style.transform.match(/rotateX\(([-.\d]+)deg\)/)?.[1]),
+					);
+				if (stage === 0) expect(angle).toBeGreaterThan(90);
+				else expect(angle).toBeLessThan(90);
+				if (monthIndex === 24)
+					await page.screenshot({
+						path: `docs/images/vertical-calendar/repaired-backward-${stage}-${testInfo.project.name}.png`,
+						fullPage: true,
+					});
+			}
+			await page.mouse.up();
+			await expect(page.getByRole("combobox", { name: "Go to month" })).toHaveValue(
+				String(monthIndex - 1),
+			);
+		});
+	}
+
 	test("preserves content gestures and normal scrolling outside the affordance", async ({
 		page,
 	}) => {
@@ -223,9 +273,13 @@ test.describe("Vertical spiral calendar", () => {
 		page,
 	}, testInfo) => {
 		const sheet = await box(page);
-		const coilBefore = await page
-			.locator(BOOK)
-			.evaluate((book) => getComputedStyle(book, "::before").top);
+		const coilBefore = await page.locator(BOOK).evaluate((book) =>
+			["::before", "::after"].map((side) => {
+				const arc = getComputedStyle(book, side);
+				return { top: arc.top, left: arc.left, width: arc.width, height: arc.height };
+			}),
+		);
+		expect(coilBefore[1]).toEqual(coilBefore[0]);
 		const x = sheet.x + sheet.width / 2;
 		await page.mouse.move(x, sheet.y + sheet.height - 5);
 		await page.mouse.down();
@@ -242,8 +296,13 @@ test.describe("Vertical spiral calendar", () => {
 		expect(a.height).toBeCloseTo(b.height, 0);
 		expect(a.width).toBeCloseTo(b.width, 0);
 		expect(
-			await page.locator(BOOK).evaluate((book) => getComputedStyle(book, "::before").top),
-		).toBe(coilBefore);
+			await page.locator(BOOK).evaluate((book) =>
+				["::before", "::after"].map((side) => {
+					const arc = getComputedStyle(book, side);
+					return { top: arc.top, left: arc.left, width: arc.width, height: arc.height };
+				}),
+			),
+		).toEqual(coilBefore);
 		await page.screenshot({
 			path: `docs/images/vertical-calendar/repaired-mid-turn-${testInfo.project.name}.png`,
 			fullPage: true,
@@ -256,9 +315,14 @@ test.describe("Vertical spiral calendar", () => {
 		expect(front.height).toBeCloseTo(reverse.height, 0);
 		expect(
 			await page.locator(BOOK).evaluate((book) => {
-				const coil = Number(getComputedStyle(book, "::before").zIndex);
+				const rear = getComputedStyle(book, "::before");
+				const front = getComputedStyle(book, "::after");
+				if (front.backgroundImage === "none" || front.backgroundImage === rear.backgroundImage)
+					return false;
 				return [...book.querySelectorAll<HTMLElement>(".page--flipping")].every(
-					(page) => Number(page.style.zIndex) > coil,
+					(page) =>
+						Number(page.style.zIndex) > Number(rear.zIndex) &&
+						Number(page.style.zIndex) < Number(front.zIndex),
 				);
 			}),
 		).toBe(true);

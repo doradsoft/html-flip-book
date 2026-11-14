@@ -682,6 +682,10 @@ class FlipBook {
 		this.bookElement.style.setProperty("--flipbook-binding-y", `${this.bindingY}px`);
 		if (isVertical) {
 			this.bookElement.style.setProperty("--flipbook-binding-z-index", String(this.pagesCount + 1));
+			this.bookElement.style.setProperty(
+				"--flipbook-binding-front-z-index",
+				String(this.pagesCount * 4 + 1),
+			);
 			const bindingWidth = this.pageElements.some((page) => page.dataset.isCoverPage === "1")
 				? coverSize.width
 				: leafSize.width;
