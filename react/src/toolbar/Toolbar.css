@@ -55,6 +55,38 @@
 	justify-content: flex-end;
 }
 
+/* Page turns keep their up/down meaning in either toolbar layout and text direction.
+ * Only built-in navigation chevrons receive the rotation. */
+.flipbook-toolbar[data-flip-axis="vertical"] {
+	color: #fff;
+}
+
+.flipbook-toolbar[data-flip-axis="vertical"] .flipbook-toolbar-navigation-icon {
+	transform: rotate(-90deg);
+}
+
+.flipbook-toolbar--vertical {
+	flex-direction: column;
+	width: 64px;
+	min-height: 0;
+	padding: 8px;
+}
+
+.flipbook-toolbar--vertical .flipbook-toolbar-indicator {
+	max-width: 100%;
+	white-space: normal;
+}
+
+.flipbook-toolbar--vertical .flipbook-toolbar-start,
+.flipbook-toolbar--vertical .flipbook-toolbar-nav-cluster,
+.flipbook-toolbar--vertical .flipbook-toolbar-end {
+	flex-direction: column;
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+	width: 100%;
+	justify-content: center;
+}
+
 /* Base button styles */
 .flipbook-toolbar-button {
 	display: flex;

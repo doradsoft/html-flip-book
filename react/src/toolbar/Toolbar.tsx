@@ -13,6 +13,8 @@ interface ToolbarProps {
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
 	/** Text direction. Defaults from intl locale (en-US → ltr). */
 	direction?: "ltr" | "rtl";
+	/** Control layout. Defaults to horizontal; vertical is supported for vertical-flipping books only. */
+	orientation?: "horizontal" | "vertical";
 	/** Locale for UI strings. Defaults to en-US. */
 	locale?: Locale;
 	/** Optional page semantics for semantic indicator (e.g. perek/chapter) */
@@ -39,6 +41,7 @@ interface ToolbarProps {
 const Toolbar: React.FC<ToolbarProps> = ({
 	flipBookRef,
 	direction: directionProp,
+	orientation = "horizontal",
 	locale: localeProp,
 	pageSemantics,
 	className = "",
@@ -58,6 +61,8 @@ const Toolbar: React.FC<ToolbarProps> = ({
 	const [isFirstPage, setIsFirstPage] = useState(true);
 	const [isLastPage, setIsLastPage] = useState(false);
 	const [mouseMode, setMouseMode] = useState<"turn" | "select">("turn");
+	const [flipAxis, setFlipAxis] = useState<"horizontal" | "vertical">("horizontal");
+	const layout = flipAxis === "vertical" ? orientation : "horizontal";
 
 	const internalCommandOptions: Record<string, CommandOptions> = {
 		...(fullscreenTargetRef
@@ -103,6 +108,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			setIsFirstPage(fb.isFirstPage());
 			setIsLastPage(fb.isLastPage());
 			setMouseMode(fb.getMouseMode?.() ?? "turn");
+			setFlipAxis(fb.getFlipAxis?.() ?? "horizontal");
 		}
 	}, [flipBookRef]);
 
@@ -133,13 +139,15 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			}}
 		>
 			<div
-				className={`flipbook-toolbar ${direction === "rtl" ? "flipbook-toolbar--rtl" : ""} ${className}`.trim()}
+				className={`flipbook-toolbar ${direction === "rtl" ? "flipbook-toolbar--rtl" : ""} ${layout === "vertical" ? "flipbook-toolbar--vertical" : ""} ${className}`.trim()}
 				onPointerDownCapture={(event) => {
 					if (event.button === 0 && event.isPrimary !== false)
 						flipBookRef.current?.beginPointerInteraction?.();
 				}}
 				role="toolbar"
 				aria-label="FlipBook navigation"
+				aria-orientation={layout}
+				data-flip-axis={flipAxis}
 				dir={direction}
 			>
 				{children}

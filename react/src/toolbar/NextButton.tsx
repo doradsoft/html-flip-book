@@ -15,7 +15,7 @@ interface NextButtonProps {
 
 /**
  * Button: next page. Same behavior in LTR and RTL.
- * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
+ * The default icon follows the book's turn axis and reading direction via CSS.
  */
 const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 	const { locale } = useToolbar();
@@ -26,7 +26,7 @@ const NextButton: React.FC<NextButtonProps> = ({ children, className }) => {
 	};
 
 	const ariaLabel = t("command.jumpToNextPage", locale);
-	const defaultIcon = <ChevronRightIcon size={20} />;
+	const defaultIcon = <ChevronRightIcon size={20} className="flipbook-toolbar-navigation-icon" />;
 
 	return (
 		<ToolbarButton

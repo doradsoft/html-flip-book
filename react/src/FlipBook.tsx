@@ -149,6 +149,8 @@ export interface FlipBookHandle {
 	getCurrentPageIndex: () => number;
 	/** Get the total number of pages */
 	getTotalPages: () => number;
+	/** Page-turn axis. Optional for compatibility with older custom handles. */
+	getFlipAxis?: () => "horizontal" | "vertical";
 	/** Get the "of" value for the indicator (e.g. total label). Defaults to total pages when not set. */
 	getOf: () => string | number;
 	/** Check if currently at the first page */
@@ -661,6 +663,7 @@ const FlipBookReact = forwardRef<FlipBookHandle, FlipBookProps>(
 				},
 				getCurrentPageIndex: () => flipBook.currentPageIndex,
 				getTotalPages: () => flipBook.totalPages,
+				getFlipAxis: () => flipBook.getFlipAxis(),
 				getOf: () => (ofRef.current !== undefined ? ofRef.current : flipBook.totalPages),
 				isFirstPage: () => flipBook.isFirstPage,
 				isLastPage: () => flipBook.isLastPage,

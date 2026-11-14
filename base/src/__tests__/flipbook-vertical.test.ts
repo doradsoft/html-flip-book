@@ -92,6 +92,7 @@ describe("FlipBook flipAxis 'vertical'", () => {
 
 	it("marks the book vertical and centers the binding seam", () => {
 		const book = renderVertical(8);
+		expect(book.getFlipAxis()).toBe("vertical");
 		expect(container.classList.contains("flipbook--vertical")).toBe(true);
 		// bindingY = insets.top + clientHeight/2 = 300
 		expect(container.style.getPropertyValue("--flipbook-binding-y")).toBe("300px");
@@ -125,6 +126,7 @@ describe("FlipBook flipAxis 'vertical'", () => {
 		createPages(8);
 		const book = new FlipBook({ pagesCount: 8 });
 		book.render(container);
+		expect(book.getFlipAxis()).toBe("horizontal");
 		expect(container.classList.contains("flipbook--vertical")).toBe(false);
 		expect(pages[0].style.transform).toContain("rotateY");
 		book.destroy();

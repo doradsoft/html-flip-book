@@ -442,6 +442,11 @@ class FlipBook {
 		return this.mouseMode;
 	}
 
+	/** Axis used by this book's page turns, independent of reading direction. */
+	getFlipAxis(): "horizontal" | "vertical" {
+		return this.flipAxis;
+	}
+
 	setMouseMode(mode: MouseMode): void {
 		this.cancelBookmarkPointerDrag?.();
 		this.mouseMode = mode;
