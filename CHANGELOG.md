@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Vertical flipbooks support `Toolbar orientation="vertical"` as well as the default horizontal toolbar. Their navigation chevrons point up/down in either layout, while text and utility controls stay upright. The calendar demo includes a layout selector.
 - Performance benchmark harness: isolated base-vs-candidate comparison with paired samples, per-run A/A noise calibration, explicit regression thresholds and verdict policy (regression / no-regression / inconclusive / unsupported / error), raw artifacts with environment metadata, and a selfcheck that injects a synthetic slowdown which must be detected (#289). Scenarios cover page-turn smoothness, rAF cadence, long tasks/frames and pointer-to-visible-mutation latency (#290), plus 20/200/1000-page scaling windows for init, bookmark refresh, navigation, resize relayout, mount/destroy cycles, React mount, and a retained-nodes/listeners/timers/rAF/observers leak audit after teardown (#291).
 - Built-in history and download defaults (#168). When `enableHistory` is not false and no `historyMapper` is provided, a hash-based mapper (`#page/{semantic-name-or-index}`) syncs page flips with the URL, including Back/Forward restore and deep-linking to the page named in the URL on load. When `enableDownload` is not false and no `downloadConfig` is provided, built-in "entire book" and "page range" handlers export a JSON index of the book's pages. Consumer-provided `historyMapper`/`downloadConfig` still take precedence; `enableHistory: false`/`enableDownload: false` disable the features entirely.
 - Opt-in bookmark providers add TOC and chapter tabs with independent front and back content, perpendicular or parallel layouts, brief and expanded HTML, leaf-attached or pinned motion, custom ordering and click actions, with LTR and RTL examples.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Vertical toolbars keep their slim width and reserve a fixed two-line title height before navigation. Longer titles clamp with ellipsis, keeping the full label available in a tooltip.
 - The vertical binding uses paired wire loops in profile with separate near and far arcs; lifted sheets pass between the wire layers during a turn (#375).
 - The front-wire fallback also scales with the sheet stack, keeping late-month backward turns threaded in retained calendar previews (#375).
 - Calendar conversion now uses native Intl Hebrew-calendar support in place of the copied conversion implementation; clickable dates show local details without an external calendar service (#375).

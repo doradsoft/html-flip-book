@@ -41,7 +41,8 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	ariaLabel = "Go to page",
 	maxLength = 10,
 }) => {
-	const { flipBookRef, pageSemantics, direction, currentPage, totalPages, of } = useToolbar();
+	const { flipBookRef, pageSemantics, direction, currentPage, totalPages, of, orientation } =
+		useToolbar();
 
 	// Determine effective mode
 	const mode: PageIndicatorMode = modeProp ?? (pageSemantics ? "semantic" : "index");
@@ -180,10 +181,15 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 		return (
 			<span
 				className={`flipbook-toolbar-indicator ${className ?? ""}`.trim()}
+				title={displayText}
 				aria-live="polite"
 				aria-atomic="true"
 			>
-				{displayText}
+				{orientation === "vertical" ? (
+					<span className="flipbook-toolbar-indicator-label">{displayText}</span>
+				) : (
+					displayText
+				)}
 			</span>
 		);
 	}
@@ -199,6 +205,7 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 			type="text"
 			className={`flipbook-toolbar-indicator ${editingClass} ${className ?? ""}`.trim()}
 			value={inputValue}
+			title={displayText}
 			onFocus={handleFocus}
 			onBlur={handleBlur}
 			onKeyDown={handleKeyDown}

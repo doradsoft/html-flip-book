@@ -258,6 +258,70 @@ describe("FullscreenButton", () => {
 });
 
 describe("Toolbar", () => {
+	it("defaults a vertical book to a horizontal toolbar", () => {
+		const ref = createMockFlipBookRef({ getFlipAxis: () => "vertical" });
+		render(
+			<Toolbar flipBookRef={ref}>
+				<span>Controls</span>
+			</Toolbar>,
+		);
+		const toolbar = screen.getByRole("toolbar");
+		expect(toolbar.getAttribute("aria-orientation")).toBe("horizontal");
+		expect(toolbar.getAttribute("data-flip-axis")).toBe("vertical");
+	});
+
+	it("switches a vertical book's toolbar layout without navigating", () => {
+		const ref = createMockFlipBookRef({ getFlipAxis: () => "vertical" });
+		const { rerender } = render(
+			<Toolbar flipBookRef={ref} orientation="vertical">
+				<span>Controls</span>
+			</Toolbar>,
+		);
+		expect(screen.getByRole("toolbar").getAttribute("aria-orientation")).toBe("vertical");
+		rerender(
+			<Toolbar flipBookRef={ref} orientation="horizontal">
+				<span>Controls</span>
+			</Toolbar>,
+		);
+		expect(screen.getByRole("toolbar").getAttribute("aria-orientation")).toBe("horizontal");
+		expect(ref.current.jumpToPage).not.toHaveBeenCalled();
+		expect(ref.current.flipNext).not.toHaveBeenCalled();
+	});
+
+	it.each(["ltr", "rtl"] as const)(
+		"keeps %s horizontal books horizontal when a vertical toolbar is requested",
+		(direction) => {
+			const ref = createMockFlipBookRef({ getFlipAxis: () => "horizontal" });
+			render(
+				<Toolbar flipBookRef={ref} direction={direction} orientation="vertical">
+					<span>Controls</span>
+				</Toolbar>,
+			);
+			expect(screen.getByRole("toolbar").getAttribute("aria-orientation")).toBe("horizontal");
+		},
+	);
+
+	it("keeps axes separate when toolbars reference different books", () => {
+		const vertical = createMockFlipBookRef({ getFlipAxis: () => "vertical" });
+		const horizontal = createMockFlipBookRef();
+		render(
+			<>
+				<Toolbar flipBookRef={vertical} orientation="vertical">
+					<span>Calendar</span>
+				</Toolbar>
+				<Toolbar flipBookRef={horizontal} orientation="vertical">
+					<span>Book</span>
+				</Toolbar>
+			</>,
+		);
+		expect(
+			screen.getByText("Calendar").closest('[role="toolbar"]')?.getAttribute("aria-orientation"),
+		).toBe("vertical");
+		expect(
+			screen.getByText("Book").closest('[role="toolbar"]')?.getAttribute("aria-orientation"),
+		).toBe("horizontal");
+	});
+
 	it("holds its book buffer on the initial primary press before clicking", () => {
 		const beginPointerInteraction = vi.fn();
 		const ref = createMockFlipBookRef({ beginPointerInteraction });

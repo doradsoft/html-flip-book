@@ -55,6 +55,34 @@
 	justify-content: flex-end;
 }
 
+/* Page turns keep their up/down meaning in either toolbar layout and text direction.
+ * Only built-in navigation chevrons receive the rotation. */
+.flipbook-toolbar[data-flip-axis="vertical"] {
+	color: #fff;
+}
+
+.flipbook-toolbar[data-flip-axis="vertical"] .flipbook-toolbar-navigation-icon {
+	transform: rotate(-90deg);
+}
+
+.flipbook-toolbar--vertical {
+	flex-direction: column;
+	width: 64px;
+	flex-shrink: 0;
+	min-height: 0;
+	padding: 8px;
+}
+
+.flipbook-toolbar--vertical .flipbook-toolbar-start,
+.flipbook-toolbar--vertical .flipbook-toolbar-nav-cluster,
+.flipbook-toolbar--vertical .flipbook-toolbar-end {
+	flex-direction: column;
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+	width: 100%;
+	justify-content: center;
+}
+
 /* Base button styles */
 .flipbook-toolbar-button {
 	display: flex;
@@ -182,6 +210,28 @@ input.flipbook-toolbar-indicator--editing {
 input.flipbook-toolbar-indicator:focus {
 	outline: 2px solid currentColor;
 	outline-offset: 2px;
+}
+
+/* Keep the rail slim and reserve the full capped title height from the start. */
+.flipbook-toolbar--vertical .flipbook-toolbar-indicator {
+	box-sizing: border-box;
+	width: 100%;
+	height: calc(1.25em * var(--flipbook-indicator-max-lines, 2));
+	flex: 0 0 auto;
+	white-space: normal;
+	text-overflow: ellipsis;
+}
+
+.flipbook-toolbar-indicator-label {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: var(--flipbook-indicator-max-lines, 2);
+	min-width: 0;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+	white-space: normal;
+	line-height: 1.25em;
+	text-overflow: ellipsis;
 }
 
 .visually-hidden {

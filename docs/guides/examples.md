@@ -101,6 +101,36 @@ RTL Hebrew calendar works unchanged.
 />
 ```
 
+Vertical books can use either toolbar layout. `Toolbar.orientation` defaults
+to `"horizontal"`; set it to `"vertical"` to stack controls and the standard
+toolbar groups. The toolbar reads the turn axis from its referenced book, so
+horizontal books keep a horizontal toolbar even if `"vertical"` is requested.
+
+```tsx
+<Toolbar flipBookRef={flipBookRef} orientation="vertical" direction="rtl">
+  <LastPageButton />
+  <NextButton />
+  <PageIndicator />
+  <PrevButton />
+  <FirstPageButton />
+</Toolbar>
+```
+
+For vertical page turns, the built-in chevrons rotate 90 degrees in either
+toolbar layout: next/last point up and previous/first point down, independently
+of LTR or RTL text. Only these built-in navigation chevrons receive the rotation;
+labels and utility icons keep their normal orientation.
+Children retain their supplied order; the example above puts upward navigation
+above the indicator and downward navigation below it. Place the toolbar beside
+the book using your own container layout. The calendar demo's **Toolbar** selector
+lets you switch layouts without changing the selected month.
+
+The vertical toolbar keeps its slim 64px width and reserves a two-line title
+area from the start. Short cover/end names and wrapped month names therefore
+use the same height. Set `--flipbook-indicator-max-lines` on the toolbar to
+change the reserved line count. Longer labels clamp to that height with an
+ellipsis; the full label remains in the accessible text and native title tooltip.
+
 - The book splits vertically at the binding: the **lower half** is the live
   sheet stack, the **upper half** collects turned sheets.
 - A decorative coil is drawn across the seam via `.flipbook--vertical::before`

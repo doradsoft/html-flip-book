@@ -15,7 +15,7 @@ interface LastPageButtonProps {
 
 /**
  * Button to navigate to the last page. Same behavior in LTR and RTL.
- * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
+ * The default icon follows the book's turn axis and reading direction via CSS.
  */
 const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) => {
 	const { locale } = useToolbar();
@@ -25,7 +25,7 @@ const LastPageButton: React.FC<LastPageButtonProps> = ({ children, className }) 
 		execute(goToLastCommand);
 	};
 
-	const defaultIcon = <ChevronLastIcon size={18} />;
+	const defaultIcon = <ChevronLastIcon size={18} className="flipbook-toolbar-navigation-icon" />;
 	const ariaLabel = t("command.jumpToLastPage", locale);
 
 	return (

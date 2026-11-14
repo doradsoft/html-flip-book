@@ -15,7 +15,7 @@ interface FirstPageButtonProps {
 
 /**
  * Button to navigate to the first page. Same behavior in LTR and RTL.
- * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
+ * The default icon follows the book's turn axis and reading direction via CSS.
  */
 const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }) => {
 	const { locale } = useToolbar();
@@ -25,7 +25,7 @@ const FirstPageButton: React.FC<FirstPageButtonProps> = ({ children, className }
 		execute(goToFirstCommand);
 	};
 
-	const defaultIcon = <ChevronFirstIcon size={18} />;
+	const defaultIcon = <ChevronFirstIcon size={18} className="flipbook-toolbar-navigation-icon" />;
 	const ariaLabel = t("command.jumpToFirstPage", locale);
 
 	return (

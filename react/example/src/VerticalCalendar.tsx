@@ -292,6 +292,9 @@ const VerticalCalendar = () => {
 	const flipBookRef = useRef<FlipBookHandle>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [toolbarOrientation, setToolbarOrientation] = useState<"horizontal" | "vertical">(
+		"horizontal",
+	);
 
 	// Same test hook the book examples use: ?test-initialTurnedLeaves=0,1,2
 	const initialTurnedLeaves = useMemo(() => {
@@ -348,49 +351,84 @@ const VerticalCalendar = () => {
 						<option value={calendarMonths.length}>סיום · End</option>
 					</select>
 				</label>
+				<label>
+					Toolbar{" "}
+					<select
+						aria-label="Toolbar layout"
+						data-flipbook-no-flip
+						value={toolbarOrientation}
+						onChange={(event) =>
+							setToolbarOrientation(event.target.value as "horizontal" | "vertical")
+						}
+					>
+						<option value="horizontal">Horizontal</option>
+						<option value="vertical">Vertical</option>
+					</select>
+				</label>
 			</div>
-			<FlipBook
-				ref={flipBookRef}
-				className="cal-book"
-				flipAxis="vertical"
-				bindingSize={20}
-				direction="rtl"
-				pages={pages}
-				leafAspectRatio={{ width: 8, height: 5 }}
-				coverAspectRatio={{ width: 8, height: 5 }}
-				leavesBuffer={4}
-				initialTurnedLeaves={initialTurnedLeaves}
-				pageSemantics={calendarSemantics}
-				handlers={{
-					onPageFlipped: ({ pageIndices }) =>
-						setCurrentPage(flipBookRef.current?.getCurrentPageIndex() ?? pageIndices[0]),
-				}}
-				debug={false}
-				enableHistory={false}
-				enableDownload={false}
-			/>
-			<Toolbar
-				flipBookRef={flipBookRef}
-				direction="rtl"
-				pageSemantics={calendarSemantics}
-				fullscreenTargetRef={containerRef}
-				commandOptions={{
-					flipNext: { hotkeys: [{ key: "ArrowUp" }, { key: "PageDown" }, { key: " " }] },
-					flipPrev: { hotkeys: [{ key: "ArrowDown" }, { key: "PageUp" }] },
-				}}
-			>
-				<div className="flipbook-toolbar-start">
-					<FullscreenButton />
-					<MouseModeButton />
-				</div>
-				<div className="flipbook-toolbar-nav-cluster">
-					<FirstPageButton />
-					<PrevButton />
-					<PageIndicator showTotal={false} editable={false} />
-					<NextButton />
-					<LastPageButton />
-				</div>
-			</Toolbar>
+			<div className={`cal-stage cal-stage--${toolbarOrientation}`}>
+				<FlipBook
+					ref={flipBookRef}
+					className="cal-book"
+					flipAxis="vertical"
+					bindingSize={20}
+					direction="rtl"
+					pages={pages}
+					leafAspectRatio={{ width: 8, height: 5 }}
+					coverAspectRatio={{ width: 8, height: 5 }}
+					leavesBuffer={4}
+					initialTurnedLeaves={initialTurnedLeaves}
+					pageSemantics={calendarSemantics}
+					handlers={{
+						onPageFlipped: ({ pageIndices }) =>
+							setCurrentPage(flipBookRef.current?.getCurrentPageIndex() ?? pageIndices[0]),
+					}}
+					debug={false}
+					enableHistory={false}
+					enableDownload={false}
+				/>
+				<Toolbar
+					flipBookRef={flipBookRef}
+					orientation={toolbarOrientation}
+					direction="rtl"
+					pageSemantics={calendarSemantics}
+					fullscreenTargetRef={containerRef}
+					commandOptions={{
+						flipNext: { hotkeys: [{ key: "ArrowUp" }, { key: "PageDown" }, { key: " " }] },
+						flipPrev: { hotkeys: [{ key: "ArrowDown" }, { key: "PageUp" }] },
+					}}
+				>
+					<div className="flipbook-toolbar-start">
+						<FullscreenButton />
+						<MouseModeButton />
+					</div>
+					<div className="flipbook-toolbar-nav-cluster">
+						{toolbarOrientation === "vertical" ? (
+							<>
+								<LastPageButton />
+								<NextButton />
+							</>
+						) : (
+							<>
+								<FirstPageButton />
+								<PrevButton />
+							</>
+						)}
+						<PageIndicator showTotal={false} editable={false} />
+						{toolbarOrientation === "vertical" ? (
+							<>
+								<PrevButton />
+								<FirstPageButton />
+							</>
+						) : (
+							<>
+								<NextButton />
+								<LastPageButton />
+							</>
+						)}
+					</div>
+				</Toolbar>
+			</div>
 		</div>
 	);
 };

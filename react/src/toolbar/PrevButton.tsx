@@ -15,7 +15,7 @@ interface PrevButtonProps {
 
 /**
  * Button: previous page. Same behavior in LTR and RTL.
- * Visual mirroring is handled by CSS (dir="rtl" + icon flip).
+ * The default icon follows the book's turn axis and reading direction via CSS.
  */
 const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 	const { locale } = useToolbar();
@@ -26,7 +26,7 @@ const PrevButton: React.FC<PrevButtonProps> = ({ children, className }) => {
 	};
 
 	const ariaLabel = t("command.jumpToPrevPage", locale);
-	const defaultIcon = <ChevronLeftIcon size={20} />;
+	const defaultIcon = <ChevronLeftIcon size={20} className="flipbook-toolbar-navigation-icon" />;
 
 	return (
 		<ToolbarButton
