@@ -68,13 +68,7 @@ interface NativeMonth {
 const years = new Map<number, readonly NativeMonth[]>();
 
 /** Discover actual month boundaries from Intl, including leap-month insertion. */
-function nativeYear(year: number): readonly NativeMonth[] {
-	if (!Number.isInteger(year) || year < 1) throw new RangeError("Invalid Hebrew year");
-	const cached = years.get(year);
-	if (cached) return cached;
-	if (hebrewFormatter.resolvedOptions().calendar !== "hebrew") {
-		throw new Error("This calendar demo requires Intl Hebrew-calendar support");
-	}
+function discoverNativeMonths(year: number): NativeMonth[] {
 	const months: NativeMonth[] = [];
 	// Two Gregorian years cover the requested autumn-to-autumn Hebrew year.
 	const start = utcDate(year - 3761, 0, 1).getTime();
@@ -92,6 +86,17 @@ function nativeYear(year: number): readonly NativeMonth[] {
 		const month = months.at(-1);
 		if (month) month.days++;
 	}
+	return months;
+}
+
+function nativeYear(year: number): readonly NativeMonth[] {
+	if (!Number.isInteger(year) || year < 1) throw new RangeError("Invalid Hebrew year");
+	const cached = years.get(year);
+	if (cached) return cached;
+	if (hebrewFormatter.resolvedOptions().calendar !== "hebrew") {
+		throw new Error("This calendar demo requires Intl Hebrew-calendar support");
+	}
+	const months = discoverNativeMonths(year);
 	if (months.length !== 12 && months.length !== 13)
 		throw new RangeError("Hebrew year outside the supported Intl range");
 	const order = [7, 8, 9, 10, 11, 12, ...(months.length === 13 ? [13] : []), 1, 2, 3, 4, 5, 6];
