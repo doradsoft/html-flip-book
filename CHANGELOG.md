@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Vertical toolbar titles reserve bounded space for the longest label before navigation, keeping toolbar dimensions stable. Overflow uses ellipsis with the full label available in a tooltip.
+- Vertical toolbars keep their slim width and reserve a fixed two-line title height before navigation. Longer titles clamp with ellipsis, keeping the full label available in a tooltip.
 - The vertical binding uses paired wire loops in profile with separate near and far arcs; lifted sheets pass between the wire layers during a turn (#375).
 - The front-wire fallback also scales with the sheet stack, keeping late-month backward turns threaded in retained calendar previews (#375).
 - Calendar conversion now uses native Intl Hebrew-calendar support in place of the copied conversion implementation; clickable dates show local details without an external calendar service (#375).

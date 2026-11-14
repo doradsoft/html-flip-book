@@ -1,48 +1,8 @@
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToolbar } from "./ToolbarContext";
 
 type PageIndicatorMode = "semantic" | "index";
-
-const useIndicatorLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
-
-function indicatorLabel(left: string, right: string, placeholder: string, total?: string): string {
-	const range = !left
-		? right || placeholder
-		: !right || left === right
-			? left
-			: `${left} - ${right}`;
-	return total === undefined ? range : `${range} / ${total}`;
-}
-
-/** Measure all possible labels once before paint, never the current title alone. */
-function useIndicatorWidth(enabled: boolean, labels: readonly string[], editable: boolean) {
-	const elementRef = useRef<HTMLElement | null>(null);
-	const setElement = useCallback((element: HTMLElement | null) => {
-		elementRef.current = element;
-	}, []);
-	useIndicatorLayoutEffect(() => {
-		const element = elementRef.current;
-		if (!enabled || !element) return;
-		const context = element.ownerDocument.createElement("canvas").getContext("2d");
-		if (!context) return;
-		const measure = () => {
-			context.font = getComputedStyle(element).font;
-			let width = 0;
-			for (const label of labels) width = Math.max(width, context.measureText(label).width);
-			element.style.setProperty("--flipbook-indicator-text-width", `${Math.ceil(width)}px`);
-		};
-		measure();
-		const fonts = element.ownerDocument.fonts;
-		fonts.addEventListener("loadingdone", measure);
-		window.addEventListener("resize", measure);
-		return () => {
-			fonts.removeEventListener("loadingdone", measure);
-			window.removeEventListener("resize", measure);
-		};
-	}, [enabled, labels, editable]);
-	return setElement;
-}
 
 interface PageIndicatorProps {
 	/**
@@ -114,33 +74,42 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	const leftName = getPageName(leftPageIndex);
 	const rightName = rightPageIndex != null ? getPageName(rightPageIndex) : "";
 
-	const labels = useMemo(() => {
-		if (orientation !== "vertical") return [];
-		const total = showTotal ? String(of) : undefined;
-		const labels = new Set([indicatorLabel("", "", placeholder, total)]);
-		for (let index = 0; index < totalPages; index++) {
-			labels.add(
-				indicatorLabel(
-					getPageName(index),
-					index + 1 < totalPages ? getPageName(index + 1) : "",
-					placeholder,
-					total,
-				),
-			);
+	// "Of" comes from the book (via context); default is total pages count
+	const getTotalDisplay = useCallback((): string => String(of), [of]);
+
+	// Build display text for the range (always left physical page then right, e.g. י"א - י"ב)
+	const buildDisplayText = useCallback((): string => {
+		const firstName = leftName;
+		const secondName = rightName;
+
+		let rangeText: string;
+		if (!firstName && !secondName) {
+			// Both empty (e.g., cover pages)
+			rangeText = placeholder;
+		} else if (!firstName) {
+			// Only second has a name
+			rangeText = secondName;
+		} else if (!secondName) {
+			// Only first has a name
+			rangeText = firstName;
+		} else if (firstName === secondName) {
+			// Same name on both pages - show scalar
+			rangeText = firstName;
+		} else {
+			// Different names - show range
+			rangeText = `${firstName} - ${secondName}`;
 		}
-		return [...labels];
-	}, [orientation, totalPages, getPageName, placeholder, showTotal, of]);
-	const setIndicatorElement = useIndicatorWidth(orientation === "vertical", labels, editable);
+
+		if (showTotal) {
+			return `${rangeText} / ${getTotalDisplay()}`;
+		}
+		return rangeText;
+	}, [leftName, rightName, placeholder, showTotal, getTotalDisplay]);
 
 	// The primary semantic name for editing (use left page in RTL reading order)
 	const primarySemanticName = direction === "rtl" ? rightName || leftName : leftName || rightName;
 
-	const displayText = indicatorLabel(
-		leftName,
-		rightName,
-		placeholder,
-		showTotal ? String(of) : undefined,
-	);
+	const displayText = buildDisplayText();
 
 	// Sync input value when page changes and not editing.
 	// After Enter navigation, justNavigatedRef prevents flashing the stale value;
@@ -211,7 +180,6 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	if (!editable) {
 		return (
 			<span
-				ref={setIndicatorElement}
 				className={`flipbook-toolbar-indicator ${className ?? ""}`.trim()}
 				title={displayText}
 				aria-live="polite"
@@ -234,7 +202,6 @@ const PageIndicator: React.FC<PageIndicatorProps> = ({
 	const editingClass = isEditing ? "flipbook-toolbar-indicator--editing" : "";
 	return (
 		<input
-			ref={setIndicatorElement}
 			type="text"
 			className={`flipbook-toolbar-indicator ${editingClass} ${className ?? ""}`.trim()}
 			value={inputValue}

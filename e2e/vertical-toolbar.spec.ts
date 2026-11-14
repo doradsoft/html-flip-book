@@ -105,6 +105,7 @@ test("reserves a stable title slot before visiting cover, month and end labels",
 	const toolbar = page.getByRole("toolbar");
 	const indicator = toolbar.locator(".flipbook-toolbar-indicator");
 	const initial = await toolbar.boundingBox();
+	expect(initial.width).toBeCloseTo(64, 1);
 	const months = page.getByRole("combobox", { name: "Go to month" });
 	const options = await months.locator("option").evaluateAll((options) =>
 		options.map((option) => ({
@@ -131,22 +132,23 @@ test("reserves a stable title slot before visiting cover, month and end labels",
 	});
 });
 
-test("caps long title space with ellipsis and keeps the full label available", async ({ page }) => {
+test("caps title height at two lines with ellipsis and keeps the full label available", async ({
+	page,
+}) => {
 	await page.goto("/?example=vertical-calendar");
 	await page.getByRole("combobox", { name: "Toolbar layout" }).selectOption("vertical");
 	const toolbar = page.getByRole("toolbar");
-	await toolbar.evaluate((element) =>
-		(element as HTMLElement).style.setProperty("--flipbook-indicator-max-width", "28px"),
-	);
 	const indicator = toolbar.locator(".flipbook-toolbar-indicator");
+	await indicator.evaluate((element) => ((element as HTMLElement).style.width = "20px"));
 	await expect(indicator).toHaveAttribute("title", "תשרי 87");
 	const label = indicator.locator(".flipbook-toolbar-indicator-label");
 	await expect(label).toHaveCSS("text-overflow", "ellipsis");
-	await expect(label).toHaveCSS("white-space", "nowrap");
+	await expect(label).toHaveCSS("white-space", "normal");
+	await expect(label).toHaveCSS("-webkit-line-clamp", "2");
 	const metrics = await label.evaluate((element) => ({
-		width: element.clientWidth,
-		content: element.scrollWidth,
+		height: element.clientHeight,
+		content: element.scrollHeight,
 	}));
-	expect(metrics.content).toBeGreaterThan(metrics.width);
+	expect(metrics.content).toBeGreaterThan(metrics.height);
 	await expect(indicator).toHaveText("תשרי 87");
 });
