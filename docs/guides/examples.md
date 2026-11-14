@@ -104,11 +104,15 @@ RTL Hebrew calendar works unchanged.
 - The book splits vertically at the binding: the **lower half** is the live
   sheet stack, the **upper half** collects turned sheets.
 - A decorative coil is drawn across the seam via `.flipbook--vertical::before`
-  (positioned with `--flipbook-binding-y`, `--flipbook-binding-left`,
-  `--flipbook-binding-width`, `--flipbook-binding-size` and
-  `--flipbook-binding-z-index`). The original SVG artwork depicts paired wire
-  loops in profile. The binding sits above resting sheets and below lifted
-  sheets during a turn. Hide or restyle it with CSS. Reserve enough container height
+  (far arcs) and `::after` (near arcs), positioned with
+  `--flipbook-binding-y`, `--flipbook-binding-left`,
+  `--flipbook-binding-width`, `--flipbook-binding-size`,
+  `--flipbook-binding-z-index` and `--flipbook-binding-front-z-index`. The
+  original SVG artwork depicts paired wire loops in profile. Resting sheets
+  sit below both layers. Lifted sheets pass between them, hiding the far side
+  of the wire while its near side remains visible. Set
+  `--flipbook-binding-display: none` to hide both layers, or restyle the two
+  pseudo-elements together. Reserve enough container height
   for both stacks; landscape sheets keep a complete calendar legible on phones.
 - **Gesture policy:** lift the unturned sheet's **lower free edge** (bottom
   ~22%) upward to advance. Pull the turned sheet's **upper free edge** (top
