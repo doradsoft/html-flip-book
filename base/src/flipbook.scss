@@ -28,15 +28,8 @@
   height: var(--flipbook-binding-size, 0px);
   z-index: var(--flipbook-binding-z-index, 60);
   pointer-events: none;
-  // Coil: a row of wire rings over a pale comb backing, with soft edge shadows.
-  background:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.18), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.18)),
-    radial-gradient(circle at 50% 50%, #aab2bd 0 18%, #d7dce3 18% 34%, #6f7783 34% 46%, #eef1f5 46% 62%, transparent 62%)
-      repeat-x;
-  background-size:
-    100% 100%,
-    26px 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  background: url("./spiral-binding.svg") repeat-x center;
+  background-size: calc(var(--flipbook-binding-size, 20px) * 28 / 30) 100%;
 }
 
 .flipbook-debug-bar {

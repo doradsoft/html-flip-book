@@ -99,3 +99,13 @@ Each entry should include:
 - Vite8 has built-in [`resolve.tsconfigPaths`](https://vite.dev/config/shared-options.html#resolve-tsconfigpaths); remove the redundant paths plugin rather than retaining its startup warning.
 - Native config loading requires `with { type: "json" }` for JSON imports. Preserve ordinary JSON semantics without suppressing the warning.
 - Empty V8 script arrays from intentionally skipped/blank browser pages are not valid Monocart report input. Submit nonempty coverage only; preserve collection errors and all real script data.
+
+## Native Hebrew calendar (Intl.DateTimeFormat)
+
+**Version**: Platform ECMA-402 implementation
+**Date**: 2026-11-14
+
+- [ECMA-402](https://tc39.es/ecma402/#sec-intl.datetimeformat.prototype.formattoparts) exposes calendar fields through `formatToParts`. Request `hebrew` and Latin numerals explicitly, then verify `resolvedOptions().calendar` because calendar support depends on the runtime.
+- Discover month starts and leap months from the runtime's actual fields. Treat month-name strings as opaque identifiers; the demo's month names are separate presentation data. [Unicode's calendar data](https://unicode.org/reports/tr35/tr35-dates.html#Calendar_Elements) documents calendar-specific month naming.
+- Index civil days in UTC and construct local dates from their civil fields. Dividing elapsed local hours by 24 would make clock changes affect date indexing.
+- The previous demo conversion file claimed its Hebcal port was MIT-licensed, but [upstream declares GPL-2.0-or-later](https://github.com/hebcal/hdate-js/blob/main/package.json). The port was replaced with platform calls; no copied calendar algorithm, package, or network service remains.

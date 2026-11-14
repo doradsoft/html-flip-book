@@ -150,16 +150,25 @@ test.describe("Vertical spiral calendar", () => {
 		await expect(page.getByRole("combobox", { name: "Go to month" })).toHaveValue("25");
 	});
 
-	test("opens date links without turning and hides covered links", async ({ page }) => {
+	test("opens local date details without turning or contacting a calendar service", async ({
+		page,
+	}) => {
 		const link = month(page).locator("a.cal-cell__link").first();
 		await expect(link).toBeVisible();
-		expect(await link.getAttribute("href")).toContain("gy=2026&gm=9&gd=12");
-		await page.route("https://www.hebcal.com/**", (route) =>
-			route.fulfill({ body: "Calendar date" }),
-		);
-		const popup = page.waitForEvent("popup");
+		const external: string[] = [];
+		page.on("request", (request) => {
+			if (new URL(request.url()).origin !== new URL(page.url()).origin)
+				external.push(request.url());
+		});
 		await link.click();
-		await (await popup).close();
+		const details = page.getByRole("dialog", { name: "Calendar date details" });
+		await expect(details).toBeVisible();
+		await expect(details.locator("time")).toHaveAttribute("datetime", "2026-09-12");
+		await expect(details).toContainText("September 12, 26");
+		await details.getByRole("button", { name: "Close date details" }).click();
+		await expect(details).not.toBeVisible();
+		await expect(link).toBeFocused();
+		expect(external).toEqual([]);
 		await expect(month(page)).toHaveAttribute("data-hebrew-month", "7");
 		expect(
 			await page
@@ -187,6 +196,24 @@ test.describe("Vertical spiral calendar", () => {
 					scrollport?.scrollHeight === scrollport?.clientHeight &&
 					element.querySelector("table").getBoundingClientRect().bottom <=
 						element.getBoundingClientRect().bottom
+				);
+			}),
+		).toBe(true);
+	});
+
+	test("keeps the full six-week grid within its sheet in a short desktop viewport", async ({
+		page,
+	}) => {
+		await page.setViewportSize({ width: 1280, height: 640 });
+		await box(page);
+		expect(
+			await month(page).evaluate((element) => {
+				const scrollport = element.closest(".flipbook-page-scrollport");
+				const lastRow = element.querySelector("tbody tr:last-child");
+				return (
+					scrollport?.scrollHeight === scrollport?.clientHeight &&
+					lastRow &&
+					lastRow.getBoundingClientRect().bottom < element.getBoundingClientRect().bottom
 				);
 			}),
 		).toBe(true);
@@ -231,7 +258,7 @@ test.describe("Vertical spiral calendar", () => {
 			await page.locator(BOOK).evaluate((book) => {
 				const coil = Number(getComputedStyle(book, "::before").zIndex);
 				return [...book.querySelectorAll<HTMLElement>(".page--flipping")].every(
-					(page) => Number(page.style.zIndex) < coil,
+					(page) => Number(page.style.zIndex) > coil,
 				);
 			}),
 		).toBe(true);

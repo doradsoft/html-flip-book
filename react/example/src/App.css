@@ -660,7 +660,7 @@ header {
 	width: 100%;
 	flex: 1;
 	height: auto;
-	min-height: 360px;
+	min-height: 440px;
 	position: relative;
 	box-sizing: border-box;
 }
@@ -896,6 +896,29 @@ header {
 
 .cal-cell__link:hover {
 	background: #dce8f4;
+}
+
+.cal-date-dialog {
+	padding: 20px 28px;
+	border: 1px solid #8b6f47;
+	border-radius: 8px;
+	background: #fffdf7;
+	color: #2b2118;
+	font:
+		16px / 1.5 Arial,
+		sans-serif;
+	text-align: center;
+}
+.cal-date-dialog::backdrop {
+	background: #0006;
+}
+.cal-date-dialog h3 {
+	margin: 0;
+}
+.cal-date-dialog button {
+	padding: 6px 14px;
+	font: inherit;
+	cursor: pointer;
 }
 
 .cal-cell--head {

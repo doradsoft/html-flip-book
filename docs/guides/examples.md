@@ -106,8 +106,9 @@ RTL Hebrew calendar works unchanged.
 - A decorative coil is drawn across the seam via `.flipbook--vertical::before`
   (positioned with `--flipbook-binding-y`, `--flipbook-binding-left`,
   `--flipbook-binding-width`, `--flipbook-binding-size` and
-  `--flipbook-binding-z-index`). It spans the sheet stack and stays above the
-  moving faces. Hide or restyle it with CSS. Reserve enough container height
+  `--flipbook-binding-z-index`). The original SVG artwork depicts paired wire
+  loops in profile. The binding sits above resting sheets and below lifted
+  sheets during a turn. Hide or restyle it with CSS. Reserve enough container height
   for both stacks; landscape sheets keep a complete calendar legible on phones.
 - **Gesture policy:** lift the unturned sheet's **lower free edge** (bottom
   ~22%) upward to advance. Pull the turned sheet's **upper free edge** (top
@@ -123,7 +124,17 @@ RTL Hebrew calendar works unchanged.
 (`/?example=vertical-calendar`) renders a combined Hebrew/Gregorian calendar —
 each sheet is one Hebrew month with Hebrew day numerals and the matching
 Gregorian dates in the same grid, month names for both calendars, two-digit
-years, Adar I/II leap-year sheets, and clickable date links.
+years, Adar I/II leap-year sheets, and clickable dates with a local details dialog.
+
+Date conversion uses the browser's built-in `Intl.DateTimeFormat` Hebrew
+calendar. The demo discovers month boundaries from civil days, including both
+Adars, and performs its day indexing in UTC so local clock changes do not
+shift dates. It needs an Intl implementation with Hebrew-calendar support.
+No calendar package, copied third-party conversion algorithm, external date
+service, or converter website is used. The earlier conversion file's claim
+that its Hebcal port was MIT-licensed was incorrect: upstream
+[`@hebcal/hdate` declares GPL-2.0-or-later](https://github.com/hebcal/hdate-js/blob/main/package.json).
+That port has been replaced, rather than relabelled.
 
 The engine retains its two-faces-per-leaf indexing. For a calendar with one
 month per turn, supply **front cover, blank reverse, month, blank reverse,

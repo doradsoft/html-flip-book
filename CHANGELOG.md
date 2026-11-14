@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The vertical binding uses paired wire loops in profile, and lifted sheets pass above the binding during a turn (#375).
+- Calendar conversion now uses native Intl Hebrew-calendar support in place of the copied conversion implementation; clickable dates show local details without an external calendar service (#375).
 - Vertical calendars keep both faces on one physical sheet, with upright content, correctly aligned top spirals, reverse-edge dragging, native scrolling outside the turn affordance, hidden covered faces, and consistent cancelled-turn and jump/history behavior (#375).
 - The Hebrew/Gregorian calendar demo shows one month per sheet without skipped months, complete responsive date grids, named month ranges with two-digit year labels, a month picker, and up/down keyboard controls (#375).
 - Toolbar and programmatic turns prepare moving bookmarks before revealing page content, avoiding a forced layout of the next chapter in the input handler. Failed setup releases its turn state so another turn can proceed.

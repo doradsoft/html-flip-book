@@ -27,29 +27,28 @@ import {
 } from "./calendar-model";
 import { toLetters } from "./gematry";
 import {
-	abs2greg,
 	buildHebrewMonthPage,
-	greg2abs,
 	type HebrewDay,
 	type HebrewMonthPage,
-	hebrew2abs,
 	hebrewYearShort,
 	holidayLabel,
 } from "./hebrewCalendar";
 import { TEST_PARAM_INITIAL_TURNED_LEAVES } from "./test-url-params";
 
-/** Fixed fixture years: 5787 is a leap year (Adar I/II) and 5788 crosses the
- *  Tishrei year boundary, satisfying the demo's leap/boundary coverage. */
 const WEEKDAY_HE = ["א", "ב", "ג", "ד", "ה", "ו", "ש"] as const;
+const selectedDateFormat = new Intl.DateTimeFormat("en", {
+	month: "long",
+	day: "numeric",
+	year: "2-digit",
+});
 
-function isToday(d: { hey: number; hem: number; hed: number }): boolean {
+function isToday(date: Date): boolean {
 	const now = new Date();
-	const todayHebrew = abs2greg(
-		greg2abs(new Date(now.getFullYear(), now.getMonth(), now.getDate())),
+	return (
+		date.getFullYear() === now.getFullYear() &&
+		date.getMonth() === now.getMonth() &&
+		date.getDate() === now.getDate()
 	);
-	// Compare via R.D.: today's Hebrew date equals the cell's Hebrew date.
-	const cellGreg = abs2greg(hebrew2abs(d.hey, d.hem, d.hed));
-	return cellGreg.getTime() === todayHebrew.getTime();
 }
 
 const FrontCover = () => (
@@ -116,13 +115,23 @@ function CellBody({
 	);
 }
 
-function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: HebrewMonthPage }) {
+function MonthCell({
+	cell,
+	col,
+	page,
+	onSelectDate,
+}: {
+	cell: GridCell;
+	col: number;
+	page: HebrewMonthPage;
+	onSelectDate: (day: HebrewDay) => void;
+}) {
 	const day = cell.day;
 	if (!day) {
 		return <td className="cal-cell cal-cell--blank" />;
 	}
 	const holiday = holidayLabel(day.hem, day.hed);
-	const today = isToday(day);
+	const today = isToday(day.gregorian);
 	const cls = [
 		"cal-cell",
 		col === 6 ? "cal-cell--shabbat" : "",
@@ -136,9 +145,11 @@ function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: Heb
 			<td className={cls} data-date={civilDateId(day.gregorian)}>
 				<a
 					className="cal-cell__link"
-					href={`https://www.hebcal.com/converter?gy=${day.gregorian.getFullYear()}&gm=${day.gregorian.getMonth() + 1}&gd=${day.gregorian.getDate()}&g2h=1`}
-					target="_blank"
-					rel="noreferrer"
+					href={`#date-${civilDateId(day.gregorian)}`}
+					onClick={(event) => {
+						event.preventDefault();
+						onSelectDate(day);
+					}}
 					data-flipbook-no-flip
 				>
 					{body}
@@ -156,6 +167,12 @@ function MonthCell({ cell, col, page }: { cell: GridCell; col: number; page: Heb
 function MonthPage({ year, month }: { year: number; month: number }) {
 	const page = useMemo(() => buildHebrewMonthPage(year, month), [year, month]);
 	const hebrewYearLabel = String(hebrewYearShort(year)).padStart(2, "0");
+	const [selectedDay, setSelectedDay] = useState<HebrewDay | null>(null);
+	const dateDialogRef = useRef<HTMLDialogElement>(null);
+	const selectDate = (day: HebrewDay) => {
+		setSelectedDay(day);
+		dateDialogRef.current?.showModal();
+	};
 	// Pad to whole weeks and derive row/cell keys from content (ISO dates) so
 	// the grid stays a semantic table without index keys.
 	const grid = useMemo(() => {
@@ -216,7 +233,13 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 						{grid.map((row) => (
 							<tr key={row.key} className="cal-grid__row">
 								{row.cells.map((cell, col) => (
-									<MonthCell key={cell.key} cell={cell} col={col} page={page} />
+									<MonthCell
+										key={cell.key}
+										cell={cell}
+										col={col}
+										page={page}
+										onSelectDate={selectDate}
+									/>
 								))}
 							</tr>
 						))}
@@ -226,6 +249,41 @@ function MonthPage({ year, month }: { year: number; month: number }) {
 			<div className="cal-page__handle" aria-hidden="true">
 				החודש הבא ↑ · Lift to turn
 			</div>
+			<dialog
+				ref={dateDialogRef}
+				className="cal-date-dialog"
+				aria-label="Calendar date details"
+				data-flipbook-no-flip
+				onClose={() => setSelectedDay(null)}
+				onKeyDown={(event) => event.stopPropagation()}
+			>
+				{selectedDay && (
+					<>
+						<h3>פרטי התאריך</h3>
+						<p>
+							<time dateTime={civilDateId(selectedDay.gregorian)}>
+								<span aria-hidden="true">{selectedDateFormat.format(selectedDay.gregorian)}</span>
+								<span className="cal-cell__sr">{selectedDay.gregorian.toDateString()}</span>
+							</time>
+						</p>
+						<p>
+							<span aria-hidden="true">
+								{toLetters(selectedDay.hebrewDay)} {page.monthNameHe} {hebrewYearLabel}
+							</span>
+							<span className="cal-cell__sr">
+								{selectedDay.hebrewDay} {page.monthNameEn} {year}
+							</span>
+						</p>
+						<button
+							type="button"
+							aria-label="Close date details"
+							onClick={() => dateDialogRef.current?.close()}
+						>
+							סגירה · Close
+						</button>
+					</>
+				)}
+			</dialog>
 		</div>
 	);
 }
