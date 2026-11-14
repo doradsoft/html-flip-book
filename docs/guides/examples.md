@@ -125,6 +125,13 @@ above the indicator and downward navigation below it. Place the toolbar beside
 the book using your own container layout. The calendar demo's **Toolbar** selector
 lets you switch layouts without changing the selected month.
 
+The vertical toolbar reserves its title slot from all possible page labels
+before painting, so shorter cover/end names and longer month names do not
+resize the controls. The slot has a fixed single-line height and a default
+maximum width of `8ch`. Override `--flipbook-indicator-max-width` on the toolbar
+to change that cap. Overflow uses an ellipsis; the full label remains in the
+accessible text and native title tooltip.
+
 - The book splits vertically at the binding: the **lower half** is the live
   sheet stack, the **upper half** collects turned sheets.
 - A decorative coil is drawn across the seam via `.flipbook--vertical::before`

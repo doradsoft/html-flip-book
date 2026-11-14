@@ -125,6 +125,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 			value={{
 				flipBookRef,
 				direction,
+				orientation: layout,
 				locale,
 				pageSemantics,
 				currentPage,

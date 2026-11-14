@@ -6,6 +6,8 @@ import type { Locale } from "../i18n";
 interface ToolbarContextValue {
 	flipBookRef: React.RefObject<FlipBookHandle | null>;
 	direction: "ltr" | "rtl";
+	/** Effective control layout. Older custom providers default to horizontal. */
+	orientation?: "horizontal" | "vertical";
 	/** Locale for UI strings (toolbar, download menu). Defaults to en-US. */
 	locale: Locale;
 	pageSemantics?: PageSemantics;

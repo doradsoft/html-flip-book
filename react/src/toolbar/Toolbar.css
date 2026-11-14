@@ -67,14 +67,10 @@
 
 .flipbook-toolbar--vertical {
 	flex-direction: column;
-	width: 64px;
+	width: max-content;
+	min-width: 64px;
 	min-height: 0;
 	padding: 8px;
-}
-
-.flipbook-toolbar--vertical .flipbook-toolbar-indicator {
-	max-width: 100%;
-	white-space: normal;
 }
 
 .flipbook-toolbar--vertical .flipbook-toolbar-start,
@@ -214,6 +210,27 @@ input.flipbook-toolbar-indicator--editing {
 input.flipbook-toolbar-indicator:focus {
 	outline: 2px solid currentColor;
 	outline-offset: 2px;
+}
+
+/* Reserve the widest title up front, with a bounded single-line slot. */
+.flipbook-toolbar--vertical .flipbook-toolbar-indicator {
+	box-sizing: border-box;
+	width: min(
+		calc(var(--flipbook-indicator-text-width, 64px) + 16px),
+		var(--flipbook-indicator-max-width, 8ch)
+	);
+	height: 28px;
+	flex: 0 0 auto;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.flipbook-toolbar-indicator-label {
+	display: block;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 .visually-hidden {

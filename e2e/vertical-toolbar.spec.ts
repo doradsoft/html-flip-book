@@ -96,3 +96,57 @@ for (const direction of ["ltr", "rtl"]) {
 		await expect(page.getByRole("combobox", { name: "Toolbar layout" })).toHaveCount(0);
 	});
 }
+
+test("reserves a stable title slot before visiting cover, month and end labels", async ({
+	page,
+}, testInfo) => {
+	await page.goto("/?example=vertical-calendar");
+	await page.getByRole("combobox", { name: "Toolbar layout" }).selectOption("vertical");
+	const toolbar = page.getByRole("toolbar");
+	const indicator = toolbar.locator(".flipbook-toolbar-indicator");
+	const initial = await toolbar.boundingBox();
+	const months = page.getByRole("combobox", { name: "Go to month" });
+	const options = await months.locator("option").evaluateAll((options) =>
+		options.map((option) => ({
+			value: (option as HTMLOptionElement).value,
+			text: option.textContent.trim(),
+		})),
+	);
+	for (const option of options) {
+		await months.selectOption(option.value);
+		const text = option.value === "-1" ? "כריכה" : option.value === "25" ? "סיום" : option.text;
+		await expect(indicator).toHaveText(text);
+		const bounds = await toolbar.boundingBox();
+		expect(bounds.width).toBeCloseTo(initial.width, 1);
+		expect(bounds.height).toBeCloseTo(initial.height, 1);
+		if (option.value === "-1")
+			await toolbar.screenshot({
+				path: `docs/images/vertical-calendar/toolbar-stable-cover-${testInfo.project.name}.png`,
+			});
+	}
+	await months.selectOption("0");
+	await expect(indicator).toHaveText("תשרי 87");
+	await toolbar.screenshot({
+		path: `docs/images/vertical-calendar/toolbar-stable-title-${testInfo.project.name}.png`,
+	});
+});
+
+test("caps long title space with ellipsis and keeps the full label available", async ({ page }) => {
+	await page.goto("/?example=vertical-calendar");
+	await page.getByRole("combobox", { name: "Toolbar layout" }).selectOption("vertical");
+	const toolbar = page.getByRole("toolbar");
+	await toolbar.evaluate((element) =>
+		(element as HTMLElement).style.setProperty("--flipbook-indicator-max-width", "28px"),
+	);
+	const indicator = toolbar.locator(".flipbook-toolbar-indicator");
+	await expect(indicator).toHaveAttribute("title", "תשרי 87");
+	const label = indicator.locator(".flipbook-toolbar-indicator-label");
+	await expect(label).toHaveCSS("text-overflow", "ellipsis");
+	await expect(label).toHaveCSS("white-space", "nowrap");
+	const metrics = await label.evaluate((element) => ({
+		width: element.clientWidth,
+		content: element.scrollWidth,
+	}));
+	expect(metrics.content).toBeGreaterThan(metrics.width);
+	await expect(indicator).toHaveText("תשרי 87");
+});
