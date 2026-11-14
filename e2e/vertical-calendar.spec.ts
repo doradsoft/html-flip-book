@@ -223,9 +223,13 @@ test.describe("Vertical spiral calendar", () => {
 		page,
 	}, testInfo) => {
 		const sheet = await box(page);
-		const coilBefore = await page
-			.locator(BOOK)
-			.evaluate((book) => getComputedStyle(book, "::before").top);
+		const coilBefore = await page.locator(BOOK).evaluate((book) =>
+			["::before", "::after"].map((side) => {
+				const arc = getComputedStyle(book, side);
+				return { top: arc.top, left: arc.left, width: arc.width, height: arc.height };
+			}),
+		);
+		expect(coilBefore[1]).toEqual(coilBefore[0]);
 		const x = sheet.x + sheet.width / 2;
 		await page.mouse.move(x, sheet.y + sheet.height - 5);
 		await page.mouse.down();
@@ -242,8 +246,13 @@ test.describe("Vertical spiral calendar", () => {
 		expect(a.height).toBeCloseTo(b.height, 0);
 		expect(a.width).toBeCloseTo(b.width, 0);
 		expect(
-			await page.locator(BOOK).evaluate((book) => getComputedStyle(book, "::before").top),
-		).toBe(coilBefore);
+			await page.locator(BOOK).evaluate((book) =>
+				["::before", "::after"].map((side) => {
+					const arc = getComputedStyle(book, side);
+					return { top: arc.top, left: arc.left, width: arc.width, height: arc.height };
+				}),
+			),
+		).toEqual(coilBefore);
 		await page.screenshot({
 			path: `docs/images/vertical-calendar/repaired-mid-turn-${testInfo.project.name}.png`,
 			fullPage: true,
@@ -256,9 +265,14 @@ test.describe("Vertical spiral calendar", () => {
 		expect(front.height).toBeCloseTo(reverse.height, 0);
 		expect(
 			await page.locator(BOOK).evaluate((book) => {
-				const coil = Number(getComputedStyle(book, "::before").zIndex);
+				const rear = getComputedStyle(book, "::before");
+				const front = getComputedStyle(book, "::after");
+				if (front.backgroundImage === "none" || front.backgroundImage === rear.backgroundImage)
+					return false;
 				return [...book.querySelectorAll<HTMLElement>(".page--flipping")].every(
-					(page) => Number(page.style.zIndex) > coil,
+					(page) =>
+						Number(page.style.zIndex) > Number(rear.zIndex) &&
+						Number(page.style.zIndex) < Number(front.zIndex),
 				);
 			}),
 		).toBe(true);

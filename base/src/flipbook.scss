@@ -7,8 +7,9 @@
 
 // Vertical (top-bound) books draw a decorative spiral coil across the binding
 // seam. --flipbook-binding-y / --flipbook-binding-size are written by the
-// engine in layout pixels; consumers can restyle or hide (::before content:
-// none) the coil entirely.
+// engine in layout pixels. Rear and front arcs occupy separate layers so a
+// lifted sheet passes through the loops. Consumers can restyle both pseudo-
+// elements, or hide the coil with --flipbook-binding-display: none.
 .flipbook--vertical {
   position: relative;
 }
@@ -19,17 +20,29 @@
   overscroll-behavior: auto;
 }
 
-.flipbook--vertical::before {
+.flipbook--vertical::before,
+.flipbook--vertical::after {
   content: "";
+  display: var(--flipbook-binding-display, block);
   position: absolute;
   left: var(--flipbook-binding-left, 0px);
   width: var(--flipbook-binding-width, 100%);
   top: calc(var(--flipbook-binding-y, 50%) - var(--flipbook-binding-size, 0px) / 2);
   height: var(--flipbook-binding-size, 0px);
-  z-index: var(--flipbook-binding-z-index, 60);
   pointer-events: none;
-  background: url("./spiral-binding.svg") repeat-x center;
+  background-repeat: repeat-x;
+  background-position: center;
   background-size: calc(var(--flipbook-binding-size, 20px) * 28 / 30) 100%;
+}
+
+.flipbook--vertical::before {
+  z-index: var(--flipbook-binding-z-index, 60);
+  background-image: url("./spiral-binding.svg");
+}
+
+.flipbook--vertical::after {
+  z-index: var(--flipbook-binding-front-z-index, 120);
+  background-image: url("./spiral-binding-front.svg");
 }
 
 .flipbook-debug-bar {

@@ -154,9 +154,10 @@ describe("FlipBook flipAxis 'vertical'", () => {
 		book.destroy();
 	});
 
-	it("draws resting paper below the wire and lifted faces above it throughout a turn", () => {
+	it("passes lifted paper between the rear and front wire arcs throughout a turn", () => {
 		const book = renderVertical(8);
 		const binding = Number(container.style.getPropertyValue("--flipbook-binding-z-index"));
+		const frontWire = Number(container.style.getPropertyValue("--flipbook-binding-front-z-index"));
 		const leaf = getFlipBookInternals(book).leaves[1];
 		for (const position of [0, 0.25, 0.5, 0.75, 1]) {
 			leaf.setManualPosition(position);
@@ -164,7 +165,10 @@ describe("FlipBook flipAxis 'vertical'", () => {
 				if (!face) continue;
 				if (position === 0 || position === 1)
 					expect(Number(face.style.zIndex)).toBeLessThan(binding);
-				else expect(Number(face.style.zIndex)).toBeGreaterThan(binding);
+				else {
+					expect(Number(face.style.zIndex)).toBeGreaterThan(binding);
+					expect(Number(face.style.zIndex)).toBeLessThan(frontWire);
+				}
 			}
 		}
 		book.destroy();
