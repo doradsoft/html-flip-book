@@ -41,7 +41,9 @@
 }
 
 .flipbook--vertical::after {
-  z-index: var(--flipbook-binding-front-z-index, 120);
+  // A retained book may only have the original rear-layer value. Derive its
+  // front layer from the same page count so late/backward turns stay threaded.
+  z-index: var(--flipbook-binding-front-z-index, calc(var(--flipbook-binding-z-index, 60) * 4 - 3));
   background-image: url("./spiral-binding-front.svg");
 }
 
