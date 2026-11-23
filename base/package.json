@@ -50,7 +50,7 @@
 	"dependencies": {
 		"hammerjs": "^2.0.8",
 		"throttle-debounce": "^5.0.2",
-		"type-fest": "^5.4.4"
+		"type-fest": "^6.0.3"
 	},
 	"devDependencies": {
 		"@types/hammerjs": "^2.0.46",
